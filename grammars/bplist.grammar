@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ufwb version="1.16">
+    <grammar name="Binary PList" start="id:7" author="Andreas Pehnack" email="andreas@synalysis.com" fileextension="plist,nib,sfl,qtz,strings,stringsdict,mom,xcplugindata,xcuserstate,caar,cdm,cam,scriptSuite,webloc,xcplugindata,tracetemplate,etypes,scnp,scn,sks,xcspec,xcplugincache,xcrequiredplugins,colortable,classdescriptions,ibsearchdata,serialized,defaults,tokencache,toc,artworkConfig,foldermetadata,sprite,catalogcolorkeyedarchive,dvtdownloadableindex,pbfilespec,pdIR,mainstageGraph,loopdata,garageSale,curves,mtp,snagproj,lpg,parameterGroup,iconsconf,commandset,as,itxib,idx,mcalc,animationb,ribbonb,netspd,potemplate,pspreset,snagstyles,terraraymeshobject,terra,montage,avenirproj,writeroomtheme,tmCommand,tmPreferences,tmSnippet,tmLanguage,tmMacro,learned,ltxpt,logoistFilterPreset,logoist,style,layout,ticketstore,caches,clr,thrash" uti="com.apple.property-list">
+        <description>Grammar for Binary PList files. See https://opensource.apple.com/source/CF/CF-550/ForFoundationOnly.h</description>
+        <scripts>
+            <script name="DynamicCount" type="DataType" id="201">
+                <description>Reads a 4-bit count and if it's 0x0F, read an integer</description>
+                <source language="Python"># Parses 4-byte namber and if it's 0x0F, an integer object
+# see https://opensource.apple.com/source/CF/CF-550/CFBinaryPList.c
+
+def parseBitRange(element, byteView, bitPos, bitLength, results):
+	# this method parses data starting at bitPos, bitLength bits are remaining
+	&quot;&quot;&quot;parseByteRange method&quot;&quot;&quot;
+
+	processedBits = 0
+
+	count = byteView.readUnsignedIntBits(bitPos, 4, ENDIAN_BIG)
+	processedBits += 4
+
+	# create and set new value
+	value = Value()
+
+	if (count &gt;= 0x0F):
+		intMarker = byteView.readUnsignedIntBits(bitPos + processedBits, 4, ENDIAN_BIG)
+		processedBits += 4
+		if (intMarker != 1):
+			intPos = (bitPos + processedBits) / 8;
+			print(&quot;Expected integer object at position &quot; + str(intPos))
+		else:
+			intBits = byteView.readUnsignedIntBits(bitPos + processedBits, 4, ENDIAN_BIG)
+			processedBits += 4
+			intBytes = 2 ** intBits
+			count = byteView.readUnsignedInt((bitPos + processedBits) / 8, intBytes, ENDIAN_BIG)
+			processedBits += intBytes * 8
+
+	value.setUnsigned(count)
+
+	# how many bytes were processed?
+	iteration = 0
+
+	results.addElementBits(element, processedBits, iteration, value)
+
+	# return number of processed bytes
+	return processedBits
+</source>
+            </script>
+        </scripts>
+        <structure name="SFL file" id="7" encoding="ISO_8859-1:1987" endian="big" signed="no">
+            <structure name="Header" id="8">
+                <string name="Identifier" id="9" fillcolor="FF9300" type="fixed-length" length="6" encoding="IBM850"/>
+                <string name="Version" id="10" fillcolor="FF2600" type="fixed-length" length="2" encoding="IBM850"/>
+            </structure>
+            <scriptelement name="ReadTrailer" id="12">
+                <script name="unnamed" type="Generic">
+                    <source language="Lua">byteView = currentMapper:getCurrentByteView()
+ 
+fileLength = byteView:getLength()
+
+currentGrammar = currentMapper:getCurrentGrammar()
+
+-- get the structure we want to apply
+structure = currentGrammar:getStructureByName(&quot;Trailer&quot;)
+
+bytesProcessed = currentMapper:mapStructureAtPosition(structure, fileLength-32, 32)
+</source>
+                </script>
+            </scriptelement>
+        </structure>
+        <structure name="ObjectSelection" id="14" encoding="ISO_8859-1:1987" endian="big" signed="no" order="variable">
+            <structref name="Null Object" id="16" repeatmin="0" structure="id:15"/>
+            <structref name="Bool False Object" id="18" repeatmin="0" structure="id:17"/>
+            <structref name="Bool True Object" id="20" repeatmin="0" structure="id:19"/>
+            <structref name="Fill Object" id="22" repeatmin="0" structure="id:21"/>
+            <structref name="Int Object" id="24" repeatmin="0" structure="id:23"/>
+            <structref name="Real Object" id="26" repeatmin="0" structure="id:25"/>
+            <structref name="Date Object" id="28" repeatmin="0" structure="id:27"/>
+            <structref name="Data Object" id="30" repeatmin="0" structure="id:29"/>
+            <structref name="ASCII String Object" id="32" repeatmin="0" structure="id:31"/>
+            <structref name="Unicode String Object" id="34" repeatmin="0" structure="id:33"/>
+            <structref name="UID Object" id="36" repeatmin="0" structure="id:35"/>
+            <structref name="Array Object" id="38" repeatmin="0" structure="id:37"/>
+            <structref name="Set Object" id="40" repeatmin="0" structure="id:39"/>
+            <structref name="Dict Object" id="42" repeatmin="0" structure="id:41"/>
+        </structure>
+        <structure name="Trailer" id="44" encoding="ISO_8859-1:1987" endian="big" signed="no">
+            <binary name="unused" id="45" fillcolor="D4FB78" length="5"/>
+            <number name="sortVersion" id="46" fillcolor="72FA78" type="integer" length="1"/>
+            <number name="offsetIntSize" id="47" fillcolor="72FCD5" type="integer" length="1"/>
+            <number name="offsetRefSize" id="48" fillcolor="7980FF" type="integer" length="1"/>
+            <number name="numObjects" id="49" fillcolor="D783FF" type="integer" length="8"/>
+            <number name="topObject" id="50" fillcolor="FF7D78" type="integer" length="8"/>
+            <offset name="OffsetTable" id="52" fillcolor="7980FF" length="8" references="id:51" follownullreference="yes"/>
+        </structure>
+        <structure name="Object" id="54" encoding="ISO_8859-1:1987" endian="big" signed="no">
+            <number name="Marker" mustmatch="yes" id="55" fillcolor="72FA78" type="integer" length="4" lengthunit="bit" display="hex"/>
+        </structure>
+        <structure name="Null Object" id="15" extends="id:54">
+            <number name="Marker" id="57" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Fixed" value="0x0"/>
+                </fixedvalues>
+            </number>
+            <number name="Fixed" mustmatch="yes" id="58" type="integer" length="4" lengthunit="bit" display="hex">
+                <fixedvalues>
+                    <fixedvalue name="NULL" value="0x0"/>
+                </fixedvalues>
+            </number>
+        </structure>
+        <structure name="Bool False Object" id="17" extends="id:54">
+            <number name="Marker" id="60" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Fixed" value="0x0"/>
+                </fixedvalues>
+            </number>
+            <number name="Fixed" mustmatch="yes" id="61" type="integer" length="4" lengthunit="bit" display="hex">
+                <fixedvalues>
+                    <fixedvalue name="FALSE" value="0x8"/>
+                </fixedvalues>
+            </number>
+        </structure>
+        <structure name="Bool True Object" id="19" extends="id:54">
+            <number name="Marker" id="63" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Fixed" value="0x0"/>
+                </fixedvalues>
+            </number>
+            <number name="Fixed" mustmatch="yes" id="64" type="integer" length="4" lengthunit="bit" display="hex">
+                <fixedvalues>
+                    <fixedvalue name="TRUE" value="0x9"/>
+                </fixedvalues>
+            </number>
+        </structure>
+        <structure name="Fill Object" id="21" extends="id:54">
+            <number name="Marker" id="66" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Fixed" value="0x0"/>
+                </fixedvalues>
+            </number>
+            <number name="Fixed" mustmatch="yes" id="67" type="integer" length="4" lengthunit="bit" display="hex">
+                <fixedvalues>
+                    <fixedvalue name="Fill" value="0xF"/>
+                </fixedvalues>
+            </number>
+        </structure>
+        <structure name="Int Object" id="23" extends="id:54" valueexpression="Number">
+            <number name="Marker" id="69" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Int" value="0x1"/>
+                </fixedvalues>
+            </number>
+            <custom name="Count" id="70" fillcolor="FEFB00" script="id:201"/>
+            <number name="Number" id="71" fillcolor="75D5FF" type="integer" length="2^Count"/>
+        </structure>
+        <structure name="Real Object" id="25" extends="id:54">
+            <number name="Marker" id="73" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Real" value="0x2"/>
+                </fixedvalues>
+            </number>
+            <custom name="NumberOfBytes" id="74" fillcolor="FEFB00" script="id:201"/>
+            <number name="Number" id="75" fillcolor="72FCD5" type="float" length="2^NumberOfBytes"/>
+        </structure>
+        <structure name="Date Object" id="27" extends="id:54" valueexpression="Date">
+            <number name="Marker" id="77" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Date" value="0x3"/>
+                </fixedvalues>
+            </number>
+            <number name="Fixed" mustmatch="yes" id="78" type="integer" length="4" lengthunit="bit" display="hex">
+                <fixedvalues>
+                    <fixedvalue name="Date" value="0x3"/>
+                </fixedvalues>
+            </number>
+            <number name="Date" id="79" fillcolor="D783FF" type="float" length="8"/>
+        </structure>
+        <structure name="Data Object" id="29" extends="id:54">
+            <number name="Marker" id="81" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Data" value="0x4"/>
+                </fixedvalues>
+            </number>
+            <custom name="ByteCount" id="82" fillcolor="FEFB00" script="id:201"/>
+            <binary name="Data" id="83" fillcolor="0096FF" length="ByteCount"/>
+        </structure>
+        <structure name="ASCII String Object" id="31" extends="id:54" valueexpression="String">
+            <number name="Marker" id="85" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="ASCII" value="0x5"/>
+                </fixedvalues>
+            </number>
+            <custom name="NumberOfChars" id="86" fillcolor="FEFB00" script="id:201"/>
+            <string name="String" id="87" fillcolor="D783FF" type="fixed-length" length="NumberOfChars"/>
+        </structure>
+        <structure name="Unicode String Object" id="33" extends="id:54" valueexpression="String">
+            <number name="Marker" id="89" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Unicode" value="0x6"/>
+                </fixedvalues>
+            </number>
+            <custom name="NumberOfChars" id="90" fillcolor="FEFB00" script="id:201"/>
+            <string name="String" id="91" fillcolor="FFD478" type="fixed-length" length="NumberOfChars" encoding="UTF-16BE"/>
+        </structure>
+        <structure name="UID Object" id="35" extends="id:54">
+            <number name="Marker" id="93" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="UID" value="0x8"/>
+                </fixedvalues>
+            </number>
+            <custom name="NumberOfBytes" id="94" fillcolor="FEFB00" script="id:201"/>
+            <binary name="UID" id="95" fillcolor="73FDFF" length="NumberOfBytes+1"/>
+        </structure>
+        <structure name="Array Object" id="37" extends="id:54">
+            <number name="Marker" id="97" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Array" value="0xA"/>
+                </fixedvalues>
+            </number>
+            <custom name="ObjectCount" id="98" fillcolor="FEFB00" length="5" script="id:201"/>
+            <number name="Object" id="99" fillcolor="72FCD5" repeatmin="0" repeatmax="ObjectCount" type="integer" length="offsetRefSize"/>
+        </structure>
+        <structure name="Set Object" id="39" extends="id:54">
+            <number name="Marker" id="101" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Set" value="0xC"/>
+                </fixedvalues>
+            </number>
+            <custom name="ObjectCount" id="102" fillcolor="FEFB00" script="id:201"/>
+            <number name="Object" id="103" fillcolor="72FCD5" repeatmin="0" repeatmax="ObjectCount" type="integer" length="offsetRefSize"/>
+        </structure>
+        <structure name="Dict Object" id="41" extends="id:54">
+            <number name="Marker" id="105" type="integer">
+                <fixedvalues>
+                    <fixedvalue name="Dictionary" value="0xD"/>
+                </fixedvalues>
+            </number>
+            <custom name="ObjectCount" id="106" fillcolor="FEFB00" script="id:201"/>
+            <number name="KeyObject" id="107" fillcolor="D4FB78" repeatmin="0" repeatmax="ObjectCount" type="integer" length="offsetRefSize"/>
+            <number name="ValueObject" id="108" fillcolor="FF2F92" repeatmin="0" repeatmax="ObjectCount" type="integer" length="offsetRefSize"/>
+        </structure>
+        <structure name="OffsetTable" id="51" encoding="ISO_8859-1:1987" endian="big" signed="no">
+            <offset name="ObjectSelection" id="110" fillcolor="FFD478" repeatmin="0" repeatmax="numObjects" length="offsetIntSize" references="id:14" follownullreference="yes">
+            </offset>
+        </structure>
+    </grammar>
+</ufwb>

@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ufwb version="1.3">
+    <grammar name="Adobe Swatch Exchange" start="id:25" author="Andreas Pehnack" fileextension="ase">
+        <description>Grammar for Adobe Swatch Exchange files of Adobe Creative Suite 3</description>
+        <structure name="ASE file" id="25" encoding="ISO_8859-1:1987" endian="big" signed="no">
+            <string name="Signature" id="27" fillcolor="FF89D8" type="fixed-length" length="4" encoding="ISO_8859-1:1987"/>
+            <number name="VersionMajor" id="29" fillcolor="73FDFF" type="integer" length="2"/>
+            <number name="VersionMinor" id="30" fillcolor="73FDFF" type="integer" length="2"/>
+            <number name="NumberOfBlocks" id="31" fillcolor="D783FF" type="integer" length="4"/>
+            <structure name="Block" id="37" length="Length + 6" repeatmax="NumberOfBlocks">
+                <number name="Type" id="32" fillcolor="FF89D8" type="integer" length="2" display="hex">
+                    <fixedvalues>
+                        <fixedvalue name="GroupStart" value="0xC001"/>
+                        <fixedvalue name="GroupEnd" value="0xC002"/>
+                        <fixedvalue name="ColorEntry" value="0x1"/>
+                    </fixedvalues>
+                </number>
+                <number name="Length" id="33" fillcolor="7980FF" type="integer" length="4"/>
+                <number name="StringLength" id="34" fillcolor="FEFB00" type="integer" length="2"/>
+                <string name="ColorName" id="35" fillcolor="FEFB00" type="fixed-length" length="StringLength * 2" encoding="UTF-16BE"/>
+                <structure name="Color" id="55" order="variable">
+                    <structref name="RgbColor" id="57" repeatmin="0" structure="id:39"/>
+                    <structref name="CymkColor" id="58" repeatmin="0" structure="id:41"/>
+                    <structref name="LabColor" id="76" repeatmin="0" structure="id:67"/>
+                    <structref name="GrayColor" id="84" repeatmin="0" structure="id:77"/>
+                </structure>
+            </structure>
+        </structure>
+        <structure name="Color" id="43" encoding="ISO_8859-1:1987" endian="big" signed="no">
+            <string name="Model" id="36" fillcolor="FFD478" type="fixed-length" length="4" encoding="ISO_8859-1:1987"/>
+            <structure name="Data" id="45"/>
+            <number name="Type" id="47" fillcolor="D5D5D5" type="integer" length="1">
+                <fixedvalues>
+                    <fixedvalue name="Global" value="0"/>
+                    <fixedvalue name="Spot" value="1"/>
+                    <fixedvalue name="Normal" value="2"/>
+                </fixedvalues>
+            </number>
+        </structure>
+        <structure name="RgbColor" id="39" extends="id:43">
+            <string name="Model" mustmatch="yes" id="48" type="fixed-length" length="4">
+                <fixedvalues>
+                    <fixedvalue name="RBG" value="RGB "/>
+                </fixedvalues>
+            </string>
+            <structure name="Data" id="49">
+                <number name="Red" id="52" fillcolor="FF7D78" type="float" length="32" lengthunit="bit"/>
+                <number name="Green" id="54" fillcolor="72FA78" type="float" length="32" lengthunit="bit"/>
+                <number name="Blue" id="53" fillcolor="75D5FF" type="float" length="32" lengthunit="bit"/>
+            </structure>
+            <number name="Type" id="51" type="integer"/>
+        </structure>
+        <structure name="CymkColor" id="41" extends="id:43">
+            <string name="Model" mustmatch="yes" id="59" type="fixed-length" length="4">
+                <fixedvalues>
+                    <fixedvalue name="CMYK" value="CMYK"/>
+                </fixedvalues>
+            </string>
+            <structure name="Data" id="60">
+                <number name="Cyan" id="65" fillcolor="00A3DA" type="float" length="32" lengthunit="bit"/>
+                <number name="Magenta" id="64" fillcolor="D8117D" type="float" length="32" lengthunit="bit"/>
+                <number name="Yellow" id="63" fillcolor="FFF001" type="float" length="32" lengthunit="bit"/>
+                <number name="Black" id="66" fillcolor="ADAEAC" type="float" length="32" lengthunit="bit"/>
+            </structure>
+            <number name="Type" id="62" type="integer"/>
+        </structure>
+        <structure name="LabColor" id="67" extends="id:43">
+            <string name="Model" id="69" type="fixed-length" length="4"/>
+            <structure name="Data" id="70">
+                <number name="Lightness" id="75" type="float" length="32" lengthunit="bit"/>
+                <number name="a" id="74" type="float" length="32" lengthunit="bit"/>
+                <number name="b" id="73" type="float" length="32" lengthunit="bit"/>
+            </structure>
+            <number name="Type" id="72" type="integer"/>
+        </structure>
+        <structure name="GrayColor" id="77" extends="id:43">
+            <string name="Model" mustmatch="yes" id="79" type="fixed-length" length="4">
+                <fixedvalues>
+                    <fixedvalue name="Gray" value="Gray"/>
+                </fixedvalues>
+            </string>
+            <structure name="Data" id="80">
+                <number name="Gray" id="83" fillcolor="B3B4B3" type="float" length="32" lengthunit="bit"/>
+            </structure>
+            <number name="Type" id="82" type="integer"/>
+        </structure>
+    </grammar>
+</ufwb>
