@@ -5,8 +5,8 @@ import (
 	"bytes"
 	"io/ioutil"
 	"path"
-	"testing"
 	"strings"
+	"testing"
 )
 
 const (
@@ -28,9 +28,9 @@ func TestParserPng(t *testing.T) {
 	}
 
 	// Parse
-	grammar, err := ufwb.ParseGrammar(bytes.NewReader(in))
-	if err != nil {
-		t.Fatalf("Parse(%q) = %q want nil error", langFile, err)
+	grammar, errs := ufwb.ParseXmlGrammar(bytes.NewReader(in))
+	if len(errs) > 0 {
+		t.Fatalf("Parse(%q) = %q want nil error", langFile, errs)
 	}
 
 	// Now read each sample png file:
@@ -73,60 +73,60 @@ func TestParserPng(t *testing.T) {
 func TestParserNumber(t *testing.T) {
 	binary := []byte("\x81\x82\x83\x84\x85\x86\x87\x88")
 	var tests = []struct {
-		xml string
+		xml  string
 		want string
 	}{
 		// Unsigned
 		{
-			xml: `<number id="1" type="integer" length="1" endian="big" signed="no"/>`,
+			xml:  `<number id="1" type="integer" length="1" endian="big" signed="no"/>`,
 			want: "129",
 		}, {
-			xml: `<number id="1" type="integer" length="2" endian="big" signed="no"/>`,
+			xml:  `<number id="1" type="integer" length="2" endian="big" signed="no"/>`,
 			want: "33154",
 		}, {
-			xml: `<number id="1" type="integer" length="4" endian="big" signed="no"/>`,
+			xml:  `<number id="1" type="integer" length="4" endian="big" signed="no"/>`,
 			want: "2172814212",
 		}, {
-			xml: `<number id="1" type="integer" length="8" endian="big" signed="no"/>`,
+			xml:  `<number id="1" type="integer" length="8" endian="big" signed="no"/>`,
 			want: "9332165983064197000",
 		}, {
-			xml: `<number id="1" type="integer" length="1" endian="little" signed="no"/>`,
+			xml:  `<number id="1" type="integer" length="1" endian="little" signed="no"/>`,
 			want: "129",
 		}, {
-			xml: `<number id="1" type="integer" length="2" endian="little" signed="no"/>`,
+			xml:  `<number id="1" type="integer" length="2" endian="little" signed="no"/>`,
 			want: "33409",
 		}, {
-			xml: `<number id="1" type="integer" length="4" endian="little" signed="no"/>`,
+			xml:  `<number id="1" type="integer" length="4" endian="little" signed="no"/>`,
 			want: "2223211137",
 		}, {
-			xml: `<number id="1" type="integer" length="8" endian="little" signed="no"/>`,
+			xml:  `<number id="1" type="integer" length="8" endian="little" signed="no"/>`,
 			want: "9837979819026121345",
 		},
 
 		// Signed
 		{
-			xml: `<number id="1" type="integer" length="1" endian="big" signed="yes"/>`,
+			xml:  `<number id="1" type="integer" length="1" endian="big" signed="yes"/>`,
 			want: "-127",
 		}, {
-			xml: `<number id="1" type="integer" length="2" endian="big" signed="yes"/>`,
+			xml:  `<number id="1" type="integer" length="2" endian="big" signed="yes"/>`,
 			want: "-32382",
 		}, {
-			xml: `<number id="1" type="integer" length="4" endian="big" signed="yes"/>`,
+			xml:  `<number id="1" type="integer" length="4" endian="big" signed="yes"/>`,
 			want: "-2122153084",
 		}, {
-			xml: `<number id="1" type="integer" length="8" endian="big" signed="yes"/>`,
+			xml:  `<number id="1" type="integer" length="8" endian="big" signed="yes"/>`,
 			want: "-9114578090645354616",
 		}, {
-			xml: `<number id="1" type="integer" length="1" endian="little" signed="yes"/>`,
+			xml:  `<number id="1" type="integer" length="1" endian="little" signed="yes"/>`,
 			want: "-127",
 		}, {
-			xml: `<number id="1" type="integer" length="2" endian="little" signed="yes"/>`,
+			xml:  `<number id="1" type="integer" length="2" endian="little" signed="yes"/>`,
 			want: "-32127",
 		}, {
-			xml: `<number id="1" type="integer" length="4" endian="little" signed="yes"/>`,
+			xml:  `<number id="1" type="integer" length="4" endian="little" signed="yes"/>`,
 			want: "-2071756159",
 		}, {
-			xml: `<number id="1" type="integer" length="8" endian="little" signed="yes"/>`,
+			xml:  `<number id="1" type="integer" length="8" endian="little" signed="yes"/>`,
 			want: "-8608764254683430271",
 		},
 
@@ -137,9 +137,9 @@ func TestParserNumber(t *testing.T) {
 
 	for _, test := range tests {
 		xml := commonHeader + test.xml + commonFooter
-		g, err := ufwb.ParseGrammar(strings.NewReader(xml))
-		if err != nil {
-			t.Errorf("ufwb.ParseGrammar(%q) = %q want nil error", test.xml, err)
+		g, errs := ufwb.ParseXmlGrammar(strings.NewReader(xml))
+		if len(errs) > 0 {
+			t.Errorf("ufwb.ParseGrammar(%q) = %q want nil error", test.xml, errs)
 			continue
 		}
 

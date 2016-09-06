@@ -1,6 +1,5 @@
 package ufwb
 
-
 // seekUntil reads from the file until it finds a delim character, or EOF. Returning the number
 // of bytes until it was found.
 func seekUntil(f File, delim byte) (int64, error) {
@@ -16,7 +15,6 @@ func seekUntil(f File, delim byte) (int64, error) {
 		}
 	}
 }
-
 
 // readBytes reads from the file until it finds a delim character, or EOF
 func readBytes(f File, delim byte) ([]byte, error) {

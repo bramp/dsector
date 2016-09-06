@@ -7,11 +7,11 @@ import (
 
 // BytesFile implements ufwb.File
 type BytesFile struct {
-	offset int   // Not a int64, since a []byte can only contain `int' elements.
-	bytes []byte
+	offset int // Not a int64, since a []byte can only contain `int' elements.
+	bytes  []byte
 }
 
-func NewFileFromBytes (bytes []byte) *BytesFile {
+func NewFileFromBytes(bytes []byte) *BytesFile {
 	return &BytesFile{0, bytes}
 }
 
@@ -41,12 +41,12 @@ func (f *BytesFile) ReadByte() (byte, error) {
 
 func (f *BytesFile) Seek(offset int64, whence int) (ret int64, err error) {
 	switch whence {
-		case io.SeekStart:
-			f.offset = int(offset)
-		case io.SeekCurrent:
-			f.offset += int(offset)
-		case io.SeekEnd:
-			f.offset = len(f.bytes) + int(offset)
+	case io.SeekStart:
+		f.offset = int(offset)
+	case io.SeekCurrent:
+		f.offset += int(offset)
+	case io.SeekEnd:
+		f.offset = len(f.bytes) + int(offset)
 	}
 	if f.offset < 0 {
 		f.offset = 0
@@ -58,4 +58,3 @@ func (f *BytesFile) Seek(offset int64, whence int) (ret int64, err error) {
 func (f *BytesFile) Tell() (int64, error) {
 	return int64(f.offset), nil
 }
-

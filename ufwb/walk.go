@@ -1,6 +1,6 @@
 package ufwb
 
-type WalkFunc func(root *Ufwb, element Element, parent Element) error
+type WalkFunc func(root *Ufwb, element Element, parent *Structure, errs []error)
 
 type walker struct {
 	Root *Ufwb
@@ -8,7 +8,7 @@ type walker struct {
 }
 
 // Walk walks the tree of Elements, starting at the bottom
-func Walk(u *Ufwb, walkFunc WalkFunc) error {
+func Walk(u *Ufwb, walkFunc WalkFunc) []error {
 	w := walker{
 		Root: u,
 		Func: walkFunc,
@@ -16,28 +16,26 @@ func Walk(u *Ufwb, walkFunc WalkFunc) error {
 	return w.start()
 }
 
-func (walk *walker) start() error {
-	return walk.grammer(walk.Root.Grammar)
+func (walk *walker) start() []error {
+	var errs []error
+	walk.grammer(walk.Root.Grammar, errs)
+	return errs
 }
 
-func (walk *walker) grammer(grammar *Grammar) error {
-	for _, s := range grammar.Structures {
-		if err := walk.element(s, nil); err != nil {
-			return err
-		}
+func (walk *walker) grammer(grammar *Grammar, errs []error) {
+	walk.Func(walk.Root, grammar, nil, errs)
+
+	for _, e := range grammar.Elements {
+		walk.element(e, nil, errs)
 	}
-
-	return walk.Func(walk.Root, grammar, nil)
 }
 
-func (walk *walker) element(element Element, parent Element) error {
+func (walk *walker) element(element Element, parent *Structure, errs []error) {
+	walk.Func(walk.Root, element, parent, errs)
+
 	if s, ok := element.(*Structure); ok {
 		for _, e := range s.Elements {
-			if err := walk.element(e, s); err != nil {
-				return err
-			}
+			walk.element(e, s, errs)
 		}
 	}
-
-	return walk.Func(walk.Root, element, parent)
 }

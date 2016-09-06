@@ -17,7 +17,7 @@ func OpenOSFile(filename string) (*OSFile, error) {
 	return (*OSFile)(f), nil
 }
 
-func NewOSFile(f *os.File) (*OSFile) {
+func NewOSFile(f *os.File) *OSFile {
 	return (*OSFile)(f)
 }
 
@@ -25,7 +25,7 @@ func (f *OSFile) Tell() (int64, error) {
 	return (*os.File)(f).Seek(0, io.SeekCurrent)
 }
 
-func(f *OSFile) Read(b []byte) (int, error) {
+func (f *OSFile) Read(b []byte) (int, error) {
 	return (*os.File)(f).Read(b)
 }
 

@@ -3,18 +3,12 @@ package ufwb
 // This file uses the grammar to parse the binary file.
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
-	"strconv"
-	"encoding/binary"
 	"reflect"
+	"strconv"
 )
-
-type Reader interface {
-	// Read from file and return a Value.
-	// The Read method must leave the file offset at Value.Offset + Value.Len
-	Read(decoder *Decoder) (*Value, error)
-}
 
 type Decoder struct {
 	u *Ufwb
@@ -56,16 +50,20 @@ type File interface {
 // Value represents one of the parsed elements in the file.
 // It doesn't contain the element, just the offset where it starts, and which element it is.
 type Value struct {
-	Offset  int64       // In bytes from the beginning of the file
-	Len  int64          // In bytes
+	Offset  int64 // In bytes from the beginning of the file
+	Len     int64 // In bytes
 	Element Element
 
-	Children []*Value
+	Children  []*Value
 	ByteOrder binary.ByteOrder // Only used for Number, TODO, and TODO
 }
 
 func (v *Value) Name() string {
-	return getName(v.Element)
+	return v.Element.GetName()
+}
+
+func (v *Value) Description() string {
+	return v.Element.GetDescription()
 }
 
 // String returns this value's string representation (based on display, etc)
@@ -102,7 +100,7 @@ func (v *Value) Validiate() error {
 		if err := child.Validiate(); err != nil {
 			return err
 		}
-		if child.Offset < v.Offset || (child.Offset + child.Len) > end {
+		if child.Offset < v.Offset || (child.Offset+child.Len) > end {
 			return fmt.Errorf("child Value outside of parents bounds: %v > %v", v, child)
 		}
 	}
@@ -119,11 +117,11 @@ func (u *Ufwb) Read(d *Decoder) (*Value, error) {
 }
 
 func (g *Grammar) Read(d *Decoder) (*Value, error) {
-	return g.start.Read(d)
+	return g.Start.Read(d)
 }
 
 func (g *Grammar) Format(f File, value *Value) (string, error) {
-	return g.start.Format(f, value)
+	return g.Start.Format(f, value)
 }
 
 func (s *Structure) Read(d *Decoder) (*Value, error) {
@@ -144,9 +142,9 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 	}
 
 	return &Value{
-		Offset: start,
-		Len: length,
-		Element: s,
+		Offset:   start,
+		Len:      length,
+		Element:  s,
 		Children: children,
 	}, nil
 }
@@ -155,10 +153,9 @@ func (n *Structure) Format(f File, value *Value) (string, error) {
 	panic("TODO")
 }
 
-
 // TODO Make this actually eval the string, and determine the right value
-func (d *Decoder) eval(s string) int64 {
-	i, err := strconv.Atoi(s)
+func (d *Decoder) eval(s Reference) int64 {
+	i, err := strconv.Atoi(string(s))
 	if err != nil {
 		panic(err) // TODO REMOVE PANIC
 	}
@@ -188,7 +185,7 @@ func (s *String) Read(d *Decoder) (*Value, error) {
 	return nil, fmt.Errorf("unknown type %q", s.Type)
 }
 
-func skip(d *Decoder, length, lengthUnit string) (*Value, error) {
+func skip(d *Decoder, length Reference, lengthUnit string) (*Value, error) {
 	start, err := d.f.Tell()
 	if err != nil {
 		return nil, err
@@ -197,7 +194,7 @@ func skip(d *Decoder, length, lengthUnit string) (*Value, error) {
 	len := d.eval(length)
 
 	if lengthUnit == "bit" {
-		len /= 8
+		len /= 8 // TODO Test edge cases (such as 20 bits)
 	}
 
 	_, err = d.f.Seek(len, io.SeekCurrent)
@@ -207,7 +204,7 @@ func skip(d *Decoder, length, lengthUnit string) (*Value, error) {
 
 	return &Value{
 		Offset: start,
-		Len: len,
+		Len:    len,
 	}, nil
 }
 
@@ -218,11 +215,10 @@ func (n *Number) Read(d *Decoder) (*Value, error) {
 	}
 
 	v.Element = n
-	v.ByteOrder = d.ByteOrder(n.endian)
+	v.ByteOrder = d.ByteOrder(n.Endian)
 
 	return v, nil
 }
-
 
 func (b *Binary) Read(d *Decoder) (*Value, error) {
 	v, err := skip(d, b.Length, b.LengthUnit)
@@ -234,7 +230,6 @@ func (b *Binary) Read(d *Decoder) (*Value, error) {
 	return v, nil
 }
 
-
 func (n *String) Format(f File, value *Value) (string, error) {
 	panic("TODO")
 }
@@ -245,19 +240,27 @@ func (n *Number) int(f File, value *Value) (interface{}, error) {
 	}
 
 	var i interface{}
-	if n.signed {
+	if n.Signed {
 		switch value.Len {
-		case 1: i = new(int8)
-		case 2: i = new(int16)
-		case 4: i = new(int32)
-		case 8: i = new(int64)
+		case 1:
+			i = new(int8)
+		case 2:
+			i = new(int16)
+		case 4:
+			i = new(int32)
+		case 8:
+			i = new(int64)
 		}
 	} else {
 		switch value.Len {
-		case 1: i = new(uint8)
-		case 2: i = new(uint16)
-		case 4: i = new(uint32)
-		case 8: i = new(uint64)
+		case 1:
+			i = new(uint8)
+		case 2:
+			i = new(uint16)
+		case 4:
+			i = new(uint32)
+		case 8:
+			i = new(uint64)
 		}
 	}
 	if i == nil {
@@ -286,11 +289,11 @@ func (n *Number) Uint(f File, value *Value) (uint64, error) {
 }
 
 func (n *Number) Format(f File, value *Value) (string, error) {
-	base := n.display.Base()
+	base := n.Display.Base()
 	if base == 0 {
 		return "", fmt.Errorf("invalid base %d", base)
 	}
-	if n.signed {
+	if n.Signed {
 		i, err := n.Int(f, value)
 		return strconv.FormatInt(i, base), err
 	} else {
@@ -316,7 +319,7 @@ func (n *ScriptElement) Read(d *Decoder) (*Value, error) {
 }
 
 func (s *StructRef) Read(d *Decoder) (*Value, error) {
-	value, err := s.structure.Read(d)
+	value, err := s.Structure.Read(d)
 	if err != nil {
 		return nil, err
 	}
@@ -345,5 +348,23 @@ func (n *ScriptElement) Format(f File, value *Value) (string, error) {
 }
 
 func (n *StructRef) Format(f File, value *Value) (string, error) {
-	return n.structure.Format(f, value)
+	return n.Structure.Format(f, value)
 }
+
+/*
+func (n *Mask) Format(f File, value *Value) (string, error) {
+	panic("TODO")
+}
+
+func (n *FixedValues) Format(f File, value *Value) (string, error) {
+	panic("TODO")
+}
+
+func (n *FixedValue) Format(f File, value *Value) (string, error) {
+	panic("TODO")
+}
+
+func (n *Script) Format(f File, value *Value) (string, error) {
+	panic("TODO")
+}
+*/

@@ -3,11 +3,11 @@
 package ufwb
 
 import (
+	"encoding/hex"
 	"fmt"
-	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
-	"regexp"
 )
 
 var (
@@ -16,21 +16,23 @@ var (
 	colourRegex = regexp.MustCompile("^[0-9A-F]{6}$")
 
 	// rootStruct is from which all defaults are derived
-	rootStruct = &Structure {
-		endian: LittleEndian, // TODO CHECK!!!!
-		signed: true, // TODO CHECK !!!
-		display: DecDisplay,
+	rootStruct = &Structure{
+		Endian:  LittleEndian, // TODO Check this is the right default
+		Signed:  true,         // TODO Check this is the right default
+		Display: DecDisplay,
 	}
-
 )
 
-type buildable interface {
-	// Build updates any internal structures needed
-	build(u *Ufwb, parent *Structure) error
+func def(s string, def string) string {
+	if s == "" {
+		return def
+	}
+	return s
 }
 
 // yesno returns the boolean value of this "yes", "no" field.
-func yesno(s string, def bool) bool {
+func yesno(s string, def bool, errs []error) bool {
+	// TODO Be strict on "yes", "no", "" only
 	if s == "" {
 		return def
 	}
@@ -38,24 +40,56 @@ func yesno(s string, def bool) bool {
 }
 
 // byteOrder returns the binary.byteOrder for this string.
-func endian(s string, def Endian) (Endian, error) {
+func endian(s string, def Endian, errs []error) Endian {
 	switch s {
-	case "big": return BigEndian, nil
-	case "little": return LittleEndian, nil
-	case "dynamic": return DynamicEndian, nil
-	case "": return def, nil
+	case "big":
+		return BigEndian
+	case "little":
+		return LittleEndian
+	case "dynamic":
+		return DynamicEndian
+	case "":
+		return def
 	}
-	return UnknownEndian, fmt.Errorf("unknown endian: %q", s)
+
+	errs = append(errs, fmt.Errorf("unknown endian: %q", s))
+	return UnknownEndian
 }
 
-func display(s string, def Display) (Display, error) {
+func display(s string, def Display, errs []error) Display {
 	switch s {
-	case "dec": return DecDisplay, nil
-	case "hex": return HexDisplay, nil
-	case "binary": return BinaryDisplay, nil
-	case "": return def, nil
+	case "dec":
+		return DecDisplay
+	case "hex":
+		return HexDisplay
+	case "binary":
+		return BinaryDisplay
+	case "":
+		return def
 	}
-	return UnknownDisplay, fmt.Errorf("unknown display: %q", s)
+
+	errs = append(errs, fmt.Errorf("unknown display: %q", s))
+	return UnknownDisplay
+}
+
+func colour(s string, def uint32, errs []error) uint32 {
+	if s == "" {
+		return def
+	}
+
+	if !colourRegex.MatchString(s) {
+		errs = append(errs, fmt.Errorf("invalid colour: %q", s))
+		return 0
+	}
+
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		errs = append(errs, err)
+		return 0
+	}
+
+	// TODO Check this is correct
+	return uint32(b[0])<<16 | uint32(b[1])<<8 | uint32(b[2])
 }
 
 // For debugging only
@@ -73,81 +107,83 @@ func count(key, value string) {
 	}
 }
 
-func getId(e interface{}) int {
-	v := reflect.ValueOf(e).Elem()
-	if field := v.FieldByName("Id"); field.IsValid() {
-		return int(field.Int())
-	}
-	return 0
-}
-
-func getName(e interface{}) string {
-	v := reflect.ValueOf(e).Elem()
-	if field := v.FieldByName("Name"); field.IsValid() {
-		return field.String()
-	}
-	return ""
-}
-
-func buildIndex(u *Ufwb, element Element, parent Element) error {
+func indexer(u *Ufwb, element Element, parent *Structure, errs []error) {
 	_ = parent
 
 	if _, ok := element.(*Grammar); ok {
 		// If Grammar skip over this
-		return nil
+		return
 	}
 
-	id := getId(element)
+	id := element.GetId()
 	if id == 0 {
-		return &validationError{e: element, msg: "missing id field"}
+		errs = append(errs, &validationError{e: element, msg: "missing id field"})
+		return
 	}
 
 	// TODO Check we don't replace existing IDs
-	u.elements["id:"+strconv.Itoa(id)] = element
+	u.Elements["id:"+strconv.Itoa(id)] = element
 
-	if name := getName(element); name != "" {
-		u.elements[name] = element
+	if name := element.GetName(); name != "" {
+		u.Elements[name] = element
 	}
-
-	return nil
 }
 
-func build(u *Ufwb, element Element, parent Element) error {
-	if b, ok := element.(buildable); ok {
-		if s, ok := parent.(*Structure); ok {
-			return b.build(u, s)
-		}
+func updater(u *Ufwb, element Element, parent *Structure, errs []error) {
+	if parent == nil {
+		parent = rootStruct
 	}
-	return nil
+	element.update(u, parent, errs)
 }
 
-func (u *Ufwb) build() error {
-	u.elements = make(map[string]Element)
+func extender(u *Ufwb, element Element, parent *Structure, errs []error) {
+	//element.update(u, parent, errs)
+	if s, ok := element.(*Structure); ok && s.Extends != nil {
+
+	}
+}
+
+func (u *Ufwb) update() []error {
+	u.Version = u.Xml.Version
+	u.Elements = make(map[string]Element)
 
 	// First walk building the initial id index
-	if err := Walk(u, buildIndex); err != nil {
-		return err
+	if errs := Walk(u, indexer); len(errs) > 0 {
+		return errs
 	}
 
 	// Now walk for real
-	if err := Walk(u, build); err != nil {
-		return err
+	if errs := Walk(u, updater); len(errs) > 0 {
+		return errs
+	}
+
+	// Finally deal with the extends
+	if errs := Walk(u, extender); len(errs) > 0 {
+		return errs
 	}
 
 	return nil
 }
 
-func (g *Grammar) build(u *Ufwb) error {
-	start, err := u.getStructure(g.Start)
+func get(u *Ufwb, id string, errs []error) Element {
+	e, err := u.Get(id)
 	if err != nil {
-		return err
+		errs = append(errs, err)
 	}
-	g.start = start
-
-	return nil
+	return e
 }
 
-func (s *Structure) build(u *Ufwb, parent *Structure) error {
+func (g *Grammar) update(u *Ufwb, parent *Structure, errs []error) {
+	g.Author = g.Xml.Author
+	g.Ext = g.Xml.Ext
+	g.Email = g.Xml.Email
+	g.Complete = yesno(g.Xml.Complete, false, errs)
+	g.Uti = g.Xml.Uti
+
+	g.Start = get(u, g.Xml.Start, errs)
+}
+
+func (s *Structure) update(u *Ufwb, parent *Structure, errs []error) {
 
 	// Repeat:[ id:1001 id:101 id:106 id:1064 id:1071 id:1078 id:1085 id:1092 id:1098 id:1105 id:115 id:1204 id:157 id:164 id:171 id:1730 id:1758 id:18 id:180 id:194 id:199 id:221 id:230 id:24 id:243 id:25 id:253 id:254 id:264 id:269 id:285 id:29 id:295 id:320 id:322 id:378 id:391 id:5259 id:5272 id:5287 id:5478 id:5620 id:5634 id:58 id:5824 id:5969 id:5984 id:6 id:6172 id:62 id:6313 id:6328 id:64 id:6516 id:691 id:692 id:72 id:7630 id:7638 id:7664 id:7689 id:7690 id:7770 id:8088 id:820 id:829 id:8328 id:838 id:8413 id:847 id:856 id:86 id:861 id:868 id:8768 id:8781 id:8790 id:8812 id:8857 id:8875 id:8881 id:8891 id:8897 id:8920 id:8926 id:8932 id:8935 id:9020 id:9040 id:9081 id:9094 id:9103 id:9125 id:9154 id:9170 id:9188 id:9194 id:9204 id:9210 id:9233 id:9239 id:9245 id:9248 id:9264 id:9333 id:934 id:935 id:9353 id:947 id:960 id:961 id:973 id:974 id:989]
 	// RepeatMax:[ -1 100 100000 110 127 16 2147483647 256 40 6 600 99 ClassSize Count CycleCount FieldCount FrameCount Height/2 MarkerCount MethodSize NumberOfBlocks NumberOfRecords NumberOfRecords-1 NumberOfSections OpcodeSize RecordCount StyleCount ValueCount numberOfHMetrics unlimited]
@@ -163,26 +199,24 @@ func (s *Structure) build(u *Ufwb, parent *Structure) error {
 	// Endian:[ big dynamic little]
 	// Signed:[ no yes]]
 
-	if s.Extends != "" {
-		extends, err := u.getStructure(s.Extends)
-		if err != nil {
-			return err
-		}
-		s.extends = extends
-	}
+	s.Length = Reference(s.Xml.Length)
+	s.LengthOffset = Reference(s.Xml.LengthOffset)
 
-	s.display = parent.display
-	s.signed = yesno(s.Signed, parent.signed)
-	endian, err := endian(s.Endian, parent.endian)
-	if err != nil {
-		return err
-	}
-	s.endian = endian
+	s.Endian = endian(s.Xml.Endian, parent.Endian, errs)
+	s.Signed = yesno(s.Xml.Signed, parent.Signed, errs)
 
-	return nil
+	s.Encoding = def(s.Xml.Encoding, parent.Encoding)
+
+	s.Display = display(s.Xml.Display, parent.Display, errs)
+	s.FillColour = colour(s.Xml.FillColour, parent.FillColour, errs)
+	s.StrokeColour = colour(s.Xml.StrokeColour, parent.StrokeColour, errs)
+
+	if s.Xml.Extends != "" {
+		s.Extends = get(u, s.Xml.Extends, errs)
+	}
 }
 
-func (n *Number) build(u *Ufwb, parent *Structure) error {
+func (n *Number) update(u *Ufwb, parent *Structure, errs []error) {
 
 	// Length:[ 1 11 12 13 16 2 20 24 2^Count 2^NumberOfBytes 3 32 4 5 6 64 7 8 offsetRefSize]
 	// LengthUnit:[ bit]
@@ -196,39 +230,45 @@ func (n *Number) build(u *Ufwb, parent *Structure) error {
 	// MinVal:[ -128 -32768 0 0x0 0xA0D0A 0xA0D0A00 0xA0D0D 0xC1 0xD0D0A00 1 10 1024 129 14 15790321 16 2 24 3 32768 4 5 61680 64 8 9]
 	// MaxVal:[ -1 0 0x1 0xA0D0AFF 0xD0D0AFF 0xF8 0xFF 0xFF0A0D0A 0xFF0A0D0D 0xFFFE 1 10 100 1023 12 127 15 15988470 16 17 19 191 2 20 2147483647 215 23 250 254 255 3 300 31 32386 32767 35 4 4000 4294967295 59 62195 62969 63 63993 65534 65535 65536 7 70 8 8388607 9 96 99 999]
 
-	n.signed = yesno(n.Signed, parent.signed)
+	n.Type = n.Xml.Type // TODO Convert to NumberType
+	n.Length = Reference(n.Xml.Length)
+	n.LengthUnit = n.Xml.LengthUnit // TODO Validate and set default
 
-	endian, err := endian(n.Endian, parent.endian)
-	if err != nil {
-		return err
-	}
-	n.endian = endian
+	n.Endian = endian(n.Xml.Endian, parent.Endian, errs)
+	n.Signed = yesno(n.Xml.Signed, parent.Signed, errs)
 
-	display, err := display(n.Display, parent.display)
-	if err != nil {
-		return err
-	}
-	n.display = display
+	n.Display = display(n.Xml.Display, parent.Display, errs)
+	n.FillColour = colour(n.Xml.FillColour, parent.FillColour, errs)
+	n.StrokeColour = colour(n.Xml.StrokeColour, parent.StrokeColour, errs)
 
 	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
 	// TODO Check Masks  []*Mask       `xml:"mask,omitempty"`
-
-	return nil
 }
 
-func (b *Binary) build(u *Ufwb, parent *Structure) error {
+func (b *Binary) update(u *Ufwb, parent *Structure, errs []error) {
 	// Length:[ 0 0x3F2 - PayloadLength 0xBF - ServerStringLength 0xFF - FilenameStringLength 1 10 1024 10520 11 1144 12 1276 128 13 1344 13628 13656 13988 14 144 1448 1476 15 15104 155 156 16 17336 18088 184 190 1960 2 22 228 24 24924 26280 272 28 28054 29252 3 3140 316 32 3468 37 3700 376 38 38911 3976 39963 4 40 400 404 42 435 44 4432 459 473 48 497 5 50 512 52416 53644 544 564 578756 58019 6 60928 6144 64 6428 68 7 70239 70767 72 772 7956 8 808 852 8766 888 8894 8898 9 908 BitsPerPixel/8 ByteCount DataSize FieldLength FileSize FilenameStringLength Frame_length_with_hdr-7 Frame_length_with_hdr-9 HeaderExtentionLength Length Length - 192 Length -128 NALULength NumberOfBytes+1 PacketLength SampleSize*SampleNumber ServerStringLength Size ValueCount cbSignature dt_size kernel_size ramdisk_size remaining second_size select(mod(FileSize, 512) - 1, 0, 512 - mod(FileSize, 512), 512 - mod(FileSize, 512)) size - 6]
 	// LengthUnit:[ bit]
 	// RepeatMin:[ 0 8 BaseNumber]
 	// RepeatMax:[ -1 -PackbitCode + 1 40 8 BaseNumber prev.Frames]
 	// MustMatch:[ no yes]]
 
-	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
+	b.Length = Reference(b.Xml.Length)
+	b.LengthUnit = b.Xml.LengthUnit // TODO Validate
 
-	return nil
+	b.RepeatMin = Reference(b.Xml.RepeatMin)
+	b.RepeatMax = Reference(b.Xml.RepeatMax)
+
+	b.MustMatch = yesno(b.Xml.MustMatch, true, errs) // TODO Check if "true" should be the default
+	b.Unused = yesno(b.Xml.Unused, false, errs)      // TODO Check if "false" should be the default
+	b.Disabled = yesno(b.Xml.Disabled, false, errs)  // TODO Check if "true" should be the default
+
+	b.FillColour = colour(b.Xml.FillColour, parent.FillColour, errs)
+	b.StrokeColour = colour(b.Xml.StrokeColour, parent.StrokeColour, errs)
+
+	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
 }
 
-func (s *String) build(u *Ufwb, parent *Structure) error {
+func (s *String) update(u *Ufwb, parent *Structure, errs []error) {
 
 	// Length:[ 0 1 10 100 11 114 12 128 13 14 16 16256 17 2 256 28 3 30 32 4 44 46 512 6 60 64 7 8 80 CharCount CharCount*2 CommentLength CommentsSize File_name_length Length NameSize NumberOfChars Remaining ShipID2Length ShipIDLength Size StringLength * 2 ValueCount descriptionLength length length - 1 nameLength raceLength remaining]
 	// Type:[fixed-length pascal zero-terminated]]
@@ -237,57 +277,88 @@ func (s *String) build(u *Ufwb, parent *Structure) error {
 	// RepeatMin:[ 0 107 18 3 355 412 58 66 78 BaseNumber]
 	// RepeatMax:[ 100 107 18 3 355 412 58 66 78 BaseNumber numberOfGlyphs]
 
+	s.Type = s.Xml.Type // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
+	s.Length = Reference(s.Xml.Length)
+	s.Encoding = def(s.Xml.Encoding, parent.Encoding)
+	s.MustMatch = yesno(s.Xml.MustMatch, true, errs) // TODO Check if "true" should be the default
+
+	s.RepeatMin = Reference(s.Xml.RepeatMin)
+	s.RepeatMax = Reference(s.Xml.RepeatMax)
+
+	s.FillColour = colour(s.Xml.FillColour, parent.FillColour, errs)
+	s.StrokeColour = colour(s.Xml.StrokeColour, parent.StrokeColour, errs)
+
 	if s.Length == "" {
 		if s.Type == "fixed-length" {
-			return &validationError{e: s, msg: "fixed-length strings requires a length"}
+			errs = append(errs, &validationError{e: s, msg: "fixed-length strings requires a length"})
 
 		} else if s.Type == "pascal" {
-			return &validationError{e: s, msg: "pascal strings requires a length"}
+			errs = append(errs, &validationError{e: s, msg: "pascal strings requires a length"})
 		}
 	}
 
 	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
-
-	return nil
 }
 
-func (c *Custom) build(u *Ufwb, parent *Structure) error {
-	return nil
+func (c *Custom) update(u *Ufwb, parent *Structure, errs []error) {
+	panic("TODO")
 }
 
-func (g *GrammarRef) build(u *Ufwb, parent *Structure) error {
-	return nil
+func (g *GrammarRef) update(u *Ufwb, parent *Structure, errs []error) {
+	panic("TODO")
 }
 
-func (o *Offset) build(u *Ufwb, parent *Structure) error {
-	return nil
+func (o *Offset) update(u *Ufwb, parent *Structure, errs []error) {
+	panic("TODO")
 }
 
-func (s *ScriptElement) build(u *Ufwb, parent *Structure) error {
+func (s *ScriptElement) update(u *Ufwb, parent *Structure, errs []error) {
+	s.Disabled = yesno(s.Xml.Disabled, false, errs)
+	//s.Script = s.Xml.Script.toElement(u, parent, errs)
 	if s.Script == nil {
-		return &validationError{e: s, msg: "missing child script tag"}
+		errs = append(errs, &validationError{e: s, msg: "missing child script tag"})
 	}
-	return s.Script.build(u, parent)
 }
 
-func (s *StructRef) build(u *Ufwb, parent *Structure) error {
-	return nil
-}
-
-func (s *Script) build(u *Ufwb, parent *Structure) error {
-	s.source = s.Source
-	if s.source == nil {
-		s.source = &Source{
-			Text: s.Text,
+func (s *StructRef) update(u *Ufwb, parent *Structure, errs []error) {
+	e := get(u, s.Xml.Structure, errs)
+	if e != nil {
+		if structure, ok := e.(*Structure); ok {
+			s.Structure = structure
+		} else {
+			errs = append(errs, &validationError{e: s, msg: "reference structure is invalid"})
 		}
 	}
-	return s.source.build(u, s)
+
+	s.RepeatMin = Reference(s.Xml.RepeatMin)
+	s.RepeatMax = Reference(s.Xml.RepeatMax)
+
+	s.FillColour = colour(s.Xml.FillColour, parent.FillColour, errs)
+	s.StrokeColour = colour(s.Xml.StrokeColour, parent.StrokeColour, errs)
 }
 
-func (s *Source) build(u *Ufwb, parent *Script) error {
+func (s *Script) update(u *Ufwb, parent *Structure, errs []error) {
+	if s.Xml.Source != nil {
+		s.Text = s.Xml.Source.Text
+		s.Language = s.Xml.Source.Language
+	} else {
+		s.Text = s.Xml.Text
+	}
+
+	if s.Language == "" {
+		s.Language = s.Xml.Language
+	}
+
+	// TODO Check we support the language
+	// TODO Actually parse the language at this point
+}
+
+/*
+func (s *Source) build(u *XmlUfwb, parent *XmlScript) error {
 	s.language = s.Language
 	if s.language == "" {
 		s.language = parent.Language
 	}
-	return nil
+	panic("TODO")
 }
+*/

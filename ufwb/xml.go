@@ -1,8 +1,9 @@
+// Shout out to https://github.com/wicast/xj2s for helping to generate the XML structs
 package ufwb
 
 import (
-	"encoding/xml"
 	"bytes"
+	"encoding/xml"
 	"fmt"
 )
 
@@ -26,10 +27,14 @@ const (
 
 func (d Display) Base() int {
 	switch d {
-	case HexDisplay: return 16
-	case DecDisplay: return 10
-	case BinaryDisplay: return 2
-	case UnknownDisplay: return 0
+	case HexDisplay:
+		return 16
+	case DecDisplay:
+		return 10
+	case BinaryDisplay:
+		return 2
+	case UnknownDisplay:
+		return 0
 	}
 	return 0
 }
@@ -42,47 +47,93 @@ const (
 	BitLengthUnit
 )
 
+type Convertable interface {
+	toElement(root *Ufwb, errs []error) Element
+}
 
-type Ufwb struct {
+type XmlElement interface {
+	Convertable
+}
+
+type XmlIdName struct {
+	Id          int    `xml:"id,attr,omitempty"`
+	Name        string `xml:"name,attr,omitempty"`
+	Description string `xml:"description,omitempty"`
+}
+
+func (xml *XmlIdName) toIdName(errs []error) IdName {
+	return IdName{
+		Id:          xml.Id,
+		Name:        xml.Name,
+		Description: xml.Description,
+	}
+}
+
+type XmlUfwb struct {
 	XMLName xml.Name `xml:"ufwb"`
 
-	Version string  `xml:"version,attr,omitempty"`
-	Grammar *Grammar `xml:"grammar"`
-
-	// Extra info not encoded in the XML
-	elements map[string]Element
+	Version string      `xml:"version,attr,omitempty"`
+	Grammar *XmlGrammar `xml:"grammar"`
 }
 
-type Grammar struct {
+func (xml *XmlUfwb) toElement() (*Ufwb, []error) {
+	var errs []error
+	u := &Ufwb{
+		Xml:     xml,
+		Version: xml.Version,
+	}
+	u.Grammar = xml.Grammar.toElement(u, errs).(*Grammar)
+	return u, errs
+}
+
+type XmlGrammar struct {
 	XMLName xml.Name `xml:"grammar"`
 
-	Name        string `xml:"name,attr"`
-	Description string `xml:"description,omitempty"`
-	Author      string `xml:"author,attr,omitempty"`
-	Ext         string `xml:"fileextension,attr,omitempty"`
-	Email       string `xml:"email,attr,omitempty"`
-	Complete    string `xml:"complete,attr,omitempty"`
-	Uti         string `xml:"uti,attr,omitempty"`
+	XmlIdName
 
-	Start       string       `xml:"start,attr,omitempty" ufwb:"id"`
-	Scripts     Scripts      `xml:"scripts"`
-	Structures  []*Structure `xml:"structure,omitempty"`
+	Author   string `xml:"author,attr,omitempty"`
+	Ext      string `xml:"fileextension,attr,omitempty"`
+	Email    string `xml:"email,attr,omitempty"`
+	Complete string `xml:"complete,attr,omitempty" ufwb:"bool"`
+	Uti      string `xml:"uti,attr,omitempty"`
 
-	start Element // TODO Is this always a Structure?
+	Start      string          `xml:"start,attr,omitempty" ufwb:"id"`
+	Scripts    XmlScripts      `xml:"scripts"`
+	Structures []*XmlStructure `xml:"structure,omitempty"`
 }
 
-type GrammarRef struct {
+func (xml *XmlGrammar) toElement(root *Ufwb, errs []error) Element {
+
+	g := &Grammar{
+		Xml:    xml,
+		IdName: xml.XmlIdName.toIdName(errs),
+	}
+
+	for _, s := range xml.Structures {
+		g.Elements = append(g.Elements, s.toElement(root, errs))
+	}
+
+	return g
+}
+
+type XmlGrammarRef struct {
 	XMLName xml.Name `xml:"grammarref"`
 
-	Id          int    `xml:"id,attr,omitempty"`
-	Name        string `xml:"name,attr"`
-	Description string `xml:"description,omitempty"`
-	Uti         string `xml:"uti,attr,omitempty"`
+	XmlIdName
+	Uti string `xml:"uti,attr,omitempty"`
 
-	Filename     string `xml:"filename,attr,omitempty"`
-	Disabled     string `xml:"disabled,attr,omitempty" ufwb:"bool"`
+	Filename string `xml:"filename,attr,omitempty"`
+	Disabled string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 }
 
+func (xml *XmlGrammarRef) toElement(root *Ufwb, errs []error) Element {
+	return &GrammarRef{
+		Xml:    xml,
+		IdName: xml.XmlIdName.toIdName(errs),
+	}
+}
+
+/*
 type length struct {
 	Length      string
 	LengthUnit  LengthUnit
@@ -92,20 +143,21 @@ type numberEncoding struct {
 	Endian    Endian
 	Signed    bool
 }
+*/
 
+/*
 type display struct {
 	Display   Display
 
 	FillColour   uint32
 	StrokeColour uint32
 }
+*/
 
-type Structure struct {
+type XmlStructure struct {
 	XMLName xml.Name `xml:"structure"`
 
-	Id          int    `xml:"id,attr,omitempty"`
-	Name        string `xml:"name,attr,omitempty"`
-	Description string `xml:"description,omitempty"`
+	XmlIdName
 
 	Length       string `xml:"length,attr,omitempty" ufwb:"ref"`
 	LengthOffset string `xml:"lengthoffset,attr,omitempty"`
@@ -128,23 +180,30 @@ type Structure struct {
 	Debug           string `xml:"debug,attr,omitempty" ufwb:"bool"`
 	Disabled        string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 
+	Display      string `xml:"display,attr,omitempty" ufwb:"display"`
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
-	Elements []Element `xml:",any"`
-
-	display   Display
-	endian    Endian
-	signed    bool
-	extends   *Structure // TODO Is this always a struct?
+	Elements []XmlElement `xml:",any"`
 }
 
-type Custom struct {
+func (xml *XmlStructure) toElement(root *Ufwb, errs []error) Element {
+	s := &Structure{
+		Xml:    xml,
+		IdName: xml.XmlIdName.toIdName(errs),
+	}
+
+	for _, e := range xml.Elements {
+		s.Elements = append(s.Elements, e.toElement(root, errs))
+	}
+
+	return s
+}
+
+type XmlCustom struct {
 	XMLName xml.Name `xml:"custom"`
 
-	Id          int    `xml:"id,attr,omitempty"`
-	Name        string `xml:"name,attr,omitempty"`
-	Description string `xml:"description,omitempty"`
+	XmlIdName
 
 	Length string `xml:"length,attr,omitempty" ufwb:"ref"`
 	Script string `xml:"script,attr,omitempty" ufwb:"id"`
@@ -153,12 +212,17 @@ type Custom struct {
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 }
 
-type StructRef struct {
+func (xml *XmlCustom) toElement(root *Ufwb, errs []error) Element {
+	return &Custom{
+		Xml:    xml,
+		IdName: xml.XmlIdName.toIdName(errs),
+	}
+}
+
+type XmlStructRef struct {
 	XMLName xml.Name `xml:"structref"`
 
-	Id          int    `xml:"id,attr,omitempty"`
-	Name        string `xml:"name,attr,omitempty"`
-	Description string `xml:"description,omitempty"`
+	XmlIdName
 
 	Structure string `xml:"structure,attr,omitempty" ufwb:"id"`
 	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
@@ -167,15 +231,20 @@ type StructRef struct {
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
-	structure *Structure
+	structure *XmlStructure
 }
 
-type String struct {
+func (xml *XmlStructRef) toElement(root *Ufwb, errs []error) Element {
+	return &StructRef{
+		Xml:    xml,
+		IdName: xml.XmlIdName.toIdName(errs),
+	}
+}
+
+type XmlString struct {
 	XMLName xml.Name `xml:"string"`
 
-	Id          int    `xml:"id,attr,omitempty"`
-	Name        string `xml:"name,attr,omitempty"`
-	Description string `xml:"description,omitempty"`
+	XmlIdName
 
 	Type string `xml:"type,attr,omitempty" ufwb:"string-type"` // "zero-terminated", "fixed-length"
 
@@ -189,15 +258,20 @@ type String struct {
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
-	Values []*FixedValue `xml:"fixedvalue,omitempty"`
+	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
 }
 
-type Binary struct {
+func (xml *XmlString) toElement(root *Ufwb, errs []error) Element {
+	return &String{
+		Xml:    xml,
+		IdName: xml.XmlIdName.toIdName(errs),
+	}
+}
+
+type XmlBinary struct {
 	XMLName xml.Name `xml:"binary"`
 
-	Id          int    `xml:"id,attr,omitempty"`
-	Name        string `xml:"name,attr,omitempty"`
-	Description string `xml:"description,omitempty"`
+	XmlIdName
 
 	Length     string `xml:"length,attr,omitempty" ufwb:"ref"`
 	LengthUnit string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"` // "bit"
@@ -212,15 +286,20 @@ type Binary struct {
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
-	Values []*FixedValue `xml:"fixedvalue,omitempty"`
+	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
 }
 
-type Number struct {
+func (xml *XmlBinary) toElement(root *Ufwb, errs []error) Element {
+	return &Binary{
+		Xml:    xml,
+		IdName: xml.XmlIdName.toIdName(errs),
+	}
+}
+
+type XmlNumber struct {
 	XMLName xml.Name `xml:"number"`
 
-	Id          int    `xml:"id,attr,omitempty"`
-	Name        string `xml:"name,attr,omitempty"`
-	Description string `xml:"description,omitempty"`
+	XmlIdName
 
 	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
 	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
@@ -243,20 +322,25 @@ type Number struct {
 
 	Disabled string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 
-	Values []*FixedValue `xml:"fixedvalue,omitempty"`
-	Masks  []*Mask       `xml:"mask,omitempty"`
+	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
+	Masks  []*XmlMask       `xml:"mask,omitempty"`
 
-	endian    Endian
-	signed    bool
-	display   Display
+	endian  Endian
+	signed  bool
+	display Display
 }
 
-type Offset struct {
+func (xml *XmlNumber) toElement(root *Ufwb, errs []error) Element {
+	return &Number{
+		Xml:    xml,
+		IdName: xml.XmlIdName.toIdName(errs),
+	}
+}
+
+type XmlOffset struct {
 	XMLName xml.Name `xml:"offset"`
 
-	Id          int    `xml:"id,attr,omitempty"`
-	Name        string `xml:"name,attr,omitempty"`
-	Description string `xml:"description,omitempty"`
+	XmlIdName
 
 	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
 	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
@@ -273,66 +357,73 @@ type Offset struct {
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
-	endian    Endian
-	display   Display
+	endian  Endian
+	display Display
 }
 
-type Mask struct {
-	XMLName xml.Name `xml:"mask"`
-
-	Name        string `xml:"name,attr,omitempty"`
-	Description string `xml:"description,omitempty"`
-
-	Value  string       `xml:"value,attr,omitempty"`
-	Values []*FixedValue `xml:"fixedvalue,omitempty"`
+func (xml *XmlOffset) toElement(root *Ufwb, errs []error) Element {
+	return &Offset{
+		Xml:    xml,
+		IdName: xml.XmlIdName.toIdName(errs),
+	}
 }
 
-type FixedValues struct {
-	XMLName xml.Name `xml:"fixedvalues"`
-
-	Values []*FixedValue `xml:"fixedvalue,omitempty"`
-}
-
-type FixedValue struct {
-	XMLName xml.Name `xml:"fixedvalue"`
-
-	Name        string `xml:"name,attr,omitempty"`
-	Description string `xml:"description,omitempty"`
-
-	Value string `xml:"value,attr"`
-}
-
-type Scripts []*Script
-
-type ScriptElement struct {
+type XmlScriptElement struct {
 	XMLName xml.Name `xml:"scriptelement"`
 
-	Id   int    `xml:"id,attr,omitempty"`
-	Name string `xml:"name,attr,omitempty"`
-
+	XmlIdName
 	Disabled string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 
-	Script *Script `xml:"script"`
+	Script *XmlScript `xml:"script"`
 }
 
-type Script struct {
+func (xml *XmlScriptElement) toElement(root *Ufwb, errs []error) Element {
+	return &ScriptElement{
+		Xml:    xml,
+		IdName: xml.XmlIdName.toIdName(errs),
+	}
+}
+
+type XmlMask struct {
+	XMLName xml.Name `xml:"mask"`
+
+	Name  string `xml:"name,attr,omitempty"`
+	Value string `xml:"value,attr,omitempty"`
+
+	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
+}
+
+func (xml *XmlMask) toElement(root *Ufwb, errs []error) *Mask {
+	return &Mask{
+		Xml:  xml,
+		Name: xml.Name,
+	}
+}
+
+type XmlScripts []*XmlScript
+
+type XmlScript struct {
 	XMLName xml.Name `xml:"script"`
 
-	Id   int    `xml:"id,attr,omitempty"`
-	Name string `xml:"name,attr,omitempty"`
-	Description string `xml:"description,omitempty"`
+	XmlIdName
 
-	Type string `xml:"type,attr,omitempty"`
-	Language string `xml:"language,attr,omitempty" ufwb:"lang"`
-	Source   *Source `xml:"source,omitempty"`
+	Type     string     `xml:"type,attr,omitempty"` // DataType, Grammar
+	Language string     `xml:"language,attr,omitempty" ufwb:"lang"`
+	Source   *XmlSource `xml:"source,omitempty"`
 
 	// Sometimes the text is defined here, or in the child Source element
-	Text     string `xml:",chardata"` // TODO Should this be cdata?
-
-	source   *Source
+	Text string `xml:",chardata"` // TODO Should this be cdata?
 }
 
-type Source struct {
+func (xml *XmlScript) toElement(root *Ufwb, errs []error) *Script {
+	return &Script{
+		Xml:  xml,
+		Name: xml.Name,
+		// TODO Pull info from XmlSource tag
+	}
+}
+
+type XmlSource struct {
 	XMLName xml.Name `xml:"source"`
 
 	Language string `xml:"language,attr,omitempty" ufwb:"lang"`
@@ -341,11 +432,38 @@ type Source struct {
 	language string
 }
 
+type XmlFixedValues struct {
+	XMLName xml.Name `xml:"fixedvalues"`
+
+	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
+}
+
+func (xml *XmlFixedValues) toElement(root *Ufwb, errs []error) *FixedValues {
+	return &FixedValues{
+		Xml: xml,
+	}
+}
+
+type XmlFixedValue struct {
+	XMLName xml.Name `xml:"fixedvalue"`
+
+	Name  string `xml:"name,attr,omitempty"`
+	Value string `xml:"value,attr,omitempty"`
+}
+
+func (xml *XmlFixedValue) toElement(root *Ufwb, errs []error) *FixedValue {
+	return &FixedValue{
+		Xml:   xml,
+		Name:  xml.Name,
+		Value: xml.Value,
+	}
+}
+
 // Types of the original elements but without the MarshalXML / UnmarshalXML methods on them.
-type nakedStructure Structure
-type nakedString String
-type nakedNumber Number
-type nakedBinary Binary
+type nakedXmlStructure XmlStructure
+type nakedXmlString XmlString
+type nakedXmlNumber XmlNumber
+type nakedXmlBinary XmlBinary
 
 func unmarshalStartElement(v interface{}, start xml.StartElement) error {
 	// Because we implement our own UnmarshalXML, the attributes from the StartElement are not
@@ -378,7 +496,7 @@ func marshalStartElement(v interface{}) (xml.StartElement, error) {
 	return start.(xml.StartElement), err
 }
 
-func (s *Scripts) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
+func (s *XmlScripts) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
 	for {
 		token, err := decoder.Token()
 		if err != nil {
@@ -387,7 +505,7 @@ func (s *Scripts) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) err
 		switch token := token.(type) {
 		case xml.StartElement:
 			if token.Name.Local == "script" {
-				element := &Script{}
+				element := &XmlScript{}
 				if err = decoder.DecodeElement(element, &token); err != nil {
 					return err
 				}
@@ -395,7 +513,7 @@ func (s *Scripts) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) err
 					// If there is a source element, then the Text shouldn't be set
 					element.Text = ""
 				}
-				*s = append(([]*Script)(*s), element)
+				*s = append(([]*XmlScript)(*s), element)
 			} else {
 				return fmt.Errorf("unknown element: `%s` inside `%s` at %d",
 					token.Name.Local, start.Name.Local, decoder.InputOffset())
@@ -406,13 +524,13 @@ func (s *Scripts) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) err
 	}
 }
 
-func (s Scripts) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+func (s XmlScripts) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	if len(s) > 0 {
 		scripts := xml.StartElement{
-			Name: xml.Name{Local:"scripts"},
+			Name: xml.Name{Local: "scripts"},
 		}
 		e.EncodeToken(scripts)
-		e.Encode(([]*Script)(s))
+		e.Encode(([]*XmlScript)(s))
 		e.EncodeToken(scripts.End())
 	}
 	return nil
@@ -422,9 +540,9 @@ func (s Scripts) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 // This is needed because Go's xml parser doesn't handle the multiple unknown element, that
 // need to be kept in order.
 // TODO Do we need to keep things in order?
-func (s *Structure) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
+func (s *XmlStructure) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
 
-	if err := unmarshalStartElement((*nakedStructure)(s), start); err != nil {
+	if err := unmarshalStartElement((*nakedXmlStructure)(s), start); err != nil {
 		return err
 	}
 
@@ -444,28 +562,28 @@ func (s *Structure) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) e
 				}
 
 			} else {
-				var element Element
+				var element XmlElement
 
 				switch token.Name.Local {
 				// Elements:
 				case "binary":
-					element = &Binary{}
+					element = &XmlBinary{}
 				case "custom":
-					element = &Custom{}
+					element = &XmlCustom{}
 				case "grammarref":
-					element = &GrammarRef{}
+					element = &XmlGrammarRef{}
 				case "number":
-					element = &Number{}
+					element = &XmlNumber{}
 				case "offset":
-					element = &Offset{}
+					element = &XmlOffset{}
 				case "scriptelement":
-					element = &ScriptElement{}
+					element = &XmlScriptElement{}
 				case "string":
-					element = &String{}
+					element = &XmlString{}
 				case "structure":
-					element = &Structure{}
+					element = &XmlStructure{}
 				case "structref":
-					element = &StructRef{}
+					element = &XmlStructRef{}
 				default:
 					return fmt.Errorf("unknown element: `%s` inside `%s` at %d",
 						token.Name.Local, start.Name.Local, decoder.InputOffset())
@@ -503,19 +621,19 @@ func marshalFixedValues(encoder *xml.Encoder, values []FixedValue) (error) {
 }
 */
 
-func (s *String) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
-	if err := unmarshalStartElement((*nakedString)(s), start); err != nil {
+func (s *XmlString) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
+	if err := unmarshalStartElement((*nakedXmlString)(s), start); err != nil {
 		return err
 	}
 
 	return s.unmarshalFixedValues(decoder, start)
 }
 
-func (s *String) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartElement) error {
+func (s *XmlString) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartElement) error {
 
 	for _, attr := range start.Attr {
 		if attr.Name.Local == "fixedval" {
-			s.Values = append(s.Values, &FixedValue{
+			s.Values = append(s.Values, &XmlFixedValue{
 				XMLName: xml.Name{Local: "fixedvalue"},
 				Value:   attr.Value,
 			})
@@ -535,9 +653,9 @@ func (s *String) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartEleme
 
 			switch token.Name.Local {
 			case "fixedvalue":
-				element = &FixedValue{}
+				element = &XmlFixedValue{}
 			case "fixedvalues":
-				element = &FixedValues{}
+				element = &XmlFixedValues{}
 			case "description":
 				element = &s.Description
 			default:
@@ -551,9 +669,9 @@ func (s *String) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartEleme
 
 			switch token.Name.Local {
 			case "fixedvalue":
-				s.Values = append(s.Values, element.(*FixedValue))
+				s.Values = append(s.Values, element.(*XmlFixedValue))
 			case "fixedvalues":
-				s.Values = append(s.Values, element.(*FixedValues).Values...)
+				s.Values = append(s.Values, element.(*XmlFixedValues).Values...)
 			}
 
 		case xml.EndElement:
@@ -562,19 +680,19 @@ func (s *String) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartEleme
 	}
 }
 
-func (b *Binary) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
-	if err := unmarshalStartElement((*nakedBinary)(b), start); err != nil {
+func (b *XmlBinary) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
+	if err := unmarshalStartElement((*nakedXmlBinary)(b), start); err != nil {
 		return err
 	}
 
 	return b.unmarshalFixedValues(decoder, start)
 }
 
-func (b *Binary) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartElement) error {
+func (b *XmlBinary) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartElement) error {
 
 	for _, attr := range start.Attr {
 		if attr.Name.Local == "fixedval" {
-			b.Values = append(b.Values, &FixedValue{
+			b.Values = append(b.Values, &XmlFixedValue{
 				XMLName: xml.Name{Local: "fixedvalue"},
 				Value:   attr.Value,
 			})
@@ -594,9 +712,9 @@ func (b *Binary) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartEleme
 
 			switch token.Name.Local {
 			case "fixedvalue":
-				element = &FixedValue{}
+				element = &XmlFixedValue{}
 			case "fixedvalues":
-				element = &FixedValues{}
+				element = &XmlFixedValues{}
 			case "description":
 				element = &b.Description
 			default:
@@ -610,9 +728,9 @@ func (b *Binary) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartEleme
 
 			switch token.Name.Local {
 			case "fixedvalue":
-				b.Values = append(b.Values, element.(*FixedValue))
+				b.Values = append(b.Values, element.(*XmlFixedValue))
 			case "fixedvalues":
-				b.Values = append(b.Values, element.(*FixedValues).Values...)
+				b.Values = append(b.Values, element.(*XmlFixedValues).Values...)
 			}
 
 		case xml.EndElement:
@@ -621,16 +739,16 @@ func (b *Binary) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartEleme
 	}
 }
 
-func (n *Number) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
+func (n *XmlNumber) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
 
-	if err := unmarshalStartElement((*nakedNumber)(n), start); err != nil {
+	if err := unmarshalStartElement((*nakedXmlNumber)(n), start); err != nil {
 		return err
 	}
 
 	return n.unmarshalFixedValues(decoder, start)
 }
 
-func (n *Number) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartElement) error {
+func (n *XmlNumber) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartElement) error {
 
 	for {
 		token, err := decoder.Token()
@@ -643,11 +761,11 @@ func (n *Number) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartEleme
 
 			switch token.Name.Local {
 			case "fixedvalue":
-				element = &FixedValue{}
+				element = &XmlFixedValue{}
 			case "fixedvalues":
-				element = &FixedValues{}
+				element = &XmlFixedValues{}
 			case "mask":
-				element = &Mask{}
+				element = &XmlMask{}
 			case "description":
 				element = &n.Description
 			default:
@@ -661,11 +779,11 @@ func (n *Number) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartEleme
 
 			switch token.Name.Local {
 			case "fixedvalue":
-				n.Values = append(n.Values, element.(*FixedValue))
+				n.Values = append(n.Values, element.(*XmlFixedValue))
 			case "fixedvalues":
-				n.Values = append(n.Values, element.(*FixedValues).Values...)
+				n.Values = append(n.Values, element.(*XmlFixedValues).Values...)
 			case "mask":
-				n.Masks = append(n.Masks, element.(*Mask))
+				n.Masks = append(n.Masks, element.(*XmlMask))
 			}
 
 		case xml.EndElement:

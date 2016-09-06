@@ -2,58 +2,46 @@ package ufwb
 
 import (
 	"fmt"
-	"reflect"
 )
 
 var (
 	// Valid values for tagged fields. The first value is the default if otherwise not specified.
 	// TODO Drop this table, as we correctly parse them all out
 	validValues = map[string][]string{
-		"bool":   []string{"no", "yes"},
-		"endian": []string{"little", "big", "dynamic"},
-		"lang":   []string{"Lua", "Python"},
-		"lengthunit": []string{"byte", "bit"},
-		"display": []string{"dec", "hex", "binary"}, // TODO Maybe "offset"? // TODO "dec" was a guess
+		"bool":        []string{"no", "yes"},
+		"endian":      []string{"little", "big", "dynamic"},
+		"lang":        []string{"Lua", "Python"},
+		"lengthunit":  []string{"byte", "bit"},
+		"display":     []string{"dec", "hex", "binary"}, // TODO Maybe "offset"? // TODO "dec" was a guess
 		"string-type": []string{"zero-terminated", "fixed-length", "pascal"},
 		"number-type": []string{"integer", "float"},
 	}
 )
 
 type validationError struct {
-	e interface{}
+	e   Element
 	msg string
 }
 
-func (e *validationError) Error() string {
-	return fmt.Sprintf("<%T id=%d name=%q>: %s", e.e, getId(e.e), getName(e), e.msg)
+func (err *validationError) Error() string {
+	//return fmt.Sprintf("<%T id=%d name=%q>: %s", e.e, getId(e.e), getName(e), e.msg)
+	return fmt.Sprintf("<%T id=%d name=%q>: %s", err.e, err.e.GetId(), err.e.GetName(), err.msg)
 }
 
 type validateable interface {
-	validate(u *Ufwb) error
+	validate(u *XmlUfwb) error
 }
 
-func (u *Ufwb) validate() error {
+/*
+func (u *XmlUfwb) validate() error {
 	u.validateFields(u)
 	u.validateFields(u.Grammar)
 	return u.Grammar.validate(u)
 }
 
-func (u *Ufwb) getStructure(id string) (*Structure, error) {
-	element, found := u.elements[id]
-	if !found {
-		return nil, fmt.Errorf("%q is missing", id)
-	}
-
-	structure, ok := element.(*Structure)
-	if !ok {
-		return nil, fmt.Errorf("%q is not a structure", id)
-	}
-
-	return structure, nil
-}
-
-func (g *Grammar) validate(u *Ufwb) error {
+func (g *XmlGrammar) validate(u *XmlUfwb) error {
 	for _, s := range g.Structures {
+
 		if err := u.validateFields(s); err != nil {
 			return err
 		}
@@ -65,7 +53,7 @@ func (g *Grammar) validate(u *Ufwb) error {
 	return nil
 }
 
-func (s *Structure) validate(u *Ufwb) error {
+func (s *XmlStructure) validate(u *XmlUfwb) error {
 	for _, e := range s.Elements {
 		if err := u.validateFields(s); err != nil {
 			return err
@@ -82,10 +70,11 @@ func (s *Structure) validate(u *Ufwb) error {
 }
 
 func (s *StructRef) validate(u *Ufwb) error {
-	structure, err := u.getStructure(s.Structure)
+	structure, err := u.Get(s.Structure)
 	s.structure = structure
 	return err
 }
+
 
 func (n *Number) validate(u *Ufwb) error {
 	if n.Length == "" {
@@ -94,7 +83,7 @@ func (n *Number) validate(u *Ufwb) error {
 	return nil
 }
 
-
+/*
 // validateFields checks the 'ufwb' tags and validates
 func (u *Ufwb) validateFields(e interface{}) error {
 	s := reflect.ValueOf(e).Elem()
@@ -111,7 +100,7 @@ func (u *Ufwb) validateFields(e interface{}) error {
 			switch tag {
 			case "id":
 				id := f.String()
-				if _, ok := u.elements[id]; !ok {
+				if _, ok := u.Elements[id]; !ok {
 					return &validationError{e: e, msg: fmt.Sprintf("%s refers to invalid id %q", sf.Name, id)}
 				}
 
@@ -149,3 +138,4 @@ func (u *Ufwb) validateFields(e interface{}) error {
 
 	return nil
 }
+*/
