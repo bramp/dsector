@@ -7,52 +7,15 @@ import (
 	"fmt"
 )
 
-type Endian int
-
-const (
-	UnknownEndian Endian = iota
-	LittleEndian
-	BigEndian
-	DynamicEndian
-)
-
-type Display int
-
-const (
-	UnknownDisplay Display = iota
-	BinaryDisplay
-	DecDisplay
-	HexDisplay
-)
-
-func (d Display) Base() int {
-	switch d {
-	case HexDisplay:
-		return 16
-	case DecDisplay:
-		return 10
-	case BinaryDisplay:
-		return 2
-	case UnknownDisplay:
-		return 0
-	}
-	return 0
-}
-
-type LengthUnit int
-
-const (
-	UnknownLengthUnit LengthUnit = iota
-	ByteLengthUnit
-	BitLengthUnit
-)
-
-type Convertable interface {
-	toElement(root *Ufwb, errs []error) Element
+type Transformable interface {
+	// transform creates a new naitve Element to represent this XMLElement.
+	// Only the Base fields are transformed at this point, Name, ID, Description. The rest are validated
+	// and parsed at a later stage, when more context is available.
+	transform(errs *Errors) Element
 }
 
 type XmlElement interface {
-	Convertable
+	Transformable
 }
 
 type XmlIdName struct {
@@ -61,8 +24,8 @@ type XmlIdName struct {
 	Description string `xml:"description,omitempty"`
 }
 
-func (xml *XmlIdName) toIdName(errs []error) IdName {
-	return IdName{
+func (xml *XmlIdName) toIdName(errs *Errors) Base {
+	return Base{
 		Id:          xml.Id,
 		Name:        xml.Name,
 		Description: xml.Description,
@@ -76,274 +39,280 @@ type XmlUfwb struct {
 	Grammar *XmlGrammar `xml:"grammar"`
 }
 
-func (xml *XmlUfwb) toElement() (*Ufwb, []error) {
-	var errs []error
+func (xml *XmlUfwb) transform() (*Ufwb, []error) {
+	errs := &Errors{}
+
 	u := &Ufwb{
 		Xml:     xml,
 		Version: xml.Version,
+		Elements: make(map[string]Element),
 	}
-	u.Grammar = xml.Grammar.toElement(u, errs).(*Grammar)
-	return u, errs
+	u.Grammar = xml.Grammar.transform(errs).(*Grammar)
+
+	return u, errs.Slice()
 }
 
 type XmlGrammar struct {
-	XMLName xml.Name `xml:"grammar"`
+	XMLName    xml.Name `xml:"grammar"`
 
 	XmlIdName
 
-	Author   string `xml:"author,attr,omitempty"`
-	Ext      string `xml:"fileextension,attr,omitempty"`
-	Email    string `xml:"email,attr,omitempty"`
-	Complete string `xml:"complete,attr,omitempty" ufwb:"bool"`
-	Uti      string `xml:"uti,attr,omitempty"`
+	Author     string `xml:"author,attr,omitempty"`
+	Ext        string `xml:"fileextension,attr,omitempty"`
+	Email      string `xml:"email,attr,omitempty"`
+	Complete   string `xml:"complete,attr,omitempty" ufwb:"bool"`
+	Uti        string `xml:"uti,attr,omitempty"`
 
 	Start      string          `xml:"start,attr,omitempty" ufwb:"id"`
 	Scripts    XmlScripts      `xml:"scripts"`
 	Structures []*XmlStructure `xml:"structure,omitempty"`
 }
 
-func (xml *XmlGrammar) toElement(root *Ufwb, errs []error) Element {
+func (xml *XmlGrammar) transform(errs *Errors) Element {
 
 	g := &Grammar{
 		Xml:    xml,
-		IdName: xml.XmlIdName.toIdName(errs),
+		Base: xml.XmlIdName.toIdName(errs),
 	}
 
 	for _, s := range xml.Structures {
-		g.Elements = append(g.Elements, s.toElement(root, errs))
+		g.Elements = append(g.Elements, s.transform(errs))
 	}
 
 	return g
 }
 
 type XmlGrammarRef struct {
-	XMLName xml.Name `xml:"grammarref"`
+	XMLName  xml.Name `xml:"grammarref"`
 
 	XmlIdName
-	Uti string `xml:"uti,attr,omitempty"`
+	Uti      string `xml:"uti,attr,omitempty"`
 
 	Filename string `xml:"filename,attr,omitempty"`
 	Disabled string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 }
 
-func (xml *XmlGrammarRef) toElement(root *Ufwb, errs []error) Element {
+func (xml *XmlGrammarRef) transform(errs *Errors) Element {
 	return &GrammarRef{
 		Xml:    xml,
-		IdName: xml.XmlIdName.toIdName(errs),
+		Base: xml.XmlIdName.toIdName(errs),
 	}
 }
 
-/*
-type length struct {
-	Length      string
-	LengthUnit  LengthUnit
-}
-
-type numberEncoding struct {
-	Endian    Endian
-	Signed    bool
-}
-*/
-
-/*
-type display struct {
-	Display   Display
-
-	FillColour   uint32
-	StrokeColour uint32
-}
-*/
-
 type XmlStructure struct {
-	XMLName xml.Name `xml:"structure"`
+	XMLName         xml.Name `xml:"structure"`
 
 	XmlIdName
 
-	Length       string `xml:"length,attr,omitempty" ufwb:"ref"`
-	LengthOffset string `xml:"lengthoffset,attr,omitempty"`
+	Length          string `xml:"length,attr,omitempty" ufwb:"ref"`
+	LengthUnit      string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"`
 
-	Endian    string `xml:"endian,attr,omitempty" ufwb:"endian"`
-	Signed    string `xml:"signed,attr,omitempty" ufwb:"bool"`
-	Extends   string `xml:"extends,attr,omitempty" ufwb:"id"`
-	Order     string `xml:"order,attr,omitempty"` // ??
-	Encoding  string `xml:"encoding,attr,omitempty" ufwb:"encoding"`
-	Alignment string `xml:"alignment,attr,omitempty"` // ??
+	LengthOffset    string `xml:"lengthoffset,attr,omitempty"`
 
-	Floating   string `xml:"floating,attr,omitempty"` // ??
-	ConsistsOf string `xml:"consists-of,attr,omitempty" ufwb:"id"`
+	Endian          string `xml:"endian,attr,omitempty" ufwb:"endian"`
+	Signed          string `xml:"signed,attr,omitempty" ufwb:"bool"`
+	Extends         string `xml:"extends,attr,omitempty" ufwb:"id"`
+	Order           string `xml:"order,attr,omitempty"`
+	Encoding        string `xml:"encoding,attr,omitempty" ufwb:"encoding"`
+	Alignment       string `xml:"alignment,attr,omitempty"` // ??
 
-	Repeat    string `xml:"repeat,attr,omitempty" ufwb:"id"`
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
+	Floating        string `xml:"floating,attr,omitempty"`  // ??
+	ConsistsOf      string `xml:"consists-of,attr,omitempty" ufwb:"id"`
+
+	Repeat          string `xml:"repeat,attr,omitempty" ufwb:"id"`
+	RepeatMin       string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
+	RepeatMax       string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
 
 	ValueExpression string `xml:"valueexpression,attr,omitempty"`
 	Debug           string `xml:"debug,attr,omitempty" ufwb:"bool"`
 	Disabled        string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 
-	Display      string `xml:"display,attr,omitempty" ufwb:"display"`
-	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
-	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
+	Display         string `xml:"display,attr,omitempty" ufwb:"display"`
+	FillColour      string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
+	StrokeColour    string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
-	Elements []XmlElement `xml:",any"`
+	Elements        []XmlElement `xml:",any"`
 }
 
-func (xml *XmlStructure) toElement(root *Ufwb, errs []error) Element {
+func (xml *XmlStructure) transform(errs *Errors) Element {
 	s := &Structure{
 		Xml:    xml,
-		IdName: xml.XmlIdName.toIdName(errs),
+		Base: xml.XmlIdName.toIdName(errs),
 	}
 
 	for _, e := range xml.Elements {
-		s.Elements = append(s.Elements, e.toElement(root, errs))
+		s.elements = append(s.elements, e.transform(errs))
 	}
 
 	return s
 }
 
 type XmlCustom struct {
-	XMLName xml.Name `xml:"custom"`
+	XMLName      xml.Name `xml:"custom"`
 
 	XmlIdName
 
-	Length string `xml:"length,attr,omitempty" ufwb:"ref"`
-	Script string `xml:"script,attr,omitempty" ufwb:"id"`
+	Length       string `xml:"length,attr,omitempty" ufwb:"ref"`
+	Script       string `xml:"script,attr,omitempty" ufwb:"id"`
 
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 }
 
-func (xml *XmlCustom) toElement(root *Ufwb, errs []error) Element {
+func (xml *XmlCustom) transform(errs *Errors) Element {
 	return &Custom{
 		Xml:    xml,
-		IdName: xml.XmlIdName.toIdName(errs),
+		Base: xml.XmlIdName.toIdName(errs),
 	}
 }
 
 type XmlStructRef struct {
-	XMLName xml.Name `xml:"structref"`
+	XMLName      xml.Name `xml:"structref"`
 
 	XmlIdName
 
-	Structure string `xml:"structure,attr,omitempty" ufwb:"id"`
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
+	Structure    string `xml:"structure,attr,omitempty" ufwb:"id"`
+	RepeatMin    string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
+	RepeatMax    string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
 
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
-	structure *XmlStructure
+	structure    *XmlStructure
 }
 
-func (xml *XmlStructRef) toElement(root *Ufwb, errs []error) Element {
+func (xml *XmlStructRef) transform(errs *Errors) Element {
 	return &StructRef{
 		Xml:    xml,
-		IdName: xml.XmlIdName.toIdName(errs),
+		Base: xml.XmlIdName.toIdName(errs),
 	}
 }
 
 type XmlString struct {
-	XMLName xml.Name `xml:"string"`
+	XMLName      xml.Name `xml:"string"`
 
 	XmlIdName
 
-	Type string `xml:"type,attr,omitempty" ufwb:"string-type"` // "zero-terminated", "fixed-length"
+	Type         string `xml:"type,attr,omitempty" ufwb:"string-type"`  // "zero-terminated", "fixed-length"
 
-	Length    string `xml:"length,attr,omitempty" ufwb:"ref"`
-	Encoding  string `xml:"encoding,attr,omitempty" ufwb:"encoding"` // Should be valid encoding
-	MustMatch string `xml:"mustmatch,attr,omitempty" ufwb:"bool"`    // "yes", "no"
+	Length       string `xml:"length,attr,omitempty" ufwb:"ref"`
+	Encoding     string `xml:"encoding,attr,omitempty" ufwb:"encoding"` // Should be valid encoding
+	MustMatch    string `xml:"mustmatch,attr,omitempty" ufwb:"bool"`    // "yes", "no"
 
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
+	RepeatMin    string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
+	RepeatMax    string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
 
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
-	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
+	Values       []*XmlFixedValue `xml:"fixedvalue,omitempty"`
 }
 
-func (xml *XmlString) toElement(root *Ufwb, errs []error) Element {
-	return &String{
+func (xml *XmlString) transform(errs *Errors) Element {
+	s := &String{
 		Xml:    xml,
-		IdName: xml.XmlIdName.toIdName(errs),
+		Base: xml.XmlIdName.toIdName(errs),
 	}
+
+	for _, v := range xml.Values {
+		s.values = append(s.values, v.transform(errs))
+	}
+
+	return s
 }
 
 type XmlBinary struct {
-	XMLName xml.Name `xml:"binary"`
+	XMLName      xml.Name `xml:"binary"`
 
 	XmlIdName
 
-	Length     string `xml:"length,attr,omitempty" ufwb:"ref"`
-	LengthUnit string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"` // "bit"
+	Length       string `xml:"length,attr,omitempty" ufwb:"ref"`
+	LengthUnit   string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"` // "bit"
 
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
+	RepeatMin    string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
+	RepeatMax    string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
 
-	MustMatch string `xml:"mustmatch,attr,omitempty"  ufwb:"bool"`
-	Unused    string `xml:"unused,attr,omitempty" ufwb:"bool"`
-	Disabled  string `xml:"disabled,attr,omitempty" ufwb:"bool"`
+	MustMatch    string `xml:"mustmatch,attr,omitempty"  ufwb:"bool"`
+	Unused       string `xml:"unused,attr,omitempty" ufwb:"bool"`
+	Disabled     string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
-	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
+	Values       []*XmlFixedValue `xml:"fixedvalue,omitempty"`
 }
 
-func (xml *XmlBinary) toElement(root *Ufwb, errs []error) Element {
-	return &Binary{
+func (xml *XmlBinary) transform(errs *Errors) Element {
+	b := &Binary{
 		Xml:    xml,
-		IdName: xml.XmlIdName.toIdName(errs),
+		Base: xml.XmlIdName.toIdName(errs),
 	}
+
+	for _, v := range xml.Values {
+		b.values = append(b.values, v.transform(errs))
+	}
+
+	return b
 }
 
 type XmlNumber struct {
-	XMLName xml.Name `xml:"number"`
+	XMLName         xml.Name `xml:"number"`
 
 	XmlIdName
 
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
+	RepeatMin       string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
+	RepeatMax       string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
 
-	Type       string `xml:"type,attr,omitempty" ufwb:"number-type"`
-	Length     string `xml:"length,attr,omitempty" ufwb:"ref"`
-	LengthUnit string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"` // "", "bit" (default "byte")
+	Type            string `xml:"type,attr,omitempty" ufwb:"number-type"`
+	Length          string `xml:"length,attr,omitempty" ufwb:"ref"`
+	LengthUnit      string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"` // "", "bit" (default "byte")
 
-	Endian          string `xml:"endian,attr,omitempty" ufwb:"endian"` // "", "big", "little", "dynamic"
-	Signed          string `xml:"signed,attr,omitempty" ufwb:"bool"`   // "", "yes", "no"
+	Endian          string `xml:"endian,attr,omitempty" ufwb:"endian"`         // "", "big", "little", "dynamic"
+	Signed          string `xml:"signed,attr,omitempty" ufwb:"bool"`           // "", "yes", "no"
 	MustMatch       string `xml:"mustmatch,attr,omitempty" ufwb:"bool"`
 	ValueExpression string `xml:"valueexpression,attr,omitempty"`
 
-	MinVal string `xml:"minval,attr,omitempty" ufwb:"ref"`
-	MaxVal string `xml:"maxval,attr,omitempty" ufwb:"ref"`
+	MinVal          string `xml:"minval,attr,omitempty" ufwb:"ref"`
+	MaxVal          string `xml:"maxval,attr,omitempty" ufwb:"ref"`
 
-	Display      string `xml:"display,attr,omitempty" ufwb:"display"`
-	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
-	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
+	Display         string `xml:"display,attr,omitempty" ufwb:"display"`
+	FillColour      string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
+	StrokeColour    string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
-	Disabled string `xml:"disabled,attr,omitempty" ufwb:"bool"`
+	Disabled        string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 
-	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
-	Masks  []*XmlMask       `xml:"mask,omitempty"`
+	Values          []*XmlFixedValue `xml:"fixedvalue,omitempty"`
+	Masks           []*XmlMask       `xml:"mask,omitempty"`
 
-	endian  Endian
-	signed  bool
-	display Display
+	endian          Endian
+	signed          bool
+	display         Display
 }
 
-func (xml *XmlNumber) toElement(root *Ufwb, errs []error) Element {
-	return &Number{
+func (xml *XmlNumber) transform(errs *Errors) Element {
+	n := &Number{
 		Xml:    xml,
-		IdName: xml.XmlIdName.toIdName(errs),
+		Base: xml.XmlIdName.toIdName(errs),
 	}
+
+	for _, v := range xml.Values {
+		n.values = append(n.values, v.transform(errs))
+	}
+
+	for _, v := range xml.Masks {
+		n.masks = append(n.masks, v.transform(errs))
+	}
+
+	return n
 }
 
 type XmlOffset struct {
-	XMLName xml.Name `xml:"offset"`
+	XMLName             xml.Name `xml:"offset"`
 
 	XmlIdName
 
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
+	RepeatMin           string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
+	RepeatMax           string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
 
 	Length              string `xml:"length,attr,omitempty" ufwb:"ref"`
 	Endian              string `xml:"endian,attr,omitempty" ufwb:"endian"`
@@ -351,59 +320,65 @@ type XmlOffset struct {
 	FollowNullReference string `xml:"follownullreference,attr,omitempty"`
 	References          string `xml:"references,attr,omitempty" ufwb:"id"`
 	ReferencedSize      string `xml:"referenced-size,attr,omitempty" ufwb:"id"`
-	Additional          string `xml:"additional,attr,omitempty"` // "stringOffset"
+	Additional          string `xml:"additional,attr,omitempty"`             // "stringOffset"
 
-	Display      string `xml:"display,attr,omitempty" ufwb:"display"` // "", "hex", "offset"
-	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
-	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
+	Display             string `xml:"display,attr,omitempty" ufwb:"display"` // "", "hex", "offset"
+	FillColour          string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
+	StrokeColour        string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
-	endian  Endian
-	display Display
+	endian              Endian
+	display             Display
 }
 
-func (xml *XmlOffset) toElement(root *Ufwb, errs []error) Element {
+func (xml *XmlOffset) transform(errs *Errors) Element {
 	return &Offset{
 		Xml:    xml,
-		IdName: xml.XmlIdName.toIdName(errs),
+		Base: xml.XmlIdName.toIdName(errs),
 	}
 }
 
 type XmlScriptElement struct {
-	XMLName xml.Name `xml:"scriptelement"`
+	XMLName  xml.Name `xml:"scriptelement"`
 
 	XmlIdName
 	Disabled string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 
-	Script *XmlScript `xml:"script"`
+	Script   *XmlScript `xml:"script"`
 }
 
-func (xml *XmlScriptElement) toElement(root *Ufwb, errs []error) Element {
+func (xml *XmlScriptElement) transform(errs *Errors) Element {
 	return &ScriptElement{
 		Xml:    xml,
-		IdName: xml.XmlIdName.toIdName(errs),
+		Base: xml.XmlIdName.toIdName(errs),
 	}
 }
 
 type XmlMask struct {
 	XMLName xml.Name `xml:"mask"`
 
-	Name  string `xml:"name,attr,omitempty"`
-	Value string `xml:"value,attr,omitempty"`
+	Name    string `xml:"name,attr,omitempty"`
+	Value   string `xml:"value,attr,omitempty"`
 
-	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
+	Values  []*XmlFixedValue `xml:"fixedvalue,omitempty"`
 }
 
-func (xml *XmlMask) toElement(root *Ufwb, errs []error) *Mask {
-	return &Mask{
+func (xml *XmlMask) transform(errs *Errors) *Mask {
+	m := &Mask{
 		Xml:  xml,
-		Name: xml.Name,
+		name: xml.Name,
 	}
+
+	for _, v := range xml.Values {
+		m.values = append(m.values, v.transform(errs))
+	}
+
+	return m
 }
 
 type XmlScripts []*XmlScript
 
 type XmlScript struct {
-	XMLName xml.Name `xml:"script"`
+	XMLName  xml.Name `xml:"script"`
 
 	XmlIdName
 
@@ -411,11 +386,11 @@ type XmlScript struct {
 	Language string     `xml:"language,attr,omitempty" ufwb:"lang"`
 	Source   *XmlSource `xml:"source,omitempty"`
 
-	// Sometimes the text is defined here, or in the child Source element
-	Text string `xml:",chardata"` // TODO Should this be cdata?
+													// Sometimes the text is defined here, or in the child Source element
+	Text     string `xml:",chardata"`               // TODO Should this be cdata?
 }
 
-func (xml *XmlScript) toElement(root *Ufwb, errs []error) *Script {
+func (xml *XmlScript) transform(errs *Errors) *Script {
 	return &Script{
 		Xml:  xml,
 		Name: xml.Name,
@@ -424,7 +399,7 @@ func (xml *XmlScript) toElement(root *Ufwb, errs []error) *Script {
 }
 
 type XmlSource struct {
-	XMLName xml.Name `xml:"source"`
+	XMLName  xml.Name `xml:"source"`
 
 	Language string `xml:"language,attr,omitempty" ufwb:"lang"`
 	Text     string `xml:",chardata"` // TODO Should this be cdata?
@@ -435,27 +410,20 @@ type XmlSource struct {
 type XmlFixedValues struct {
 	XMLName xml.Name `xml:"fixedvalues"`
 
-	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
-}
-
-func (xml *XmlFixedValues) toElement(root *Ufwb, errs []error) *FixedValues {
-	return &FixedValues{
-		Xml: xml,
-	}
+	Values  []*XmlFixedValue `xml:"fixedvalue,omitempty"`
 }
 
 type XmlFixedValue struct {
 	XMLName xml.Name `xml:"fixedvalue"`
 
-	Name  string `xml:"name,attr,omitempty"`
-	Value string `xml:"value,attr,omitempty"`
+	Name    string `xml:"name,attr,omitempty"`
+	Value   string `xml:"value,attr,omitempty"`
 }
 
-func (xml *XmlFixedValue) toElement(root *Ufwb, errs []error) *FixedValue {
+func (xml *XmlFixedValue) transform(errs *Errors) *FixedValue {
 	return &FixedValue{
 		Xml:   xml,
-		Name:  xml.Name,
-		Value: xml.Value,
+		name:  xml.Name,
 	}
 }
 

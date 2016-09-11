@@ -33,7 +33,7 @@ func TestWalk(t *testing.T) {
 
 	var got []walkResult
 
-	errs := ufwb.Walk(g, func(root *ufwb.Ufwb, element ufwb.Element, parent *ufwb.Structure, errs []error) {
+	errs := ufwb.Walk(g, func(root *ufwb.Ufwb, element ufwb.Element, parent *ufwb.Structure, errs *ufwb.Errors) {
 		parentId := 0
 		if parent != nil {
 			parentId = parent.Id

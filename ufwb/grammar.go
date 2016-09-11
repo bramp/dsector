@@ -4,7 +4,46 @@ package ufwb
 import (
 	"encoding/xml"
 	"io"
+	"strconv"
 )
+
+func indexer(u *Ufwb, element Element, parent *Structure, errs *Errors) {
+	_ = parent
+
+	if _, ok := element.(*Grammar); ok {
+		// Skip over Grammar elements
+		return
+	}
+
+	id := element.GetId()
+	if id == 0 {
+		errs.Append(&validationError{e: element, msg: "missing id field"})
+		return
+	}
+
+	// TODO Check we don't replace existing IDs
+	u.Elements["id:"+strconv.Itoa(id)] = element
+
+	if name := element.GetName(); name != "" {
+		u.Elements[name] = element
+	}
+}
+
+func extender(u *Ufwb, element Element, parent *Structure, errs *Errors) {
+	_ = parent
+	if err := element.updateExtends(u); err != nil {
+		errs.Append(err)
+	}
+}
+
+func updater(u *Ufwb, element Element, parent *Structure, errs *Errors) {
+	if parent == nil {
+		parent = defaults
+	}
+	element.update(u, parent, errs)
+}
+
+
 
 func ParseXmlGrammar(r io.Reader) (*Ufwb, []error) {
 
@@ -16,13 +55,28 @@ func ParseXmlGrammar(r io.Reader) (*Ufwb, []error) {
 	}
 
 	// 2. Turn the XML objects into a native objects
-	u, errs := x.toElement()
+	//    This does very little sanity checking
+	u, errs := x.transform()
 	if len(errs) > 0 {
 		return u, errs
 	}
 
-	// 3. Now run over them, to build up indexes, relationships, etc
-	return u, u.update()
+	// Building the initial id index
+	if errs := Walk(u, indexer); len(errs) > 0 {
+		return u, errs
+	}
+
+	// Setup the extending
+	if errs := Walk(u, extender); len(errs) > 0 {
+		return u, errs
+	}
+
+	// Now update and parsing all values
+	if errs := Walk(u, updater); len(errs) > 0 {
+		return u, errs
+	}
+
+	return u, nil
 }
 
 func WriteXmlGrammar(w io.Writer, ufwb *Ufwb) error {

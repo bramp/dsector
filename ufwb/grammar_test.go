@@ -1,7 +1,6 @@
-package ufwb_test
+package ufwb
 
 import (
-	"bramp.net/dsector/ufwb"
 	"bufio"
 	"bytes"
 	"fmt"
@@ -42,7 +41,7 @@ func TestParseGrammar(t *testing.T) {
 
 	var tests = []struct {
 		xml  string
-		want *ufwb.Ufwb
+		want *Ufwb
 	}{
 		{
 			xml: `<ufwb version="1.0.3">
@@ -55,30 +54,30 @@ func TestParseGrammar(t *testing.T) {
 					</structure>
 				</grammar>
 			</ufwb>`,
-			want: &ufwb.Ufwb{
+			want: &Ufwb{
 				Version: "1.0.3",
-				Grammar: &ufwb.Grammar{
-					IdName:   ufwb.IdName{0, "Test Name", "Test Description"},
+				Grammar: &Grammar{
+					Base:   Base{0, "Test Name", "Test Description"},
 					Author:   "bramp@",
 					Ext:      "test",
 					Complete: true,
 					//Start:       "1",
-					Elements: []ufwb.Element{
-						&ufwb.Structure{
-							IdName: ufwb.IdName{1, "struct", ""},
-							Elements: []ufwb.Element{
-								&ufwb.String{
-									IdName: ufwb.IdName{2, "string", ""},
-									Type:   "zero-terminated",
+					Elements: []Element{
+						&Structure{
+							Base: Base{1, "struct", ""},
+							elements: []Element{
+								&String{
+									Base: Base{2, "string", ""},
+									typ:   "zero-terminated",
 								},
-								&ufwb.Number{
-									IdName: ufwb.IdName{3, "number", ""},
+								&Number{
+									Base: Base{3, "number", ""},
 									Type:   "integer",
-									Length: "4",
+									length: "4",
 								},
-								&ufwb.Structure{
-									IdName: ufwb.IdName{4, "substruct", ""},
-									Length: "prev.size",
+								&Structure{
+									Base: Base{4, "substruct", ""},
+									length: "prev.size",
 								},
 							},
 						},
@@ -88,7 +87,7 @@ func TestParseGrammar(t *testing.T) {
 		}}
 
 	for i, test := range tests {
-		got, err := ufwb.ParseXmlGrammar(strings.NewReader(test.xml))
+		got, err := ParseXmlGrammar(strings.NewReader(test.xml))
 		if err != nil {
 			t.Errorf("Parse(%d) = %s", i, err)
 			return
@@ -124,7 +123,7 @@ func TestParserAll(t *testing.T) {
 		}
 
 		// Parse
-		grammar, errs := ufwb.ParseXmlGrammar(bytes.NewReader(in))
+		grammar, errs := ParseXmlGrammar(bytes.NewReader(in))
 		if len(errs) > 0 {
 			t.Errorf("Parse(%q) = %q", test, errs)
 			continue
@@ -132,7 +131,7 @@ func TestParserAll(t *testing.T) {
 
 		// Now write it back and see if it differs
 		var out bytes.Buffer
-		if err := ufwb.WriteXmlGrammar(bufio.NewWriter(&out), grammar); err != nil {
+		if err := WriteXmlGrammar(bufio.NewWriter(&out), grammar); err != nil {
 			t.Errorf("Write(%q) = %s", test, err)
 			continue
 		}
@@ -153,5 +152,5 @@ func TestParserAll(t *testing.T) {
 
 	// TODO Got to Progress: 67/79 good
 	t.Logf("Progress: %d/%d good", good, found)
-	t.Logf("%v", ufwb.AttrCounter)
+	t.Logf("%v", AttrCounter)
 }

@@ -1,10 +1,63 @@
+//go:ignore generate stringer -type Endian,Display,LengthUnit,Order
+//go:generate getter -type Grammar,GrammarRef,Custom,String,Structure,StructRef,Binary,Number,Offset,ScriptElement,FixedValue
 package ufwb
 
 import (
 	"fmt"
+	"strconv"
 )
 
+type Colour uint32
 type Reference string
+
+type Endian int
+
+const (
+	UnknownEndian Endian = iota
+	LittleEndian
+	BigEndian
+	DynamicEndian
+)
+
+type Display int
+
+const (
+	UnknownDisplay Display = iota
+	BinaryDisplay
+	DecDisplay
+	HexDisplay
+)
+
+func (d Display) Base() int {
+	switch d {
+	case HexDisplay:
+		return 16
+	case DecDisplay:
+		return 10
+	case BinaryDisplay:
+		return 2
+	case UnknownDisplay:
+		return 0
+	}
+	return 0
+}
+
+type LengthUnit int
+
+const (
+	UnknownLengthUnit LengthUnit = iota
+	BitLengthUnit
+	ByteLengthUnit
+)
+
+type Order int
+
+const (
+	UnknownOrder Order = iota
+	FixedOrder // TODO Check this is the right name
+	VariableOrder
+)
+
 
 type Reader interface {
 	// Read from file and return a Value.
@@ -17,16 +70,34 @@ type Formatter interface {
 	Format(file File, value *Value) (string, error)
 }
 
+type Updatable interface {
+	// Updates/validates the Element
+	update(u *Ufwb, parent *Structure, errs *Errors)
+
+	// Checks if we extend. This is done before update() because extending may impact
+	// our future parsing.
+	updateExtends(u *Ufwb) error
+}
+
+
 type Element interface {
 	Reader
 	Formatter
 
+	Updatable
+
+	// Rename these to just Id(), Name(), Description()
 	GetId() int
 	GetName() string
 	GetDescription() string
 
-	// Updates/validates the Element
-	update(u *Ufwb, parent *Structure, errs []error)
+	// TODO Add Colourful here
+
+}
+
+type Colourful struct {
+	fillColour   Colour
+	strokeColour Colour
 }
 
 type Ufwb struct {
@@ -38,40 +109,31 @@ type Ufwb struct {
 	Elements map[string]Element
 }
 
-func (u *Ufwb) Get(id string) (*Structure, error) {
-	element, found := u.Elements[id]
-	if !found {
-		return nil, fmt.Errorf("%q is missing", id)
-	}
-
-	structure, ok := element.(*Structure)
-	if !ok {
-		return nil, fmt.Errorf("%q is not a structure", id)
-	}
-
-	return structure, nil
-}
-
-type IdName struct {
+// Base is what all Elements implement
+type Base struct {
 	Id          int
 	Name        string
 	Description string
 }
 
-func (i *IdName) GetId() int {
-	return i.Id
+func (b *Base) GetId() int {
+	return b.Id
 }
-func (i *IdName) GetName() string {
-	return i.Name
+func (b *Base) GetName() string {
+	return b.Name
 }
-func (i *IdName) GetDescription() string {
-	return i.Description
+func (b *Base) GetDescription() string {
+	return b.Description
+}
+
+func (b *Base) String() string {
+	return fmt.Sprintf("<%02d %s>", b.Id, b.Name)
 }
 
 type Grammar struct {
 	Xml *XmlGrammar
 
-	IdName
+	Base
 
 	Author   string
 	Ext      string
@@ -84,26 +146,29 @@ type Grammar struct {
 	Scripts  []Script
 }
 
+
 type Structure struct {
-	Xml *XmlStructure
+	Xml          *XmlStructure
 
-	IdName
+	Base
+	Colourful
+	extends      *Structure
 
-	Length       Reference
-	LengthOffset Reference
+	length       Reference
+	lengthUnit   LengthUnit
+	lengthOffset Reference
 
-	Endian   Endian
-	Signed   bool
-	Encoding string
+	endian       Endian
+	signed       bool
+	encoding     string
 
-	Extends Element
+	order        Order
 
 	//Display   Display
 
-	Elements []Element
+	elements     []Element
 
 	/*
-		Order     string `xml:"order,attr,omitempty"` // ??
 		Encoding  string `xml:"encoding,attr,omitempty" ufwb:"encoding"`
 		Alignment string `xml:"alignment,attr,omitempty"` // ??
 
@@ -119,123 +184,194 @@ type Structure struct {
 		Disabled        string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 	*/
 
-	Display      Display
-	FillColour   uint32
-	StrokeColour uint32
+	display      Display
+}
+
+func (s *Structure) Length() Reference {
+	// TODO THis is a test
+	if s.length == "" {
+		return s.extends.Length()
+	}
+	return s.length
+}
+
+
+func (s *Structure) SetExtends(element Element) (error) {
+	parent, ok := element.(*Structure);
+	if !ok {
+		return &validationError{e: s, msg: fmt.Sprintf("element can't extend from %T", element)}
+	}
+	s.extends = parent
+
+	if len(s.elements) < len(parent.elements) {
+		return &validationError{e: s, msg: "child element must have atleast as many elements as the parent"}
+	}
+
+	/*
+	for i, child := range parent.elements {
+		if e, ok := s.elements[i].(Updatable); ok {
+			err := e.SetExtends(child)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	*/
+
+	return nil
 }
 
 type GrammarRef struct {
 	Xml *XmlGrammarRef
 
-	IdName
+	Base
+	extends      *GrammarRef
 
-	Filename string
-	Disabled bool
+	filename string
+	disabled bool
 }
 
 type Custom struct {
 	Xml *XmlCustom
 
-	IdName
+	Base
+	Colourful
+	extends      *Custom
 
-	Length Reference
-	Script string // TODO?
-
-	FillColour   uint32
-	StrokeColour uint32
+	length Reference
+	script string // TODO?
 }
 
 type StructRef struct {
 	Xml *XmlStructRef
 
-	IdName
+	Base
+	Colourful
+	extends   *StructRef
 
-	Structure *Structure
+	structure *Structure
 
-	RepeatMin Reference
-	RepeatMax Reference
-
-	FillColour   uint32
-	StrokeColour uint32
+	repeatMin Reference
+	repeatMax Reference
 }
 
 type String struct {
 	Xml *XmlString
 
-	IdName
+	Base
+	Colourful
+	extends      *String
 
-	Type string // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
+	typ string // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
 
-	Length    Reference
-	Encoding  string
-	MustMatch bool
+	length    Reference
+	encoding  string
+	mustMatch bool
 
-	RepeatMin Reference
-	RepeatMax Reference
+	repeatMin Reference
+	repeatMax Reference
 
-	FillColour   uint32
-	StrokeColour uint32
-
-	Values []*FixedValue
+	values []*FixedValue
 }
 
 type Binary struct {
-	Xml *XmlBinary
+	Xml        *XmlBinary
 
-	IdName
+	Base
+	Colourful
+	extends    *Binary
 
-	Length     Reference
-	LengthUnit string
+	length     Reference
+	lengthUnit LengthUnit
 
-	RepeatMin Reference
-	RepeatMax Reference
+	repeatMin  Reference
+	repeatMax  Reference
 
-	MustMatch bool
-	Unused    bool
-	Disabled  bool
+	mustMatch  bool
+	unused     bool
+	disabled   bool
 
-	FillColour   uint32
-	StrokeColour uint32
+	values     []*FixedValue
+}
 
-	Values []*FixedValue
+func (b *Binary) Length() Reference {
+	// TODO THis is a test
+	if b.length == "" {
+		return b.extends.Length()
+	}
+	return b.length
+}
+
+func (b *Binary) SetExtends(element Element) (error) {
+	parent, ok := element.(*Binary);
+	if !ok {
+		return &validationError{e: b, msg: fmt.Sprintf("element can't extend from %T", element)}
+	}
+	b.extends = parent
+	return nil
 }
 
 type Number struct {
-	Xml *XmlNumber
+	Xml             *XmlNumber
 
-	IdName
+	Base
+	Colourful
+	extends         *Number
 
-	RepeatMin Reference
-	RepeatMax Reference
+	repeatMin       Reference
+	repeatMax       Reference
 
-	Type       string // TODO Convert to Type
-	Length     Reference
-	LengthUnit string // TODO Convert to LengthUnit "", "bit" (default "byte")
+	Type            string // TODO Convert to Type
+	length          Reference
+	lengthUnit      LengthUnit
 
-	Endian Endian
-	Signed bool
+	endian          Endian
+	signed          bool
 
-	Display      Display
-	FillColour   uint32
-	StrokeColour uint32
+	display         Display
 
 	// TODO Handle the below fields:
-	MustMatch       bool
-	ValueExpression string
+	mustMatch       bool
+	valueExpression string
 
-	MinVal string
-	MaxVal string
+	minVal          string
+	maxVal          string
 
-	Disabled bool
+	values          []*FixedValue
+	masks           []*Mask
+}
 
-	Values []*FixedValue
-	Masks  []*Mask
+func (n *Number) Bits() int {
+	// TODO Change this to use Eval
+	len, err := strconv.Atoi(string(n.Length()))
+	if err != nil {
+		return -1
+	}
+
+	if n.LengthUnit() == BitLengthUnit {
+		return len
+	}
+	if n.LengthUnit() == ByteLengthUnit {
+		return len * 8
+	}
+
+	return -1
+}
+
+func (s *Number) SetExtends(element Element) (error) {
+	parent, ok := element.(*Number);
+	if !ok {
+		return &validationError{e: s, msg: fmt.Sprintf("element can't extend from %T", element)}
+	}
+	s.extends = parent
+	return nil
 }
 
 type Offset struct {
 	Xml *XmlOffset
 
-	IdName
+	Base
+	extends         *Number
 
 	RepeatMin Reference
 	RepeatMax Reference
@@ -251,30 +387,33 @@ type Offset struct {
 
 	Display Display
 
-	FillColour   uint32
-	StrokeColour uint32
+	Colourful
 }
 
 type Mask struct {
 	Xml *XmlMask
 
-	Name  string
-	Value string // The mask // TODO Change to uint64
+	name  string
+	value uint64 // The mask
 
-	Values []*FixedValue
+	values []*FixedValue
 }
 
+/*
 type FixedValues struct {
 	Xml *XmlFixedValues
 
-	Values []*FixedValue `xml:"fixedvalue,omitempty"`
+	values []*FixedValue
 }
+*/
 
 type FixedValue struct {
 	Xml *XmlFixedValue
 
-	Name  string
-	Value string
+	extends         *FixedValue // TODO Can this actually be extended?
+
+	name  string
+	value interface{}
 }
 
 // TODO Reconsider the script elements, as they don't need to correct match the XML
@@ -282,7 +421,7 @@ type FixedValue struct {
 type ScriptElement struct {
 	Xml *XmlScriptElement
 
-	IdName
+	Base
 
 	Disabled bool
 

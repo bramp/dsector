@@ -1,12 +1,14 @@
-package ufwb_test
+package ufwb
 
 import (
-	"bramp.net/dsector/ufwb"
 	"bytes"
 	"io/ioutil"
 	"path"
 	"strings"
 	"testing"
+	"io"
+	log "github.com/Sirupsen/logrus"
+
 )
 
 const (
@@ -16,6 +18,11 @@ const (
 	commonHeader = `<ufwb><grammar name="Test" start="1" author="bramp@"><structure id="99">`
 	commonFooter = `</structure></grammar></ufwb>`
 )
+
+func init() {
+	// Only log the warning severity or above.
+	log.SetLevel(log.DebugLevel)
+}
 
 func TestParserPng(t *testing.T) {
 
@@ -28,7 +35,7 @@ func TestParserPng(t *testing.T) {
 	}
 
 	// Parse
-	grammar, errs := ufwb.ParseXmlGrammar(bytes.NewReader(in))
+	grammar, errs := ParseXmlGrammar(bytes.NewReader(in))
 	if len(errs) > 0 {
 		t.Fatalf("Parse(%q) = %q want nil error", langFile, errs)
 	}
@@ -46,22 +53,23 @@ func TestParserPng(t *testing.T) {
 			continue
 		}
 
-		file, err := ufwb.OpenOSFile(filename)
+		file, err := OpenOSFile(filename)
 		if err != nil {
-			t.Errorf("ufwb.OpenOSFile(%q) = %q want nil error", filename, err)
+			t.Errorf("OpenOSFile(%q) = %q want nil error", filename, err)
 			continue
 		}
 
-		decoder := ufwb.NewDecoder(grammar, file)
+		decoder := NewDecoder(grammar, file)
 		got, err := decoder.Decode()
-		if err != nil {
-			t.Errorf("decoder.Decode() = %q want nil error", err)
+		if err != nil && err != io.EOF {
+			t.Errorf("decoder.Decode(%q) = %q want nil error", sample.Name(), err)
 			file.Close()
 			continue
 		}
 
 		if err := got.Validiate(); err != nil {
 			t.Errorf("value.Validiate() = %q want nil error", err)
+			return
 		}
 
 		s, _ := got.Format(file)
@@ -137,14 +145,14 @@ func TestParserNumber(t *testing.T) {
 
 	for _, test := range tests {
 		xml := commonHeader + test.xml + commonFooter
-		g, errs := ufwb.ParseXmlGrammar(strings.NewReader(xml))
+		g, errs := ParseXmlGrammar(strings.NewReader(xml))
 		if len(errs) > 0 {
-			t.Errorf("ufwb.ParseGrammar(%q) = %q want nil error", test.xml, errs)
+			t.Errorf("ParseGrammar(%q) = %q want nil error", test.xml, errs)
 			continue
 		}
 
-		file := ufwb.NewFileFromBytes(binary)
-		decoder := ufwb.NewDecoder(g, file)
+		file := NewFileFromBytes(binary)
+		decoder := NewDecoder(g, file)
 		got, err := decoder.Decode()
 		if err != nil {
 			t.Errorf("decoder.Decode() = %q want nil error", err)

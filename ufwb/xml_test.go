@@ -1,7 +1,6 @@
-package ufwb_test
+package ufwb
 
 import (
-	"bramp.net/dsector/ufwb"
 	"bufio"
 	"bytes"
 	"encoding/xml"
@@ -140,7 +139,7 @@ func TestParseGrammarFragment(t *testing.T) {
 
 	var tests = []struct {
 		xml  string
-		want ufwb.XmlElement
+		want XmlElement
 	}{
 		{
 			xml: `<string name="string" id="1">
@@ -151,10 +150,10 @@ func TestParseGrammarFragment(t *testing.T) {
 					  <fixedvalue name="right" value="3"/>
                     </fixedvalues>
 				</string>`,
-			want: &ufwb.XmlString{
+			want: &XmlString{
 				XMLName:   xml.Name{Local: "string"},
-				XmlIdName: ufwb.XmlIdName{1, "string", ""},
-				Values: []*ufwb.XmlFixedValue{
+				XmlIdName: XmlIdName{1, "string", ""},
+				Values: []*XmlFixedValue{
 					{XMLName: xml.Name{Local: "fixedvalue"}, Name: "up", Value: "0"},
 					{XMLName: xml.Name{Local: "fixedvalue"}, Name: "down", Value: "1"},
 					{XMLName: xml.Name{Local: "fixedvalue"}, Name: "left", Value: "2"},
@@ -163,16 +162,16 @@ func TestParseGrammarFragment(t *testing.T) {
 			},
 		}, {
 			xml: `<structure name="structure" id="4" length="prev.size" />`,
-			want: &ufwb.XmlStructure{
+			want: &XmlStructure{
 				XMLName:   xml.Name{Local: "structure"},
-				XmlIdName: ufwb.XmlIdName{4, "structure", ""},
+				XmlIdName: XmlIdName{4, "structure", ""},
 				Length:    "prev.size",
 			},
 		}, {
 			xml: `<number name="number" id="3" type="integer" length="4"/>`,
-			want: &ufwb.XmlNumber{
+			want: &XmlNumber{
 				XMLName:   xml.Name{Local: "number"},
-				XmlIdName: ufwb.XmlIdName{3, "number", ""},
+				XmlIdName: XmlIdName{3, "number", ""},
 				Type:      "integer",
 				Length:    "4",
 			},
@@ -183,9 +182,9 @@ Line 2
 Line 3
 </description>
 			      </grammar>`,
-			want: &ufwb.XmlGrammar{
+			want: &XmlGrammar{
 				XMLName:   xml.Name{Local: "grammar"},
-				XmlIdName: ufwb.XmlIdName{0, "multiline", "Line 1\nLine 2\nLine 3\n"},
+				XmlIdName: XmlIdName{0, "multiline", "Line 1\nLine 2\nLine 3\n"},
 			},
 		}, {
 			xml: `<grammar name="script">
@@ -197,13 +196,13 @@ Line 3
 				    </scripts>
 			      </grammar>`,
 
-			want: &ufwb.XmlGrammar{
+			want: &XmlGrammar{
 				XMLName:   xml.Name{Local: "grammar"},
-				XmlIdName: ufwb.XmlIdName{0, "script", ""},
-				Scripts: []*ufwb.XmlScript{{
+				XmlIdName: XmlIdName{0, "script", ""},
+				Scripts: []*XmlScript{{
 					XMLName:   xml.Name{Local: "script"},
-					XmlIdName: ufwb.XmlIdName{0, "", "A description"},
-					Source: &ufwb.XmlSource{
+					XmlIdName: XmlIdName{0, "", "A description"},
+					Source: &XmlSource{
 						XMLName:  xml.Name{Local: "source"},
 						Language: "Python",
 						Text:     "# Some code",

@@ -42,7 +42,7 @@ func TestExtends(t *testing.T) {
 			},
 			&Structure{
 				IdName: IdName{4, "substruct", ""},
-				Length: "prev.size",
+				length: "prev.size",
 			},
 		},
 	}
@@ -81,7 +81,7 @@ func TestExtends(t *testing.T) {
 			},
 			&Structure{
 				IdName: IdName{14, "substruct", ""},
-				Length: "prev.size", // Copied from src
+				length: "prev.size", // Copied from src
 			},
 			&Number{
 				IdName: IdName{15, "number2", ""},

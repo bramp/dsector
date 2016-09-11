@@ -8,6 +8,8 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+
+	log "github.com/Sirupsen/logrus"
 )
 
 type Decoder struct {
@@ -113,10 +115,12 @@ func (d *Decoder) Decode() (*Value, error) {
 }
 
 func (u *Ufwb) Read(d *Decoder) (*Value, error) {
+	log.Debugln("Ufwb Read")
 	return u.Grammar.Read(d)
 }
 
 func (g *Grammar) Read(d *Decoder) (*Value, error) {
+	log.Debugf("Read Grammar%s", g.Base.String())
 	return g.Start.Read(d)
 }
 
@@ -125,6 +129,8 @@ func (g *Grammar) Format(f File, value *Value) (string, error) {
 }
 
 func (s *Structure) Read(d *Decoder) (*Value, error) {
+	log.Debugf("Read Structure%s", s.Base.String())
+
 	start, err := d.f.Tell()
 	if err != nil {
 		return nil, err
@@ -132,13 +138,28 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 
 	length := int64(0)
 	var children []*Value
-	for _, e := range s.Elements {
-		v, err := e.Read(d)
-		if err != nil {
-			return nil, err
+
+	if s.Order() == FixedOrder {
+		for _, e := range s.Elements() {
+			v, err := e.Read(d)
+			if err != nil {
+				return nil, err
+			}
+			length += v.Len
+			children = append(children, v)
 		}
-		length += v.Len
-		children = append(children, v)
+	} else if s.Order() == VariableOrder {
+		// TODO FIX:
+		for _, e := range s.Elements() {
+			v, err := e.Read(d)
+			if err != nil {
+				return nil, err
+			}
+			length += v.Len
+			children = append(children, v)
+		}
+	} else {
+		return nil, &validationError{e: s, msg: fmt.Sprintf("unknown order: %s", s.Order())}
 	}
 
 	return &Value{
@@ -163,12 +184,14 @@ func (d *Decoder) eval(s Reference) int64 {
 }
 
 func (s *String) Read(d *Decoder) (*Value, error) {
+	log.Debugf("Read String%s", s.Base.String())
+
 	start, err := d.f.Tell()
 	if err != nil {
 		return nil, err
 	}
 
-	switch s.Type {
+	switch s.Typ() {
 	case "zero-terminated":
 		n, err := seekUntil(d.f, '\x00')
 		if err != nil {
@@ -177,15 +200,16 @@ func (s *String) Read(d *Decoder) (*Value, error) {
 		return &Value{Offset: start, Len: n, Element: s}, nil
 
 	case "fixed-length":
-		len := d.eval(s.Length)
+		len := d.eval(s.Length())
 		d.f.Seek(len, io.SeekCurrent)
 		return &Value{Offset: start, Len: len, Element: s}, nil
 	}
 
-	return nil, fmt.Errorf("unknown type %q", s.Type)
+	return nil, fmt.Errorf("unknown type %q", s.Typ())
 }
 
-func skip(d *Decoder, length Reference, lengthUnit string) (*Value, error) {
+// skip moves the decoder forward by length, returning a Value that covers the range
+func skip(d *Decoder, length Reference, lengthUnit LengthUnit) (*Value, error) {
 	start, err := d.f.Tell()
 	if err != nil {
 		return nil, err
@@ -193,8 +217,12 @@ func skip(d *Decoder, length Reference, lengthUnit string) (*Value, error) {
 
 	len := d.eval(length)
 
-	if lengthUnit == "bit" {
+	if lengthUnit == BitLengthUnit {
 		len /= 8 // TODO Test edge cases (such as 20 bits)
+	} else if lengthUnit == ByteLengthUnit {
+		// Do nothing
+	} else {
+		return nil, fmt.Errorf("unknown length unit: %s", lengthUnit)
 	}
 
 	_, err = d.f.Seek(len, io.SeekCurrent)
@@ -208,20 +236,10 @@ func skip(d *Decoder, length Reference, lengthUnit string) (*Value, error) {
 	}, nil
 }
 
-func (n *Number) Read(d *Decoder) (*Value, error) {
-	v, err := skip(d, n.Length, n.LengthUnit)
-	if err != nil {
-		return nil, err
-	}
-
-	v.Element = n
-	v.ByteOrder = d.ByteOrder(n.Endian)
-
-	return v, nil
-}
-
 func (b *Binary) Read(d *Decoder) (*Value, error) {
-	v, err := skip(d, b.Length, b.LengthUnit)
+	log.Debugf("Read Binary%s", b.Base.String())
+
+	v, err := skip(d, b.Length(), b.lengthUnit)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +258,7 @@ func (n *Number) int(f File, value *Value) (interface{}, error) {
 	}
 
 	var i interface{}
-	if n.Signed {
+	if n.signed {
 		switch value.Len {
 		case 1:
 			i = new(int8)
@@ -289,11 +307,11 @@ func (n *Number) Uint(f File, value *Value) (uint64, error) {
 }
 
 func (n *Number) Format(f File, value *Value) (string, error) {
-	base := n.Display.Base()
+	base := n.display.Base()
 	if base == 0 {
 		return "", fmt.Errorf("invalid base %d", base)
 	}
-	if n.Signed {
+	if n.signed {
 		i, err := n.Int(f, value)
 		return strconv.FormatInt(i, base), err
 	} else {
@@ -301,6 +319,38 @@ func (n *Number) Format(f File, value *Value) (string, error) {
 		return strconv.FormatUint(i, base), err
 	}
 }
+
+func (n *Number) Read(d *Decoder) (*Value, error) {
+	log.Debugf("Read Number%s", n.Base.String())
+
+	v, err := skip(d, n.Length(), n.LengthUnit())
+	if err != nil {
+		return nil, err
+	}
+
+	v.Element = n
+	v.ByteOrder = d.ByteOrder(n.endian)
+
+	// If we have FixedValues, then check atleast one matches
+	values := n.Values()
+	if len(values) > 0 { // TODO Perhaps change with n.MustMatch()
+		// Read the int value
+		i, err := n.int(d.f, v)
+		if err != nil {
+			return nil, err
+		}
+		// Now check it matches one of the fixed values
+		for _, fv := range values {
+			if fv.value == i {
+				return v, nil
+			}
+		}
+		return v, &validationError{e: n, msg: fmt.Sprintf("%d does match any of the fixed values", i)}
+	}
+
+	return v, nil
+}
+
 
 func (n *Custom) Read(d *Decoder) (*Value, error) {
 	panic("TODO")
@@ -319,7 +369,9 @@ func (n *ScriptElement) Read(d *Decoder) (*Value, error) {
 }
 
 func (s *StructRef) Read(d *Decoder) (*Value, error) {
-	value, err := s.Structure.Read(d)
+	log.Debugf("Read StructRef%s", s.Base.String())
+
+	value, err := s.Structure().Read(d)
 	if err != nil {
 		return nil, err
 	}
@@ -348,7 +400,7 @@ func (n *ScriptElement) Format(f File, value *Value) (string, error) {
 }
 
 func (n *StructRef) Format(f File, value *Value) (string, error) {
-	return n.Structure.Format(f, value)
+	return n.Structure().Format(f, value)
 }
 
 /*
