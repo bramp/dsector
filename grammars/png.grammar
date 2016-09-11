@@ -255,6 +255,9 @@
                     <fixedvalue value="0x624B4744"/>
                 </fixedvalues>
             </number>
+            <structure name="Data" id="185">
+                <binary name="Background Data" id="186" length="remaining"/>
+            </structure>
             <binary name="CRC" id="187"/>
         </structure>
         <structure name="pHYs" id="189" extends="id:51">
@@ -296,6 +299,9 @@
                     <fixedvalue value="0x73524742"/>
                 </fixedvalues>
             </number>
+            <structure name="Data" id="216">
+                <binary name="sRGB Data" id="217" length="remaining"/>
+            </structure>
             <binary name="CRC" id="218"/>
         </structure>
         <structure name="IDAT" id="220" extends="id:51">
@@ -329,6 +335,9 @@
                     <fixedvalue value="0x49454E44"/>
                 </fixedvalues>
             </number>
+            <structure name="Data" id="239">
+                <binary name="IEND Data" id="240" length="remaining"/>
+            </structure>
             <binary name="CRC" id="241"/>
         </structure>
         <structure name="PNG File" id="45" extends="id:46" consists-of="id:46" encoding="ISO_8859-1:1987" endian="big" signed="no">
