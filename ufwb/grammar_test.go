@@ -16,8 +16,8 @@ const grammarsPath = "../grammars"
 
 func init() {
 	// TODO This is bad, move into per test configs
-	pretty.CompareConfig.SkipZeroFields = true
-	pretty.CompareConfig.IncludeUnexported = false
+	pretty.CompareConfig.SkipZeroFields = false
+	pretty.CompareConfig.IncludeUnexported = true
 }
 
 func readGrammar(name string) ([]byte, error) {
@@ -49,8 +49,21 @@ func TestParseGrammar(t *testing.T) {
 					<description>Test Description</description>
 					<structure name="struct" id="1">
 						<string name="string" id="2" type="zero-terminated"/>
-						<number name="number" id="3" type="integer" length="4"/>
-						<structure name="substruct" id="4" length="prev.size"></structure>
+						<number name="number" id="3" type="integer" length="8"/>
+						<structure name="substruct" id="4" length="prev.number">
+							<binary name="binary" id="5" length="4">
+								<fixedvalues>
+									<fixedvalue name="one" value="0x01234567"/>
+									<fixedvalue name="two" value="0x89abcdef"/>
+								</fixedvalues>
+							</binary>
+							<number name="number_values" id="6" type="integer" length="4">
+								<fixedvalues>
+									<fixedvalue name="three" value="0xfedcba98"/>
+									<fixedvalue name="four"  value="0x76543210"/>
+								</fixedvalues>
+							</number>
+						</structure>
 					</structure>
 				</grammar>
 			</ufwb>`,
@@ -73,11 +86,30 @@ func TestParseGrammar(t *testing.T) {
 								&Number{
 									Base: Base{3, "number", ""},
 									Type:   "integer",
-									length: "4",
+									length: "8",
 								},
 								&Structure{
 									Base: Base{4, "substruct", ""},
-									length: "prev.size",
+									length: "prev.number",
+									elements: []Element{
+										&Binary{
+											Base: Base{5, "binary", ""},
+											length: "4",
+											values: []*FixedBinaryValue{
+												{name: "one", value: []byte{0x01, 0x23, 0x45, 0x67}},
+												{name: "two", value: []byte{0x89, 0xab, 0xcd, 0xef}},
+											},
+										},
+										&Number{
+											Base: Base{6, "number_values", ""},
+											Type:   "integer",
+											length: "4",
+											values: []*FixedValue{
+												{name: "three", value: 0xfedcba98},
+												{name: "four",  value: 0x76543210},
+											},
+										},
+									},
 								},
 							},
 						},
@@ -87,14 +119,40 @@ func TestParseGrammar(t *testing.T) {
 		}}
 
 	for i, test := range tests {
-		got, err := ParseXmlGrammar(strings.NewReader(test.xml))
-		if err != nil {
-			t.Errorf("Parse(%d) = %s", i, err)
-			return
+		got, errs := ParseXmlGrammar(strings.NewReader(test.xml))
+		if len(errs) > 0 {
+			t.Errorf("Parse(test:%d) = %s", i, errs)
+			continue
 		}
 
+		// Remove all the XML fields, as we don't want to compare them
+		got.Xml = nil
+		got.Elements = nil
+		errs = Walk(got, func(root *Ufwb, element Element, parent *Structure, errs *Errors) {
+			switch e := element.(type) {
+			case *Grammar:
+				e.Xml = nil
+				e.Start = nil
+			case *Structure: e.Xml = nil
+			case *GrammarRef: e.Xml = nil
+			case *Custom: e.Xml = nil
+			case *StructRef: e.Xml = nil
+			case *String: e.Xml = nil
+			case *Binary: e.Xml = nil
+			case *Number: e.Xml = nil
+			case *Offset: e.Xml = nil
+			default:
+				errs.Append(fmt.Errorf("unknown element type %T", element))
+			}
+		})
+		if len(errs) > 0 {
+			t.Errorf("Walk(test:%d) errors: %s", i, errs)
+			continue
+		}
+
+		// TODO pretty.Compare seems to fail us in this test. It does not notice that Number.values is nil
 		if diff := pretty.Compare(got, test.want); diff != "" {
-			t.Errorf("Parse(%d) = -got +want:\n%s", i, diff)
+			t.Errorf("Parse(test:%d) = -got +want:\n%s", i, diff)
 		}
 	}
 }

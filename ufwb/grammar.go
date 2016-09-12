@@ -31,8 +31,18 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 
 func extender(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 	_ = parent
-	if err := element.updateExtends(u); err != nil {
-		errs.Append(err)
+
+	// XMLStructure is the only one with an Extends field
+	s, ok := element.(*Structure)
+	if !ok {
+		// Skip non-structures
+		return
+	}
+
+	if e := get(u, s.Xml.Extends, errs); e != nil {
+		if err := s.SetExtends(e); err != nil {
+			errs.Append(err)
+		}
 	}
 }
 
@@ -42,8 +52,6 @@ func updater(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 	}
 	element.update(u, parent, errs)
 }
-
-
 
 func ParseXmlGrammar(r io.Reader) (*Ufwb, []error) {
 

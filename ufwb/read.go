@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	log "github.com/Sirupsen/logrus"
+	"bytes"
 )
 
 type Decoder struct {
@@ -38,6 +39,14 @@ func (d *Decoder) ByteOrder(e Endian) binary.ByteOrder {
 	panic(fmt.Sprintf("Unknown endian %v", e))
 }
 
+func (d *Decoder) String() string {
+	pos, err := d.f.Tell();
+	if err != nil {
+		return fmt.Sprintf("%s", err)
+	}
+	return fmt.Sprintf("%d", pos)
+}
+
 // File interface provides the minimum needed to parse the binary file.
 type File interface {
 	io.Seeker
@@ -49,118 +58,88 @@ type File interface {
 	Tell() (int64, error) // Here for convinence, perhaps remove.
 }
 
-// Value represents one of the parsed elements in the file.
-// It doesn't contain the element, just the offset where it starts, and which element it is.
-type Value struct {
-	Offset  int64 // In bytes from the beginning of the file
-	Len     int64 // In bytes
-	Element Element
-
-	Children  []*Value
-	ByteOrder binary.ByteOrder // Only used for Number, TODO, and TODO
-}
-
-func (v *Value) Name() string {
-	return v.Element.GetName()
-}
-
-func (v *Value) Description() string {
-	return v.Element.GetDescription()
-}
-
-// String returns this value's string representation (based on display, etc)
-func (v *Value) Format(f File) (string, error) {
-	return v.Element.Format(f, v)
-}
-
-// Read returns the string representation of this value
-func (v *Value) Read(f File) (string, error) {
-	return "", nil
-}
-
-func (v *Value) Write(f File) {
-	panic("TODO")
-}
-
-// Validiate checks if this Value is valid, mainly used for debugging.
-func (v *Value) Validiate() error {
-	if v == nil {
-		return fmt.Errorf("nil Value")
-	}
-	if v.Len <= 0 {
-		return fmt.Errorf("Len = %d want >0", v.Len)
-	}
-	if v.Offset < 0 {
-		return fmt.Errorf("Offset = %d want >0", v.Offset)
-	}
-	if v.Element == nil {
-		return fmt.Errorf("Element = nil want a valid value", v.Element)
-	}
-
-	end := v.Offset + v.Len
-	for _, child := range v.Children {
-		if err := child.Validiate(); err != nil {
-			return err
-		}
-		if child.Offset < v.Offset || (child.Offset+child.Len) > end {
-			return fmt.Errorf("child Value outside of parents bounds: %v > %v", v, child)
-		}
-	}
-
-	return nil
-}
-
 func (d *Decoder) Decode() (*Value, error) {
 	return d.u.Read(d)
 }
 
+// readAssert wraps Read() calls to ensure they are valid (to catch programmer mistakes)
+func (d *Decoder) readAssert(v *Value, e error) (*Value, error) {
+	if v != nil {
+		v.mustValidiate()
+		pos, err := d.f.Tell()
+		if err != nil {
+			if (v.Offset + v.Len) != pos {
+				panic(fmt.Sprintf("Decoder was not left at right position after %v", v))
+			}
+		}
+	}
+	return v, e
+}
+
 func (u *Ufwb) Read(d *Decoder) (*Value, error) {
-	log.Debugln("Ufwb Read")
-	return u.Grammar.Read(d)
+	log.Debugf("[%s] Ufwb Read", d)
+	return d.readAssert(u.Grammar.Read(d))
 }
 
 func (g *Grammar) Read(d *Decoder) (*Value, error) {
-	log.Debugf("Read Grammar%s", g.Base.String())
-	return g.Start.Read(d)
-}
-
-func (g *Grammar) Format(f File, value *Value) (string, error) {
-	return g.Start.Format(f, value)
+	log.Debugf("[%s] Read Grammar%s", d, g.Base.String())
+	return d.readAssert(g.Start.Read(d))
 }
 
 func (s *Structure) Read(d *Decoder) (*Value, error) {
-	log.Debugf("Read Structure%s", s.Base.String())
+	log.Debugf("[%s] Read Structure%s", d, s.Base.String())
 
 	start, err := d.f.Tell()
 	if err != nil {
 		return nil, err
 	}
 
+	if start > 10000 {
+		panic("DEBUG: ENDING EARLY")
+	}
+
 	length := int64(0)
 	var children []*Value
 
-	if s.Order() == FixedOrder {
-		for _, e := range s.Elements() {
-			v, err := e.Read(d)
-			if err != nil {
-				return nil, err
-			}
-			length += v.Len
-			children = append(children, v)
+	elements := s.Elements()
+	for i := 0; i < len(elements); i++ {
+		startElement, err := d.f.Tell()
+		if err != nil {
+			return nil, err
 		}
-	} else if s.Order() == VariableOrder {
-		// TODO FIX:
-		for _, e := range s.Elements() {
-			v, err := e.Read(d)
-			if err != nil {
-				return nil, err
-			}
-			length += v.Len
-			children = append(children, v)
+
+		e := elements[i]
+
+		v, err := d.readAssert(e.Read(d))
+		if err == io.EOF {
+			break
 		}
-	} else {
-		return nil, &validationError{e: s, msg: fmt.Sprintf("unknown order: %s", s.Order())}
+
+		if err != nil {
+			switch s.Order() {
+			case FixedOrder:
+				return nil, err
+			case VariableOrder:
+				log.Debugf("%v failed %s", e, err)
+
+				// Reset and try next element
+				d.f.Seek(startElement, io.SeekStart)
+				continue
+			default:
+				return nil, &validationError{e: s, msg: fmt.Sprintf("unknown order: %s", s.Order())}
+			}
+		}
+		length += v.Len
+		children = append(children, v)
+
+		if s.Order() == VariableOrder {
+			// If we are variable order, start again from the first element for the next round
+			i = 0
+			// TODO Detect if we are in parsing loop
+		}
 	}
+
+	// TODO Check if we reached the min children
 
 	return &Value{
 		Offset:   start,
@@ -168,10 +147,6 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 		Element:  s,
 		Children: children,
 	}, nil
-}
-
-func (n *Structure) Format(f File, value *Value) (string, error) {
-	panic("TODO")
 }
 
 // TODO Make this actually eval the string, and determine the right value
@@ -184,7 +159,7 @@ func (d *Decoder) eval(s Reference) int64 {
 }
 
 func (s *String) Read(d *Decoder) (*Value, error) {
-	log.Debugf("Read String%s", s.Base.String())
+	log.Debugf("[%s] Read String%s", d, s.Base.String())
 
 	start, err := d.f.Tell()
 	if err != nil {
@@ -237,7 +212,7 @@ func skip(d *Decoder, length Reference, lengthUnit LengthUnit) (*Value, error) {
 }
 
 func (b *Binary) Read(d *Decoder) (*Value, error) {
-	log.Debugf("Read Binary%s", b.Base.String())
+	log.Debugf("[%s] Read Binary%s", d, b.Base.String())
 
 	v, err := skip(d, b.Length(), b.lengthUnit)
 	if err != nil {
@@ -245,13 +220,38 @@ func (b *Binary) Read(d *Decoder) (*Value, error) {
 	}
 
 	v.Element = b
+
+	// If we have FixedValues, then check at least one matches
+	values := b.Values()
+	if len(values) > 0 { // TODO Perhaps change with n.MustMatch()
+		// Read the bytes value
+		bs, err := b.Bytes(d.f, v)
+		if err != nil {
+			return nil, err
+		}
+		// Now check it matches one of the fixed values
+		for _, fv := range values {
+			if bytes.Equal(fv.value, bs) {
+				return v, nil
+			}
+		}
+		f, _ := b.format(bs)
+		return v, &validationError{e: b, msg: fmt.Sprintf("%q does match any of the fixed values", f)}
+	}
+
+
 	return v, nil
 }
 
-func (n *String) Format(f File, value *Value) (string, error) {
-	panic("TODO")
+func (b *Binary) Bytes(f File, value *Value) ([]byte, error) {
+	out := make([]byte, value.Len, value.Len)
+	n, err := f.ReadAt(out, value.Offset)
+	return out[:n], err
 }
 
+// int returns the integer stored at Value in f. The returned
+// integer is one of int{8,16,32,64} or uint{8,16,32,64} depending
+// on the width and sign of the integer.
 func (n *Number) int(f File, value *Value) (interface{}, error) {
 	if _, err := f.Seek(value.Offset, io.SeekStart); err != nil {
 		return 0, err
@@ -286,7 +286,10 @@ func (n *Number) int(f File, value *Value) (interface{}, error) {
 	}
 
 	err := binary.Read(f, value.ByteOrder, i)
-	return i, err
+
+	// Strip the pointer from the interface
+	// TODO Consider refactoring, so ints are always either int64 or uint64
+	return reflect.ValueOf(i).Elem().Interface() , err
 }
 
 // Int returns the int this file/value refers to.
@@ -295,7 +298,7 @@ func (n *Number) Int(f File, value *Value) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return reflect.ValueOf(i).Elem().Int(), nil
+	return reflect.ValueOf(i).Int(), nil
 }
 
 func (n *Number) Uint(f File, value *Value) (uint64, error) {
@@ -303,25 +306,11 @@ func (n *Number) Uint(f File, value *Value) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	return reflect.ValueOf(i).Elem().Uint(), nil
-}
-
-func (n *Number) Format(f File, value *Value) (string, error) {
-	base := n.display.Base()
-	if base == 0 {
-		return "", fmt.Errorf("invalid base %d", base)
-	}
-	if n.signed {
-		i, err := n.Int(f, value)
-		return strconv.FormatInt(i, base), err
-	} else {
-		i, err := n.Uint(f, value)
-		return strconv.FormatUint(i, base), err
-	}
+	return reflect.ValueOf(i).Uint(), nil
 }
 
 func (n *Number) Read(d *Decoder) (*Value, error) {
-	log.Debugf("Read Number%s", n.Base.String())
+	log.Debugf("[%s] Read Number%s", d, n.Base.String())
 
 	v, err := skip(d, n.Length(), n.LengthUnit())
 	if err != nil {
@@ -333,6 +322,8 @@ func (n *Number) Read(d *Decoder) (*Value, error) {
 
 	// If we have FixedValues, then check atleast one matches
 	values := n.Values()
+	log.Debugf("Number values: %s %s", n.values, values)
+
 	if len(values) > 0 { // TODO Perhaps change with n.MustMatch()
 		// Read the int value
 		i, err := n.int(d.f, v)
@@ -342,10 +333,13 @@ func (n *Number) Read(d *Decoder) (*Value, error) {
 		// Now check it matches one of the fixed values
 		for _, fv := range values {
 			if fv.value == i {
+				log.Debug("matched %s", fv.value)
 				return v, nil
 			}
 		}
-		return v, &validationError{e: n, msg: fmt.Sprintf("%d does match any of the fixed values", i)}
+		f, _ := n.format(i)
+		log.Debugf("%v %s %s", n, n.Display(), f)
+		return v, &validationError{e: n, msg: fmt.Sprintf("%q does match any of the fixed values %q", f, values)}
 	}
 
 	return v, nil
@@ -369,7 +363,7 @@ func (n *ScriptElement) Read(d *Decoder) (*Value, error) {
 }
 
 func (s *StructRef) Read(d *Decoder) (*Value, error) {
-	log.Debugf("Read StructRef%s", s.Base.String())
+	log.Debugf("[%s] Read StructRef%s", d, s.Base.String())
 
 	value, err := s.Structure().Read(d)
 	if err != nil {
@@ -378,45 +372,3 @@ func (s *StructRef) Read(d *Decoder) (*Value, error) {
 	value.Element = s
 	return value, nil
 }
-
-func (n *Binary) Format(f File, value *Value) (string, error) {
-	panic("TODO")
-}
-
-func (n *Custom) Format(f File, value *Value) (string, error) {
-	panic("TODO")
-}
-
-func (n *GrammarRef) Format(f File, value *Value) (string, error) {
-	panic("TODO")
-}
-
-func (n *Offset) Format(f File, value *Value) (string, error) {
-	panic("TODO")
-}
-
-func (n *ScriptElement) Format(f File, value *Value) (string, error) {
-	panic("TODO")
-}
-
-func (n *StructRef) Format(f File, value *Value) (string, error) {
-	return n.Structure().Format(f, value)
-}
-
-/*
-func (n *Mask) Format(f File, value *Value) (string, error) {
-	panic("TODO")
-}
-
-func (n *FixedValues) Format(f File, value *Value) (string, error) {
-	panic("TODO")
-}
-
-func (n *FixedValue) Format(f File, value *Value) (string, error) {
-	panic("TODO")
-}
-
-func (n *Script) Format(f File, value *Value) (string, error) {
-	panic("TODO")
-}
-*/

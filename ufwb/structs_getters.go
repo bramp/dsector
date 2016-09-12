@@ -94,6 +94,17 @@ func (b *Binary) SetUnused(unused bool) {
 	b.unused = unused
 }
 
+func (b *Binary) Values() []*FixedBinaryValue {
+	if b.values == nil && b.extends != nil {
+		return b.extends.Values()
+	}
+	return b.values
+}
+
+func (b *Binary) SetValues(values []*FixedBinaryValue) {
+	b.values = values
+}
+
 func (c *Custom) FillColour() Colour {
 	if c.fillColour == Colour(0) && c.extends != nil {
 		return c.extends.FillColour()
@@ -457,14 +468,14 @@ func (s *String) SetTyp(typ string) {
 	s.typ = typ
 }
 
-func (s *String) Values() []*FixedValue {
+func (s *String) Values() []*FixedStringValue {
 	if s.values == nil && s.extends != nil {
 		return s.extends.Values()
 	}
 	return s.values
 }
 
-func (s *String) SetValues(values []*FixedValue) {
+func (s *String) SetValues(values []*FixedStringValue) {
 	s.values = values
 }
 
@@ -576,6 +587,21 @@ func (s *Structure) FillColour() Colour {
 
 func (s *Structure) SetFillColour(fillColour Colour) {
 	s.fillColour = fillColour
+}
+
+func (s *Binary) Length() Reference {
+	if s.length == Reference("") && s.extends != nil {
+		return s.extends.Length()
+	}
+	return s.length
+}
+
+
+func (s *Structure) Length() Reference {
+	if s.length == Reference("") && s.extends != nil {
+		return s.extends.Length()
+	}
+	return s.length
 }
 
 func (s *Structure) SetLength(length Reference) {

@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -146,37 +147,27 @@ func (u *Ufwb) update() {
 	u.Elements = make(map[string]Element)
 }
 
-func (u *Ufwb) Get(id string) (Element, error) {
-
-	if id == "" {
-		return nil, nil
-	}
+func (u *Ufwb) Get(id string) (Element, bool) {
 
 	if _, err := strconv.Atoi(id); err == nil {
 		id = "id:" + id
 	}
 
-	element, found := u.Elements[id]
-	if !found {
-		return nil, fmt.Errorf("%q is missing", id)
-	}
-
-	return element, nil
-
-	/*
-	structure, ok := element.(*Structure)
-	if !ok {
-		return nil, fmt.Errorf("%q is not a structure", id)
-	}
-	return structure, nil
-	*/
+	e, found := u.Elements[id]
+	return e, found
 }
 
 func get(u *Ufwb, id string, errs *Errors) Element {
-	e, err := u.Get(id)
-	if err != nil {
-		errs.Append(err)
+
+	if id == "" {
+		return nil
 	}
+
+	e, found := u.Get(id)
+	if e == nil || !found {
+		errs.Append(fmt.Errorf("%q is missing", id))
+	}
+
 	return e
 }
 
@@ -191,7 +182,7 @@ func (g *Grammar) update(u *Ufwb, parent *Structure, errs *Errors) {
 	g.Start = get(u, g.Xml.Start, errs)
 }
 
-func (s *Structure) update(u *Ufwb, defaults *Structure, errs *Errors) {
+func (s *Structure) update(u *Ufwb, parent *Structure, errs *Errors) {
 
 	// Repeat:[ id:1001 id:101 id:106 id:1064 id:1071 id:1078 id:1085 id:1092 id:1098 id:1105 id:115 id:1204 id:157 id:164 id:171 id:1730 id:1758 id:18 id:180 id:194 id:199 id:221 id:230 id:24 id:243 id:25 id:253 id:254 id:264 id:269 id:285 id:29 id:295 id:320 id:322 id:378 id:391 id:5259 id:5272 id:5287 id:5478 id:5620 id:5634 id:58 id:5824 id:5969 id:5984 id:6 id:6172 id:62 id:6313 id:6328 id:64 id:6516 id:691 id:692 id:72 id:7630 id:7638 id:7664 id:7689 id:7690 id:7770 id:8088 id:820 id:829 id:8328 id:838 id:8413 id:847 id:856 id:86 id:861 id:868 id:8768 id:8781 id:8790 id:8812 id:8857 id:8875 id:8881 id:8891 id:8897 id:8920 id:8926 id:8932 id:8935 id:9020 id:9040 id:9081 id:9094 id:9103 id:9125 id:9154 id:9170 id:9188 id:9194 id:9204 id:9210 id:9233 id:9239 id:9245 id:9248 id:9264 id:9333 id:934 id:935 id:9353 id:947 id:960 id:961 id:973 id:974 id:989]
 	// RepeatMax:[ -1 100 100000 110 127 16 2147483647 256 40 6 600 99 ClassSize Count CycleCount FieldCount FrameCount Height/2 MarkerCount MethodSize NumberOfBlocks NumberOfRecords NumberOfRecords-1 NumberOfSections OpcodeSize RecordCount StyleCount ValueCount numberOfHMetrics unlimited]
@@ -206,10 +197,12 @@ func (s *Structure) update(u *Ufwb, defaults *Structure, errs *Errors) {
 	// LengthOffset:[ 1 2]
 	// Endian:[ big dynamic little]
 	// Signed:[ no yes]]
+	s.parent = parent
 
 	s.length = Reference(s.Xml.Length)
 	s.lengthOffset = Reference(s.Xml.LengthOffset)
-	s.lengthUnit = lengthunit(s.Xml.LengthUnit, defaults.LengthUnit(), errs)
+	//s.lengthUnit = lengthunit(s.Xml.LengthUnit, defaults.LengthUnit(), errs)
+	s.lengthUnit = lengthunit(s.Xml.LengthUnit, UnknownLengthUnit, errs)
 
 	s.endian = endian(s.Xml.Endian, defaults.Endian(), errs)
 	s.signed = yesno(s.Xml.Signed, defaults.Signed(), errs)
@@ -222,39 +215,10 @@ func (s *Structure) update(u *Ufwb, defaults *Structure, errs *Errors) {
 	s.fillColour = colour(s.Xml.FillColour, defaults.FillColour(), errs)
 	s.strokeColour = colour(s.Xml.StrokeColour, defaults.StrokeColour(), errs)
 
-	if s.Xml.Extends != "" {
-		e := get(u, s.Xml.Extends, errs)
-		s.SetExtends(e)
-	}
-}
-
-
-func fixedValues(n *Number, in []*XmlFixedValue, errs *Errors) []*FixedValue {
-	var out []*FixedValue
-
-	/*
-	for _, v := range in {
-		fv := v.toElement()
-
-		var i interface{}
-		var err error
-		if n.Signed() {
-			log.Printf("%v %v", n, n.Bits())
-			i, err = strconv.ParseInt(v.Value, 0, n.Bits())
-		} else {
-			i, err = strconv.ParseUint(v.Value, 0, n.Bits())
-		}
-
-		if err != nil {
-			errs.Append(err)
-		}
-		fv.value = i
-
-		out = append(out, fv)
-	}
-	*/
-
-	return out
+	// TODO Add Min/Max
+	//if s.Order() == FixedOrder {
+		// TODO if FixedOrder then Min/Max should equal # of children
+	//}
 }
 
 func (n *Number) update(u *Ufwb, defaults *Structure, errs *Errors) {
@@ -282,8 +246,14 @@ func (n *Number) update(u *Ufwb, defaults *Structure, errs *Errors) {
 	n.fillColour = colour(n.Xml.FillColour, defaults.FillColour(), errs)
 	n.strokeColour = colour(n.Xml.StrokeColour, defaults.StrokeColour(), errs)
 
-	n.values = fixedValues(n, n.Xml.Values, errs)
-	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
+	for _, v := range n.values {
+		bs, err := parseInt(v.Xml.Value, 0, n.Bits(), n.Signed())
+		if err != nil {
+			errs.Append(err)
+		}
+		v.value = bs
+	}
+
 	// TODO Check Masks  []*Mask       `xml:"mask,omitempty"`
 }
 
@@ -307,7 +277,15 @@ func (b *Binary) update(u *Ufwb, defaults *Structure, errs *Errors) {
 	b.fillColour = colour(b.Xml.FillColour, defaults.FillColour(), errs)
 	b.strokeColour = colour(b.Xml.StrokeColour, defaults.StrokeColour(), errs)
 
-	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
+	for _, v := range b.values {
+		// Binary values shouldn't be prefixed, but incase they are:
+		value := strings.TrimPrefix(strings.TrimPrefix(v.Xml.Value, "0x"), "0X")
+		bs, err := hex.DecodeString(value)
+		if err != nil {
+			errs.Append(err)
+		}
+		v.value = bs
+	}
 }
 
 func (s *String) update(u *Ufwb, defaults *Structure, errs *Errors) {

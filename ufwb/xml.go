@@ -177,8 +177,6 @@ type XmlStructRef struct {
 
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
-
-	structure    *XmlStructure
 }
 
 func (xml *XmlStructRef) transform(errs *Errors) Element {
@@ -214,8 +212,11 @@ func (xml *XmlString) transform(errs *Errors) Element {
 		Base: xml.XmlIdName.toIdName(errs),
 	}
 
-	for _, v := range xml.Values {
-		s.values = append(s.values, v.transform(errs))
+	for _, x := range xml.Values {
+		s.values = append(s.values, &FixedStringValue{
+			Xml:   x,
+			name:  x.Name,
+		})
 	}
 
 	return s
@@ -248,8 +249,11 @@ func (xml *XmlBinary) transform(errs *Errors) Element {
 		Base: xml.XmlIdName.toIdName(errs),
 	}
 
-	for _, v := range xml.Values {
-		b.values = append(b.values, v.transform(errs))
+	for _, x := range xml.Values {
+		b.values = append(b.values, &FixedBinaryValue{
+			Xml:   x,
+			name:  x.Name,
+		})
 	}
 
 	return b
@@ -283,10 +287,6 @@ type XmlNumber struct {
 
 	Values          []*XmlFixedValue `xml:"fixedvalue,omitempty"`
 	Masks           []*XmlMask       `xml:"mask,omitempty"`
-
-	endian          Endian
-	signed          bool
-	display         Display
 }
 
 func (xml *XmlNumber) transform(errs *Errors) Element {
@@ -295,8 +295,11 @@ func (xml *XmlNumber) transform(errs *Errors) Element {
 		Base: xml.XmlIdName.toIdName(errs),
 	}
 
-	for _, v := range xml.Values {
-		n.values = append(n.values, v.transform(errs))
+	for _, x := range xml.Values {
+		n.values = append(n.values, &FixedValue{
+			Xml:   x,
+			name:  x.Name,
+		})
 	}
 
 	for _, v := range xml.Masks {
@@ -325,9 +328,6 @@ type XmlOffset struct {
 	Display             string `xml:"display,attr,omitempty" ufwb:"display"` // "", "hex", "offset"
 	FillColour          string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour        string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
-
-	endian              Endian
-	display             Display
 }
 
 func (xml *XmlOffset) transform(errs *Errors) Element {
@@ -368,8 +368,12 @@ func (xml *XmlMask) transform(errs *Errors) *Mask {
 		name: xml.Name,
 	}
 
-	for _, v := range xml.Values {
-		m.values = append(m.values, v.transform(errs))
+	for _, x := range xml.Values {
+		// TODO Do I need to change this to some other type?
+		m.values = append(m.values, &FixedValue{
+			Xml:   x,
+			name:  x.Name,
+		})
 	}
 
 	return m
@@ -420,12 +424,14 @@ type XmlFixedValue struct {
 	Value   string `xml:"value,attr,omitempty"`
 }
 
+/*
 func (xml *XmlFixedValue) transform(errs *Errors) *FixedValue {
 	return &FixedValue{
 		Xml:   xml,
 		name:  xml.Name,
 	}
 }
+*/
 
 // Types of the original elements but without the MarshalXML / UnmarshalXML methods on them.
 type nakedXmlStructure XmlStructure

@@ -74,9 +74,7 @@ type Updatable interface {
 	// Updates/validates the Element
 	update(u *Ufwb, parent *Structure, errs *Errors)
 
-	// Checks if we extend. This is done before update() because extending may impact
-	// our future parsing.
-	updateExtends(u *Ufwb) error
+	SetExtends(parent Element) error
 }
 
 
@@ -153,6 +151,7 @@ type Structure struct {
 	Base
 	Colourful
 	extends      *Structure
+	parent      *Structure
 
 	length       Reference
 	lengthUnit   LengthUnit
@@ -185,40 +184,6 @@ type Structure struct {
 	*/
 
 	display      Display
-}
-
-func (s *Structure) Length() Reference {
-	// TODO THis is a test
-	if s.length == "" {
-		return s.extends.Length()
-	}
-	return s.length
-}
-
-
-func (s *Structure) SetExtends(element Element) (error) {
-	parent, ok := element.(*Structure);
-	if !ok {
-		return &validationError{e: s, msg: fmt.Sprintf("element can't extend from %T", element)}
-	}
-	s.extends = parent
-
-	if len(s.elements) < len(parent.elements) {
-		return &validationError{e: s, msg: "child element must have atleast as many elements as the parent"}
-	}
-
-	/*
-	for i, child := range parent.elements {
-		if e, ok := s.elements[i].(Updatable); ok {
-			err := e.SetExtends(child)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	*/
-
-	return nil
 }
 
 type GrammarRef struct {
@@ -271,7 +236,7 @@ type String struct {
 	repeatMin Reference
 	repeatMax Reference
 
-	values []*FixedValue
+	values []*FixedStringValue
 }
 
 type Binary struct {
@@ -291,24 +256,7 @@ type Binary struct {
 	unused     bool
 	disabled   bool
 
-	values     []*FixedValue
-}
-
-func (b *Binary) Length() Reference {
-	// TODO THis is a test
-	if b.length == "" {
-		return b.extends.Length()
-	}
-	return b.length
-}
-
-func (b *Binary) SetExtends(element Element) (error) {
-	parent, ok := element.(*Binary);
-	if !ok {
-		return &validationError{e: b, msg: fmt.Sprintf("element can't extend from %T", element)}
-	}
-	b.extends = parent
-	return nil
+	values     []*FixedBinaryValue
 }
 
 type Number struct {
@@ -345,7 +293,7 @@ func (n *Number) Bits() int {
 	// TODO Change this to use Eval
 	len, err := strconv.Atoi(string(n.Length()))
 	if err != nil {
-		return -1
+		panic("TODO USE EVAL")
 	}
 
 	if n.LengthUnit() == BitLengthUnit {
@@ -358,20 +306,11 @@ func (n *Number) Bits() int {
 	return -1
 }
 
-func (s *Number) SetExtends(element Element) (error) {
-	parent, ok := element.(*Number);
-	if !ok {
-		return &validationError{e: s, msg: fmt.Sprintf("element can't extend from %T", element)}
-	}
-	s.extends = parent
-	return nil
-}
-
 type Offset struct {
 	Xml *XmlOffset
 
 	Base
-	extends         *Number
+	extends         *Offset
 
 	RepeatMin Reference
 	RepeatMax Reference
@@ -416,12 +355,31 @@ type FixedValue struct {
 	value interface{}
 }
 
+type FixedBinaryValue struct {
+	Xml *XmlFixedValue
+
+	extends         *FixedBinaryValue // TODO Can this actually be extended?
+
+	name  string
+	value []byte
+}
+
+type FixedStringValue struct {
+	Xml *XmlFixedValue
+
+	extends         *FixedStringValue // TODO Can this actually be extended?
+
+	name  string
+	value string
+}
+
 // TODO Reconsider the script elements, as they don't need to correct match the XML
 
 type ScriptElement struct {
 	Xml *XmlScriptElement
 
 	Base
+	extends         *ScriptElement
 
 	Disabled bool
 
@@ -438,3 +396,14 @@ type Script struct {
 
 	Text string // TODO Sometimes there is a source element beneath this, pull it up into this field
 }
+
+/*
+func (s *Structure) NumElements() int {
+	// TODO This might need improving
+	return len(s.elements)
+}
+
+func (s *Structure) Element(i int) Element {
+	return s.elements[i]
+}
+*/
