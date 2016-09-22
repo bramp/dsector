@@ -1,5 +1,6 @@
 //go:ignore generate stringer -type Endian,Display,LengthUnit,Order
 //go:generate getter -type Grammar,GrammarRef,Custom,String,Structure,StructRef,Binary,Number,Offset,ScriptElement,FixedValue
+// TODO Consider moving this into a seperate package, so that the parser can't use the unexported fields (and forced to go via Getters, which "do the right thing" wrt extending and defaults.
 package ufwb
 
 import (
@@ -7,8 +8,36 @@ import (
 	"strconv"
 )
 
+const (
+	Black = Colour(0x000000)
+	White = Colour(0xffffff)
+)
+
 type Colour uint32
 type Reference string
+type Bool int8 // tri-state bool unset, false, true.
+
+// No other value is allowed
+const (
+	UnknownBool Bool = iota
+	False
+	True
+)
+
+func (b Bool) bool() bool {
+	switch b {
+	case False: return false
+	case True: return true
+	}
+	panic("Unknown bool state")
+}
+
+func boolOf(b bool) Bool {
+	if b {
+		return True
+	}
+	return False
+}
 
 type Endian int
 
@@ -39,7 +68,7 @@ func (d Display) Base() int {
 	case UnknownDisplay:
 		return 0
 	}
-	return 0
+	panic(fmt.Sprintf("unknown base %s", d))
 }
 
 type LengthUnit int
@@ -77,25 +106,32 @@ type Updatable interface {
 	SetExtends(parent Element) error
 }
 
+type Repeatable interface {
+	RepeatMin() Reference
+	RepeatMax() Reference
+}
+
 
 type Element interface {
 	Reader
 	Formatter
 
+	Repeatable
 	Updatable
 
-	// Rename these to just Id(), Name(), Description()
-	GetId() int
-	GetName() string
-	GetDescription() string
+	Id() int
+	Name() string
+	Description() string
+
+	String() string
 
 	// TODO Add Colourful here
 
 }
 
 type Colourful struct {
-	fillColour   Colour
-	strokeColour Colour
+	fillColour   *Colour `default:"White" dereference:"true" parent:"false"`
+	strokeColour *Colour `default:"Black" dereference:"true" parent:"false"`
 }
 
 type Ufwb struct {
@@ -109,34 +145,70 @@ type Ufwb struct {
 
 // Base is what all Elements implement
 type Base struct {
-	Id          int
-	Name        string
-	Description string
+	elemType    string
+	id          int
+	name        string
+	description string
 }
 
-func (b *Base) GetId() int {
-	return b.Id
+func (b *Base) Id() int {
+	return b.id
 }
-func (b *Base) GetName() string {
-	return b.Name
+func (b *Base) Name() string {
+	return b.name
 }
-func (b *Base) GetDescription() string {
-	return b.Description
+func (b *Base) Description() string {
+	return b.description
+}
+
+func (b *Base) GetBase() *Base {
+	return b
 }
 
 func (b *Base) String() string {
-	return fmt.Sprintf("<%02d %s>", b.Id, b.Name)
+	return b.debugString()
 }
+
+func (b *Base) debugString() string {
+	return fmt.Sprintf("%s<%02d %s>", b.elemType, b.id, b.name)
+}
+
+type Repeats struct {
+	repeatMin    Reference  `default:"Reference(\"1\")"`
+	repeatMax    Reference  `default:"Reference(\"1\")"`
+}
+
+/*
+var (
+	defaultGrammar = Grammar{}
+	defaultStructure = Structure{
+		endian:  LittleEndian, // TODO Check this is the right default
+		signed:  True,         // TODO Check this is the right default
+		display: DecDisplay, // TODO Check this is the right default
+		lengthUnit: ByteLengthUnit, // TODO Check this is the right default
+		encoding: "UTF-8", // TODO Check this is the right default
+		order: FixedOrder, // TODO Check this is the right default
+	}
+	defaultGrammarRef = GrammarRef{}
+	defaultCustom = Custom{}
+	defaultStructRef = StructRef{}
+	defaultString = String{}
+	defaultBinary = Binary{}
+	defaultNumber = Number{}
+	defaultOffset = Offset{}
+)
+*/
 
 type Grammar struct {
 	Xml *XmlGrammar
 
 	Base
+	Repeats
 
 	Author   string
 	Ext      string
 	Email    string
-	Complete bool
+	Complete Bool
 	Uti      string
 
 	Start    Element // TODO Is this always a Structure?
@@ -149,21 +221,23 @@ type Structure struct {
 	Xml          *XmlStructure
 
 	Base
+	Repeats
 	Colourful
+
 	extends      *Structure
-	parent      *Structure
+	parent       *Structure
 
 	length       Reference
-	lengthUnit   LengthUnit
+	lengthUnit   LengthUnit `default:"ByteLengthUnit"`
 	lengthOffset Reference
 
-	endian       Endian
-	signed       bool
-	encoding     string
+	endian       Endian `default:"LittleEndian"`
+	signed       Bool   `default:"True"`
+	encoding     string `default:"\"UTF-8\""`
 
-	order        Order
+	order        Order `default:"FixedOrder"`
 
-	//Display   Display
+	display      Display `default:"DecDisplay"`
 
 	elements     []Element
 
@@ -182,28 +256,32 @@ type Structure struct {
 		Debug           string `xml:"debug,attr,omitempty" ufwb:"bool"`
 		Disabled        string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 	*/
-
-	display      Display
 }
 
 type GrammarRef struct {
 	Xml *XmlGrammarRef
 
 	Base
+	Repeats
+
 	extends      *GrammarRef
 
 	filename string
-	disabled bool
+	//disabled bool
 }
 
 type Custom struct {
 	Xml *XmlCustom
 
 	Base
+	Repeats
 	Colourful
+
 	extends      *Custom
 
-	length Reference
+	length            Reference
+	lengthUnit        LengthUnit `default:"ByteLengthUnit"`
+
 	script string // TODO?
 }
 
@@ -211,31 +289,31 @@ type StructRef struct {
 	Xml *XmlStructRef
 
 	Base
+	Repeats
 	Colourful
+
 	extends   *StructRef
 
 	structure *Structure
-
-	repeatMin Reference
-	repeatMax Reference
 }
 
 type String struct {
 	Xml *XmlString
 
 	Base
+	Repeats
 	Colourful
+
 	extends      *String
 
 	typ string // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
 
-	length    Reference
-	encoding  string
-	mustMatch bool
+	length        Reference
+	lengthUnit    LengthUnit `default:"ByteLengthUnit"`
 
-	repeatMin Reference
-	repeatMax Reference
+	encoding  string `default:"\"UTF-8\""`
 
+	mustMatch Bool `default:"True"`
 	values []*FixedStringValue
 }
 
@@ -243,19 +321,19 @@ type Binary struct {
 	Xml        *XmlBinary
 
 	Base
+	Repeats
 	Colourful
+
 	extends    *Binary
+	parent     *Structure
 
 	length     Reference
-	lengthUnit LengthUnit
+	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
-	repeatMin  Reference
-	repeatMax  Reference
+	//unused     Bool // TODO
+	//disabled   Bool
 
-	mustMatch  bool
-	unused     bool
-	disabled   bool
-
+	mustMatch  Bool `default:"True"`
 	values     []*FixedBinaryValue
 }
 
@@ -263,30 +341,48 @@ type Number struct {
 	Xml             *XmlNumber
 
 	Base
+	Repeats
 	Colourful
-	extends         *Number
 
-	repeatMin       Reference
-	repeatMax       Reference
+	extends         *Number
+	parent          *Structure
 
 	Type            string // TODO Convert to Type
 	length          Reference
-	lengthUnit      LengthUnit
+	lengthUnit      LengthUnit `default:"ByteLengthUnit"`
 
-	endian          Endian
-	signed          bool
+	endian          Endian  `default:"LittleEndian"`
+	signed          Bool    `default:"True"`
 
-	display         Display
+	display         Display `default:"DecDisplay"`
 
 	// TODO Handle the below fields:
-	mustMatch       bool
 	valueExpression string
 
-	minVal          string
+	minVal          string // TODO This should be a int
 	maxVal          string
 
+	mustMatch       Bool   `default:"True"`
 	values          []*FixedValue
 	masks           []*Mask
+}
+
+// Bytes returns the width of this number in bytes
+func (n *Number) Bytes() int {
+	// TODO Change this to use Eval
+	len, err := strconv.Atoi(string(n.Length()))
+	if err != nil {
+		panic("TODO USE EVAL")
+	}
+
+	if n.LengthUnit() == BitLengthUnit {
+		return len / 8
+	}
+	if n.LengthUnit() == ByteLengthUnit {
+		return len
+	}
+
+	panic("Unknown length unit")
 }
 
 func (n *Number) Bits() int {
@@ -303,30 +399,31 @@ func (n *Number) Bits() int {
 		return len * 8
 	}
 
-	return -1
+	panic("Unknown length unit")
 }
 
 type Offset struct {
 	Xml *XmlOffset
 
 	Base
+	Repeats
+	Colourful
+
 	extends         *Offset
 
-	RepeatMin Reference
-	RepeatMax Reference
+	length Reference
+	lengthUnit      LengthUnit `default:"ByteLengthUnit"`
 
-	Length Reference
-	Endian Endian
+	endian Endian  `default:"LittleEndian"`
 
-	RelativeTo          Element `xml:"relative-to,attr,omitempty" ufwb:"id"`
-	FollowNullReference string  `xml:"follownullreference,attr,omitempty"` // TODO
-	References          Element `xml:"references,attr,omitempty" ufwb:"id"`
-	ReferencedSize      Element `xml:"referenced-size,attr,omitempty" ufwb:"id"`
-	Additional          string  `xml:"additional,attr,omitempty"` // "stringOffset" // TODO
+	RelativeTo          Element // TODO
+	FollowNullReference string  // TODO
+	References          Element // TODO
+	ReferencedSize      Element // TODO
+	Additional          string  // TODO
 
-	Display Display
+	display         Display `default:"DecDisplay"`
 
-	Colourful
 }
 
 type Mask struct {
@@ -350,6 +447,8 @@ type FixedValue struct {
 	Xml *XmlFixedValue
 
 	extends         *FixedValue // TODO Can this actually be extended?
+
+	// TODO Add description
 
 	name  string
 	value interface{}
@@ -379,9 +478,11 @@ type ScriptElement struct {
 	Xml *XmlScriptElement
 
 	Base
+	Repeats
+
 	extends         *ScriptElement
 
-	Disabled bool
+	//Disabled bool
 
 	Script *Script
 }
@@ -397,13 +498,37 @@ type Script struct {
 	Text string // TODO Sometimes there is a source element beneath this, pull it up into this field
 }
 
-/*
-func (s *Structure) NumElements() int {
-	// TODO This might need improving
-	return len(s.elements)
+func (s *Structure) Signed() bool {
+	if s.signed != UnknownBool {
+		return s.signed.bool()
+	}
+	if s.extends != nil {
+		return s.extends.Signed()
+	}
+	if s.parent != nil {
+		return s.parent.Signed()
+	}
+	return true
 }
 
-func (s *Structure) Element(i int) Element {
-	return s.elements[i]
+func (s *Structure) SetSigned(signed bool) {
+	s.signed = boolOf(signed)
 }
-*/
+
+func (n *Number) Signed() bool {
+	if n.signed != UnknownBool {
+		return n.signed.bool()
+	}
+	if n.extends != nil {
+		return n.extends.Signed()
+	}
+	if n.parent != nil {
+		return n.parent.Signed()
+	}
+	return true
+}
+
+func (n *Number) SetSigned(signed bool) {
+	n.signed = boolOf(signed)
+}
+

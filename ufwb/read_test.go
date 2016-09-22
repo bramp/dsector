@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 	"io"
-	log "github.com/Sirupsen/logrus"
 )
 
 const (
@@ -18,10 +17,6 @@ const (
 	commonFooter = `</structure></grammar></ufwb>`
 )
 
-func init() {
-	// Only log the warning severity or above.
-	log.SetLevel(log.DebugLevel)
-}
 
 func TestParserPng(t *testing.T) {
 
@@ -54,7 +49,6 @@ func TestParserPng(t *testing.T) {
 
 		file, err := OpenOSFile(filename)
 		if err != nil {
-			log.Debug(err)
 			t.Errorf("OpenOSFile(%q) = %q want nil error", filename, err)
 			continue
 		}
@@ -62,16 +56,14 @@ func TestParserPng(t *testing.T) {
 		decoder := NewDecoder(grammar, file)
 		got, err := decoder.Decode()
 		if err != nil && err != io.EOF {
-			log.Debug(err)
 			t.Errorf("decoder.Decode(%q) = %q want nil error", sample.Name(), err)
 			file.Close()
 			continue
 		}
 
 		if err := got.validiate(); err != nil {
-			log.Debug(err)
-			t.Errorf("value.Validiate() = %q want nil error", err)
-			return
+			t.Errorf("value.Validiate() error = %q want nil error", err)
+			continue
 		}
 
 		s, _ := got.Format(file)

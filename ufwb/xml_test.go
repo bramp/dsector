@@ -135,13 +135,34 @@ bytesProcessed = currentMapper:mapStructureAtPosition(structure, fileLength-22, 
             </scriptelement>
 */
 
-func TestParseGrammarFragment(t *testing.T) {
+func TestXmlDecode(t *testing.T) {
 
 	var tests = []struct {
 		xml  string
 		want XmlElement
 	}{
 		{
+			xml: `<number name="number" id="1" type="integer" length="1">
+                    <fixedvalues>
+                      <fixedvalue name="name" value="0">
+                        <description>some long description</description>
+                      </fixedvalue>
+                    </fixedvalues>
+                  </number>`,
+			want: &XmlNumber{
+				XMLName:   xml.Name{Local: "number"},
+				XmlIdName: XmlIdName{1, "number", ""},
+				Length:    "1",
+				Type:      "integer",
+				Values: []*XmlFixedValue{
+					{XMLName: xml.Name{Local: "fixedvalue"},
+						Name: "name",
+						Value: "0",
+						Description: "some long description",
+					},
+				},
+			},
+		},{
 			xml: `<string name="string" id="1">
 			        <fixedvalues>
                       <fixedvalue name="up" value="0"/>

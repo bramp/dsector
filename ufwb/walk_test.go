@@ -36,11 +36,11 @@ func TestWalk(t *testing.T) {
 	errs := ufwb.Walk(g, func(root *ufwb.Ufwb, element ufwb.Element, parent *ufwb.Structure, errs *ufwb.Errors) {
 		parentId := 0
 		if parent != nil {
-			parentId = parent.Id
+			parentId = parent.Id()
 		}
 		got = append(got, walkResult{
-			Id:       element.GetId(),
-			Name:     element.GetName(),
+			Id:       element.Id(),
+			Name:     element.Name(),
 			ParentId: parentId,
 		})
 	})

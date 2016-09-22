@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"io"
 	"strconv"
+	"fmt"
 )
 
 func indexer(u *Ufwb, element Element, parent *Structure, errs *Errors) {
@@ -15,7 +16,7 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 		return
 	}
 
-	id := element.GetId()
+	id := element.Id()
 	if id == 0 {
 		errs.Append(&validationError{e: element, msg: "missing id field"})
 		return
@@ -24,7 +25,7 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 	// TODO Check we don't replace existing IDs
 	u.Elements["id:"+strconv.Itoa(id)] = element
 
-	if name := element.GetName(); name != "" {
+	if name := element.Name(); name != "" {
 		u.Elements[name] = element
 	}
 }
@@ -32,14 +33,20 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 func extender(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 	_ = parent
 
-	// XMLStructure is the only one with an Extends field
+	// Structure is the only one with an Extends field
 	s, ok := element.(*Structure)
 	if !ok {
 		// Skip non-structures
 		return
 	}
 
-	if e := get(u, s.Xml.Extends, errs); e != nil {
+	if s.Xml.Extends != "" {
+		e, ok := u.Get(s.Xml.Extends)
+		if !ok {
+			errs.Append(&validationError{e: element, msg: fmt.Sprintf("extends element %q not found", s.Xml.Extends)})
+			return
+		}
+
 		if err := s.SetExtends(e); err != nil {
 			errs.Append(err)
 		}
@@ -47,9 +54,6 @@ func extender(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 }
 
 func updater(u *Ufwb, element Element, parent *Structure, errs *Errors) {
-	if parent == nil {
-		parent = defaults
-	}
 	element.update(u, parent, errs)
 }
 
@@ -78,6 +82,8 @@ func ParseXmlGrammar(r io.Reader) (*Ufwb, []error) {
 	if errs := Walk(u, extender); len(errs) > 0 {
 		return u, errs
 	}
+
+	// TODO add function that check if there are now any loops due to the extends and parents
 
 	// Now update and parsing all values
 	if errs := Walk(u, updater); len(errs) > 0 {

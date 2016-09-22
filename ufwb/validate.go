@@ -24,9 +24,20 @@ type validationError struct {
 }
 
 func (err *validationError) Error() string {
-	//return fmt.Sprintf("<%T id=%d name=%q>: %s", e.e, getId(e.e), getName(e), e.msg)
-	return fmt.Sprintf("<%T id=%d name=%q>: %s", err.e, err.e.GetId(), err.e.GetName(), err.msg)
+	elem := err.e
+	return fmt.Sprintf("<%T id=%d name=%q>: %s", elem, elem.Id(), elem.Name(), err.msg)
 }
+
+type assertationError struct {
+	e   Element
+	msg string
+}
+
+func (err *assertationError) Error() string {
+	elem := err.e
+	return fmt.Sprintf("<%T id=%d name=%q>: %s", elem, elem.Id(), elem.Name(), err.msg)
+}
+
 
 type validateable interface {
 	validate(u *XmlUfwb) error

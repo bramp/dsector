@@ -1,4 +1,5 @@
 // Shout out to https://github.com/wicast/xj2s for helping to generate the XML structs
+// TODO I have special ufwb tags, do I need them anymore?
 package ufwb
 
 import (
@@ -26,9 +27,9 @@ type XmlIdName struct {
 
 func (xml *XmlIdName) toIdName(errs *Errors) Base {
 	return Base{
-		Id:          xml.Id,
-		Name:        xml.Name,
-		Description: xml.Description,
+		id:          xml.Id,
+		name:        xml.Name,
+		description: xml.Description,
 	}
 }
 
@@ -422,6 +423,8 @@ type XmlFixedValue struct {
 
 	Name    string `xml:"name,attr,omitempty"`
 	Value   string `xml:"value,attr,omitempty"`
+
+	Description    string `xml:"description,omitempty"`
 }
 
 /*

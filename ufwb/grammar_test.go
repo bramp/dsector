@@ -13,29 +13,127 @@ import (
 )
 
 const grammarsPath = "../grammars"
+var config *pretty.Config
 
 func init() {
-	// TODO This is bad, move into per test configs
-	pretty.CompareConfig.SkipZeroFields = false
-	pretty.CompareConfig.IncludeUnexported = true
+	config = &pretty.Config{
+		IncludeUnexported   : true,
+		PrintStringers      : false,
+		PrintTextMarshalers : false,
+		SkipZeroFields     : true,
+	}
 }
 
-func readGrammar(name string) ([]byte, error) {
-
-	name = path.Join(grammarsPath, name)
-	r, err := os.Open(name)
+// readGrammar from filename
+func readGrammar(filename string) ([]byte, error) {
+	filename = path.Join(grammarsPath, filename)
+	r, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open %q: %s", name, err)
+		return nil, fmt.Errorf("failed to open %q: %s", filename, err)
 	}
 	defer r.Close()
 
 	in, err := ioutil.ReadAll(r)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read %q: %s", name, err)
+		return nil, fmt.Errorf("failed to read %q: %s", filename, err)
 	}
 
 	return in, nil
 }
+
+// normalise strips XML, and all pointers from the Ufwb. This is to avoid loops, which
+// confuse the pretty.Compare(...).
+func normalise(root *Ufwb, element Element, parent *Structure, errs *Errors) {
+	switch e := element.(type) {
+	case *Grammar:
+		e.Xml = nil
+		e.Start = nil
+	case *Structure:
+		e.Xml = nil
+		e.extends = nil
+		e.parent = nil
+	case *GrammarRef: e.Xml = nil
+		e.extends = nil
+	case *Custom: e.Xml = nil
+		e.extends = nil
+	case *StructRef: e.Xml = nil
+		e.extends = nil
+	case *String: e.Xml = nil
+		e.extends = nil
+		for _, v := range e.values {
+			v.Xml = nil
+			v.extends = nil
+		}
+	case *Binary: e.Xml = nil
+		e.extends = nil
+		e.parent = nil
+		for _, v := range e.values {
+			v.Xml = nil
+			v.extends = nil
+		}
+	case *Number: e.Xml = nil
+		e.extends = nil
+		e.parent = nil
+		for _, v := range e.values {
+			v.Xml = nil
+			v.extends = nil
+		}
+	case *Offset: e.Xml = nil
+		e.extends = nil
+	default:
+		errs.Append(fmt.Errorf("unknown element type %T", element))
+	}
+}
+
+func TestParseGrammarFragment(t *testing.T) {
+
+	var tests = []struct {
+		xml  string
+		want Element
+	}{
+		{
+			xml: `<number name="number name" id="1" type="integer" length="1">
+                    <fixedvalues>
+                        <fixedvalue name="first value" value="0">
+                            <description>
+                            Some description
+                        </description>
+                        </fixedvalue>
+                    </fixedvalues>
+                </number>`,
+			want: &Number{
+				Base: Base{"Number", 1, "number name", ""},
+				Type:   "integer",
+				length: "1",
+				values: []*FixedValue{
+					{name: "first value", value: 0},
+				},
+			},
+		},
+	}
+
+	for i, test := range tests {
+		xml := commonHeader + test.xml + commonFooter
+		got, errs := ParseXmlGrammar(strings.NewReader(xml))
+		if len(errs) > 0 {
+			t.Errorf("Parse(test:%d) = %s", i, errs)
+			continue
+		}
+
+		// Remove all the XML fields, as we don't want to compare them
+		start := got.Grammar.Start
+		errs = Walk(got, normalise)
+		if len(errs) > 0 {
+			t.Errorf("Walk(test:%d) errors: %s", i, errs)
+			continue
+		}
+
+		if diff := config.Compare(start, test.want); diff != "" {
+			t.Errorf("Parse(test:%d) = -got +want:\n%s", i, diff)
+		}
+	}
+}
+
 
 func TestParseGrammar(t *testing.T) {
 
@@ -70,30 +168,30 @@ func TestParseGrammar(t *testing.T) {
 			want: &Ufwb{
 				Version: "1.0.3",
 				Grammar: &Grammar{
-					Base:   Base{0, "Test Name", "Test Description"},
+					Base:   Base{"Grammar", 0, "Test Name", "Test Description"},
 					Author:   "bramp@",
 					Ext:      "test",
-					Complete: true,
+					Complete: boolOf(true),
 					//Start:       "1",
 					Elements: []Element{
 						&Structure{
-							Base: Base{1, "struct", ""},
+							Base: Base{"Structure", 1, "struct", ""},
 							elements: []Element{
 								&String{
-									Base: Base{2, "string", ""},
+									Base: Base{"String", 2, "string", ""},
 									typ:   "zero-terminated",
 								},
 								&Number{
-									Base: Base{3, "number", ""},
+									Base: Base{"Number", 3, "number", ""},
 									Type:   "integer",
 									length: "8",
 								},
 								&Structure{
-									Base: Base{4, "substruct", ""},
+									Base: Base{"Structure", 4, "substruct", ""},
 									length: "prev.number",
 									elements: []Element{
 										&Binary{
-											Base: Base{5, "binary", ""},
+											Base: Base{"Binary", 5, "binary", ""},
 											length: "4",
 											values: []*FixedBinaryValue{
 												{name: "one", value: []byte{0x01, 0x23, 0x45, 0x67}},
@@ -101,7 +199,7 @@ func TestParseGrammar(t *testing.T) {
 											},
 										},
 										&Number{
-											Base: Base{6, "number_values", ""},
+											Base: Base{"Number", 6, "number_values", ""},
 											Type:   "integer",
 											length: "4",
 											values: []*FixedValue{
@@ -128,30 +226,13 @@ func TestParseGrammar(t *testing.T) {
 		// Remove all the XML fields, as we don't want to compare them
 		got.Xml = nil
 		got.Elements = nil
-		errs = Walk(got, func(root *Ufwb, element Element, parent *Structure, errs *Errors) {
-			switch e := element.(type) {
-			case *Grammar:
-				e.Xml = nil
-				e.Start = nil
-			case *Structure: e.Xml = nil
-			case *GrammarRef: e.Xml = nil
-			case *Custom: e.Xml = nil
-			case *StructRef: e.Xml = nil
-			case *String: e.Xml = nil
-			case *Binary: e.Xml = nil
-			case *Number: e.Xml = nil
-			case *Offset: e.Xml = nil
-			default:
-				errs.Append(fmt.Errorf("unknown element type %T", element))
-			}
-		})
+		errs = Walk(got, normalise)
 		if len(errs) > 0 {
 			t.Errorf("Walk(test:%d) errors: %s", i, errs)
 			continue
 		}
 
-		// TODO pretty.Compare seems to fail us in this test. It does not notice that Number.values is nil
-		if diff := pretty.Compare(got, test.want); diff != "" {
+		if diff := config.Compare(got, test.want); diff != "" {
 			t.Errorf("Parse(test:%d) = -got +want:\n%s", i, diff)
 		}
 	}

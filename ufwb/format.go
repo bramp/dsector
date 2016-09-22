@@ -2,27 +2,10 @@ package ufwb
 
 import (
 	"fmt"
-	"reflect"
-	"strconv"
 	"strings"
 	"encoding/hex"
-	log "github.com/Sirupsen/logrus"
 
 )
-
-func parseInt(s string, base int, bitSize int, signed bool) (interface{}, error) {
-	n, err := strconv.ParseUint(s, base, bitSize)
-
-	if signed && err == nil {
-		cutoff := uint64(1 << uint(bitSize-1))
-		// ParseInt doesn't handle signed hex numbers, so we do it ourselves
-		if n >= cutoff {
-			return int64(n - cutoff) - int64(cutoff), nil
-		}
-		return int64(n), nil
-	}
-	return n, err
-}
 
 func leftPad(s string, pad string, width int) string {
 	if len(s) >= width {
@@ -31,56 +14,17 @@ func leftPad(s string, pad string, width int) string {
 	return strings.Repeat(pad, width - len(s)) + s
 }
 
-func formatIntPad(s string, base int, bitSize int) string {
-	// TODO Base 2
-	if base == 16 {
-		return "0x" + leftPad(s, "0", bitSize / 4)
-	}
-
-	return s
-}
-
-func formatInt(i interface{}, base int, bits int) (string, error) {
-
-	log.Debugf("%v %v %v", i, base, bits)
-
-	switch i.(type) {
-	// TODO Consider refactoring, so ints are always either int64 or uint64
-	case int8, int16, int32, int64:
-		n := reflect.ValueOf(i).Int()
-
-		// FormatInt will print negative hex numbers with a minus sign infront
-		// Instead we flip the sign and print as unsigned.
-		if base == 16 && n < 0 {
-			cutoff := int64(1 << uint(bits-1))
-			u := uint64(n + cutoff) + uint64(cutoff)
-
-			// Mask off the high bits (which will all be one now)
-			mask := uint64(1 << uint(bits)) - 1
-			return formatInt(u & mask, base, bits)
-		}
-
-		return formatIntPad(strconv.FormatInt(n, base), base, bits), nil
-
-	case uint8, uint16, uint32, uint64:
-		n := reflect.ValueOf(i).Uint()
-		return formatIntPad(strconv.FormatUint(n, base), base, bits), nil
-	}
-
-	panic(fmt.Sprintf("unknown integer type %T", i))
-}
-
-
 func (g *Grammar) Format(f File, value *Value) (string, error) {
 	return g.Start.Format(f, value)
 }
 
 func (n *Structure) Format(f File, value *Value) (string, error) {
-	panic("TODO")
+	return "TODO", nil
 }
 
 func (n *String) Format(f File, value *Value) (string, error) {
-	panic("TODO")
+	//return fmt.Sprintf("%q", )
+	return "TODO", nil
 }
 
 // format returns a formatted string of the given int. The int must be one of int{8,16,32,64} or
@@ -92,6 +36,18 @@ func (n *Number) format(i interface{}) (string, error) {
 	}
 
 	return formatInt(i, base, n.Bits())
+}
+
+func (n *Number) formatValues() ([]string, error) {
+	var ret []string
+	for _, v := range n.Values() {
+		s, err := n.format(v.value)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, s)
+	}
+	return ret, nil
 }
 
 func (n *Number) Format(f File, value *Value) (string, error) {
@@ -109,6 +65,18 @@ func (b *Binary) format(bs []byte) (string, error) {
 		return hex.EncodeToString(bs[:6]) + "..", nil
 	}
 	return hex.EncodeToString(bs), nil
+}
+
+func (b *Binary) formatValues() ([]string, error) {
+	var ret []string
+	for _, v := range b.Values() {
+		s, err := b.format(v.value)
+		if err != nil {
+			return nil, err
+		}
+		ret = append(ret, s)
+	}
+	return ret, nil
 }
 
 func (b *Binary) Format(f File, value *Value) (string, error) {

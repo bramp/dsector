@@ -14,15 +14,15 @@ type Value struct {
 	Element Element
 
 	Children  []*Value
-	ByteOrder binary.ByteOrder // Only used for Number, TODO, and TODO
+	ByteOrder binary.ByteOrder // Only used for Number, TODO, and TODO. Why have this?
 }
 
 func (v *Value) Name() string {
-	return v.Element.GetName()
+	return v.Element.Name()
 }
 
 func (v *Value) Description() string {
-	return v.Element.GetDescription()
+	return v.Element.Description()
 }
 
 // String returns this value's string representation (based on display, etc)
@@ -30,10 +30,14 @@ func (v *Value) Format(f File) (string, error) {
 	return v.Element.Format(f, v)
 }
 
-// Read returns the string representation of this value
-func (v *Value) Read(f File) (string, error) {
-	return "", nil
+func (v *Value) String() string {
+	return fmt.Sprintf("[%d len:%d]", v.Offset, v.Len)
 }
+
+// Read returns the string representation of this value
+//func (v *Value) Read(f File) (string, error) {
+//	return "", nil
+//}
 
 func (v *Value) Write(f File) {
 	panic("TODO")
@@ -58,7 +62,7 @@ func (v *Value) validiate() error {
 		return fmt.Errorf("Offset = %d want >0", v.Offset)
 	}
 	if v.Element == nil {
-		return fmt.Errorf("Element = nil want a valid value", v.Element)
+		return fmt.Errorf("Element = nil want a valid value %v", v)
 	}
 
 	end := v.Offset + v.Len

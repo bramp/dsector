@@ -11,6 +11,9 @@ func (g *Grammar) SetExtends(element Element) error {
 }
 
 func (s *Structure) SetExtends(element Element) error {
+
+	// TODO Ensure that no parent extends from a child
+
 	parent, ok := element.(*Structure)
 	if !ok {
 		return cantExtendFromError(s, element)
