@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"errors"
 )
 
 var (
@@ -166,13 +167,13 @@ func (g *Grammar) update(u *Ufwb, parent *Structure, errs *Errors) {
 	g.Uti = g.Xml.Uti
 
 	if g.Xml.Start == "" {
-		errs.Append(&validationError{e: g, msg: fmt.Sprintf("missing start attribute")})
+		errs.Append(&validationError{e: g, err: errors.New("missing start attribute")})
 		return
 	}
 
 	e, found := u.Get(g.Xml.Start)
 	if !found {
-		errs.Append(&validationError{e: g, msg: fmt.Sprintf("start struct %q not found", g.Xml.Start)})
+		errs.Append(&validationError{e: g, err: fmt.Errorf("start struct %q not found", g.Xml.Start)})
 	}
 	g.Start = e
 }
@@ -240,6 +241,9 @@ func (n *Number) update(u *Ufwb, parent *Structure, errs *Errors) {
 	n.length = Reference(n.Xml.Length)
 	n.lengthUnit = lengthunit(n.Xml.LengthUnit, errs)
 
+	n.repeatMin = Reference(n.Xml.RepeatMin)
+	n.repeatMax = Reference(n.Xml.RepeatMax)
+
 	n.endian = endian(n.Xml.Endian, errs)
 	n.signed = yesno(n.Xml.Signed, errs)
 
@@ -248,7 +252,7 @@ func (n *Number) update(u *Ufwb, parent *Structure, errs *Errors) {
 	n.strokeColour = colour(n.Xml.StrokeColour, errs)
 
 	for _, v := range n.values {
-		bs, err := parseInt(v.Xml.Value, 0, n.Bits(), n.Signed())
+		bs, err := parseInt(v.Xml.Value, 0, 0, n.Signed())
 		if err != nil {
 			errs.Append(err)
 		}
@@ -310,10 +314,10 @@ func (s *String) update(u *Ufwb, parent *Structure, errs *Errors) {
 
 	if s.length == "" {
 		if s.typ == "fixed-length" {
-			errs.Append(&validationError{e: s, msg: "fixed-length strings requires a length"})
+			errs.Append(&validationError{e: s, err: errors.New("fixed-length strings requires a length")})
 
-		} else if s.typ == "pascal" {
-			errs.Append(&validationError{e: s, msg: "pascal strings requires a length"})
+		} else if s.typ == "pascal" { // TODO I don't think this is strictly required, I just don't know how to handle them yet!
+			errs.Append(&validationError{e: s, err: errors.New("pascal strings requires a length")})
 		}
 	}
 
@@ -342,7 +346,7 @@ func (s *ScriptElement) update(u *Ufwb, parent *Structure, errs *Errors) {
 	s.elemType = "ScriptElement"
 
 	if s.Script == nil {
-		errs.Append(&validationError{e: s, msg: "missing child script tag"})
+		errs.Append(&validationError{e: s, err: errors.New("missing child script tag")})
 	}
 }
 
@@ -356,20 +360,20 @@ func (s *StructRef) update(u *Ufwb, parent *Structure, errs *Errors) {
 	s.strokeColour = colour(s.Xml.StrokeColour, errs)
 
 	if s.Xml.Structure == "" {
-		errs.Append(&validationError{e: s, msg: fmt.Sprintf("missing structure attribute")})
+		errs.Append(&validationError{e: s, err: fmt.Errorf("missing structure attribute")})
 		return
 	}
 
 	e, found := u.Get(s.Xml.Structure)
 	if !found {
-		errs.Append(&validationError{e: s, msg: fmt.Sprintf("referenced struct %q not found", s.Xml.Structure)})
+		errs.Append(&validationError{e: s, err: fmt.Errorf("referenced struct %q not found", s.Xml.Structure)})
 		return
 	}
 
 	if structure, ok := e.(*Structure); ok {
 		s.structure = structure
 	} else {
-		errs.Append(&validationError{e: s, msg: "reference element is not a structure"})
+		errs.Append(&validationError{e: s, err: errors.New("reference element is not a structure")})
 	}
 }
 

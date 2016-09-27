@@ -1,3 +1,4 @@
+// TODO Write tests
 package ufwb
 
 import (
@@ -27,7 +28,7 @@ func (f *BytesFile) ReadAt(b []byte, off int64) (int, error) {
 	}
 
 	n := len(b) // TODO should not be allowed to overun
-	copy(b, f.bytes[off:n])
+	copy(b, f.bytes[off:(off+int64(n))])
 
 	return n, nil
 }

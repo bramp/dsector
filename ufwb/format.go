@@ -1,3 +1,4 @@
+// TODO Change Format API to have a FormatTo(.., io.writer), or similar, so we can avoid all the string concat.
 package ufwb
 
 import (
@@ -5,6 +6,13 @@ import (
 	"strings"
 	"encoding/hex"
 
+	"reflect"
+	"bytes"
+	"io"
+)
+
+var (
+	indent = 0 // Bad global var for format identing
 )
 
 func leftPad(s string, pad string, width int) string {
@@ -14,17 +22,86 @@ func leftPad(s string, pad string, width int) string {
 	return strings.Repeat(pad, width - len(s)) + s
 }
 
-func (g *Grammar) Format(f File, value *Value) (string, error) {
-	return g.Start.Format(f, value)
+func (u *Ufwb) Format(file io.ReaderAt, value *Value) (string, error) {
+	indent = 0
+	return u.Grammar.Format(file, value)
 }
 
-func (n *Structure) Format(f File, value *Value) (string, error) {
-	return "TODO", nil
+func (p *Padding) Format(file io.ReaderAt, value *Value) (string, error) {
+	return fmt.Sprint("<padding len:%d>", value.Len), nil
 }
 
-func (n *String) Format(f File, value *Value) (string, error) {
-	//return fmt.Sprintf("%q", )
-	return "TODO", nil
+func (g *Grammar) Format(file io.ReaderAt, value *Value) (string, error) {
+	var buffer bytes.Buffer
+
+	buffer.WriteString(g.Start.Name());
+	buffer.WriteString(": ")
+
+	str, err := g.Start.Format(file, value)
+	if err != nil {
+		return "TODO ERR", err
+	}
+
+	buffer.WriteString(str)
+
+	return buffer.String(), nil
+}
+
+func (n *Structure) Format(file io.ReaderAt, value *Value) (string, error) {
+
+	indent++
+
+	var buffer bytes.Buffer
+	buffer.WriteString(fmt.Sprintf("(%d children)", len(value.Children)));
+	buffer.WriteString("\n")
+
+	pad := ""
+	for i := 0; i < indent; i++ {
+		pad += "  "
+	}
+
+	for i, child := range value.Children {
+		buffer.WriteString(pad)
+		buffer.WriteString(fmt.Sprintf("[%d] ", i))
+		buffer.WriteString(child.Name())
+		buffer.WriteString(": ")
+		child.Format(file)
+
+		value, err := child.Format(file)
+		if err != nil {
+			indent--
+			return "TODO ERR", err
+		}
+		buffer.WriteString(strings.TrimSpace(value))
+		buffer.WriteString("\n")
+	}
+
+	indent--
+
+	return buffer.String(), nil
+}
+
+func (s *String) Format(file io.ReaderAt, value *Value) (string, error) {
+
+	b := make([]byte, value.Len, value.Len)
+	n, err := file.ReadAt(b, value.Offset)
+	if err != nil {
+		return string(b[:n]), &validationError{e: s, err: err}
+	}
+
+	switch s.Typ() {
+	case "zero-terminated":
+		// Strip the nul character if it exists
+		if b[n - 1] == 0 {
+			return string(b[:n-1]), nil
+		}
+
+	case "pascal":
+		// Skip the length byte at the beginning of the string
+		panic("TODO pascal string format")
+	}
+
+	return string(b), nil
 }
 
 // format returns a formatted string of the given int. The int must be one of int{8,16,32,64} or
@@ -32,10 +109,13 @@ func (n *String) Format(f File, value *Value) (string, error) {
 func (n *Number) format(i interface{}) (string, error) {
 	base := n.Display().Base()
 	if base < 2 || base > 36 {
-		return "",  &validationError{e: n, msg: fmt.Sprintf("invalid base %d", base)}
+		return "",  &validationError{e: n, err: fmt.Errorf("invalid base %d", base)}
 	}
 
-	return formatInt(i, base, n.Bits())
+	// TODO this needs fixing for non-multiple of 8 bit numbers
+	bits := int(reflect.ValueOf(i).Type().Size()) * 8
+
+	return formatInt(i, base, bits)
 }
 
 func (n *Number) formatValues() ([]string, error) {
@@ -50,8 +130,8 @@ func (n *Number) formatValues() ([]string, error) {
 	return ret, nil
 }
 
-func (n *Number) Format(f File, value *Value) (string, error) {
-	i, err := n.int(f, value)
+func (n *Number) Format(file io.ReaderAt, value *Value) (string, error) {
+	i, err := n.int(file, value)
 	if err != nil {
 		return "", err
 	}
@@ -79,8 +159,8 @@ func (b *Binary) formatValues() ([]string, error) {
 	return ret, nil
 }
 
-func (b *Binary) Format(f File, value *Value) (string, error) {
-	bs, err := b.Bytes(f, value)
+func (b *Binary) Format(file io.ReaderAt, value *Value) (string, error) {
+	bs, err := b.Bytes(file, value)
 	if err != nil {
 		return "", err
 	}
@@ -88,24 +168,24 @@ func (b *Binary) Format(f File, value *Value) (string, error) {
 	return b.format(bs)
 }
 
-func (n *Custom) Format(f File, value *Value) (string, error) {
+func (n *Custom) Format(file io.ReaderAt, value *Value) (string, error) {
 	panic("TODO")
 }
 
-func (n *GrammarRef) Format(f File, value *Value) (string, error) {
+func (n *GrammarRef) Format(file io.ReaderAt, value *Value) (string, error) {
 	panic("TODO")
 }
 
-func (n *Offset) Format(f File, value *Value) (string, error) {
+func (n *Offset) Format(file io.ReaderAt, value *Value) (string, error) {
 	panic("TODO")
 }
 
-func (n *ScriptElement) Format(f File, value *Value) (string, error) {
+func (n *ScriptElement) Format(file io.ReaderAt, value *Value) (string, error) {
 	panic("TODO")
 }
 
-func (n *StructRef) Format(f File, value *Value) (string, error) {
-	return n.Structure().Format(f, value)
+func (n *StructRef) Format(file io.ReaderAt, value *Value) (string, error) {
+	return n.Structure().Format(file, value)
 }
 
 /*

@@ -109,6 +109,7 @@ func formatInt(i interface{}, base int, bits int) (string, error) {
 		return formatIntPad(strconv.FormatInt(n, base), base, bits), nil
 
 	case uint8, uint16, uint32, uint64:
+
 		n := reflect.ValueOf(i).Uint()
 		return formatIntPad(strconv.FormatUint(n, base), base, bits), nil
 	}

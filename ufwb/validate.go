@@ -2,6 +2,7 @@ package ufwb
 
 import (
 	"fmt"
+	"io"
 )
 
 var (
@@ -18,14 +19,24 @@ var (
 	}
 )
 
+type Eof interface {
+	IsEof() bool
+}
+
 type validationError struct {
 	e   Element
-	msg string
+	//msg string
+	err error
 }
+
+func (err *validationError) IsEof() bool {
+	return err.err == io.EOF
+}
+
 
 func (err *validationError) Error() string {
 	elem := err.e
-	return fmt.Sprintf("<%T id=%d name=%q>: %s", elem, elem.Id(), elem.Name(), err.msg)
+	return fmt.Sprintf("<%T id=%d name=%q>: %s", elem, elem.Id(), elem.Name(), err.err.Error())
 }
 
 type assertationError struct {
@@ -33,7 +44,7 @@ type assertationError struct {
 	msg string
 }
 
-func (err *assertationError) Error() string {
+func (err assertationError) Error() string {
 	elem := err.e
 	return fmt.Sprintf("<%T id=%d name=%q>: %s", elem, elem.Id(), elem.Name(), err.msg)
 }

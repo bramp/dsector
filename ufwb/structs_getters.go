@@ -74,9 +74,6 @@ func (b *Binary) Length() Reference {
 	if b.extends != nil {
 		return b.extends.Length()
 	}
-	if b.parent != nil {
-		return b.parent.Length()
-	}
 	return Reference("")
 }
 
@@ -139,9 +136,6 @@ func (b *Binary) RepeatMax() Reference {
 	if b.extends != nil {
 		return b.extends.RepeatMax()
 	}
-	if b.parent != nil {
-		return b.parent.RepeatMax()
-	}
 	return Reference("1")
 }
 
@@ -155,9 +149,6 @@ func (b *Binary) RepeatMin() Reference {
 	}
 	if b.extends != nil {
 		return b.extends.RepeatMin()
-	}
-	if b.parent != nil {
-		return b.parent.RepeatMin()
 	}
 	return Reference("1")
 }
@@ -456,6 +447,20 @@ func (g *GrammarRef) SetFilename(filename string) {
 	g.filename = filename
 }
 
+func (g *GrammarRef) Grammar() *Grammar {
+	if g.grammar != nil {
+		return g.grammar
+	}
+	if g.extends != nil {
+		return g.extends.Grammar()
+	}
+	return nil
+}
+
+func (g *GrammarRef) SetGrammar(grammar *Grammar) {
+	g.grammar = grammar
+}
+
 func (g *GrammarRef) Id() int {
 	if g.id != 0 {
 		return g.id
@@ -618,9 +623,6 @@ func (n *Number) Length() Reference {
 	if n.extends != nil {
 		return n.extends.Length()
 	}
-	if n.parent != nil {
-		return n.parent.Length()
-	}
 	return Reference("")
 }
 
@@ -725,9 +727,6 @@ func (n *Number) RepeatMax() Reference {
 	if n.extends != nil {
 		return n.extends.RepeatMax()
 	}
-	if n.parent != nil {
-		return n.parent.RepeatMax()
-	}
 	return Reference("1")
 }
 
@@ -741,9 +740,6 @@ func (n *Number) RepeatMin() Reference {
 	}
 	if n.extends != nil {
 		return n.extends.RepeatMin()
-	}
-	if n.parent != nil {
-		return n.parent.RepeatMin()
 	}
 	return Reference("1")
 }
@@ -1419,19 +1415,6 @@ func (s *Structure) SetElemType(elemType string) {
 	s.elemType = elemType
 }
 
-func (s *Structure) Elements() []Element {
-	if s.elements != nil {
-		return s.elements
-	}
-	if s.extends != nil {
-		return s.extends.Elements()
-	}
-	if s.parent != nil {
-		return s.parent.Elements()
-	}
-	return nil
-}
-
 func (s *Structure) SetElements(elements []Element) {
 	s.elements = elements
 }
@@ -1507,9 +1490,6 @@ func (s *Structure) Length() Reference {
 	}
 	if s.extends != nil {
 		return s.extends.Length()
-	}
-	if s.parent != nil {
-		return s.parent.Length()
 	}
 	return Reference("")
 }
@@ -1593,9 +1573,6 @@ func (s *Structure) RepeatMax() Reference {
 	if s.extends != nil {
 		return s.extends.RepeatMax()
 	}
-	if s.parent != nil {
-		return s.parent.RepeatMax()
-	}
 	return Reference("1")
 }
 
@@ -1609,9 +1586,6 @@ func (s *Structure) RepeatMin() Reference {
 	}
 	if s.extends != nil {
 		return s.extends.RepeatMin()
-	}
-	if s.parent != nil {
-		return s.parent.RepeatMin()
 	}
 	return Reference("1")
 }

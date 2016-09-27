@@ -1,9 +1,12 @@
 package ufwb
 
-import "fmt"
+import (
+	"fmt"
+	"errors"
+)
 
 func cantExtendFromError(child, parent Element) error {
-	return &validationError{e: child, msg: fmt.Sprintf("element can't extend from %T", parent)}
+	return &validationError{e: child, err: fmt.Errorf("element can't extend from %T", parent)}
 }
 
 func (g *Grammar) SetExtends(element Element) error {
@@ -21,7 +24,7 @@ func (s *Structure) SetExtends(element Element) error {
 
 	s.extends = parent
 	if len(s.elements) < len(parent.elements) {
-		return &validationError{e: s, msg: "child element must have atleast as many elements as the parent"}
+		return &validationError{e: s, err: errors.New("child element must have atleast as many elements as the parent")}
 	}
 
 	// Update all child

@@ -5,7 +5,7 @@ package ufwb
 
 import (
 	"fmt"
-	"strconv"
+	"io"
 )
 
 const (
@@ -14,7 +14,7 @@ const (
 )
 
 type Colour uint32
-type Reference string
+type Reference string // TODO At "parse time" check if this is a constant and record that.
 type Bool int8 // tri-state bool unset, false, true.
 
 // No other value is allowed
@@ -90,13 +90,13 @@ const (
 
 type Reader interface {
 	// Read from file and return a Value.
-	// The Read method must leave the file offset at Value.Offset + Value.Len
+	// The Read method must leave the file offset at Value.Offset + Value.Len // TODO Enforce this!
 	Read(decoder *Decoder) (*Value, error)
 }
 
 type Formatter interface {
-	// Format returns the display string for this Element
-	Format(file File, value *Value) (string, error)
+	// Format returns the display string for this Element.
+	Format(file io.ReaderAt, value *Value) (string, error)
 }
 
 type Updatable interface {
@@ -111,22 +111,31 @@ type Repeatable interface {
 	RepeatMax() Reference
 }
 
-
-type Element interface {
-	Reader
-	Formatter
-
-	Repeatable
-	Updatable
-
+// ElementLite is a light weight Element, one that only has a ID and a formatter.
+type ElementLite interface {
 	Id() int
 	Name() string
 	Description() string
 
-	String() string
+	IdString() string
+
+	Formatter
+}
+
+type Lengthable interface {
+	Length()       Reference
+	LengthUnit()   LengthUnit
+}
+
+type Element interface {
+	ElementLite
+
+	Reader
+	Lengthable
+	Repeatable
+	Updatable
 
 	// TODO Add Colourful here
-
 }
 
 type Colourful struct {
@@ -165,39 +174,17 @@ func (b *Base) GetBase() *Base {
 	return b
 }
 
-func (b *Base) String() string {
-	return b.debugString()
-}
-
-func (b *Base) debugString() string {
+func (b *Base) IdString() string {
+	if b == nil {
+		return "<nil>"
+	}
 	return fmt.Sprintf("%s<%02d %s>", b.elemType, b.id, b.name)
 }
 
 type Repeats struct {
-	repeatMin    Reference  `default:"Reference(\"1\")"`
-	repeatMax    Reference  `default:"Reference(\"1\")"`
+	repeatMin    Reference  `default:"Reference(\"1\")" parent:"false"`
+	repeatMax    Reference  `default:"Reference(\"1\")" parent:"false"`
 }
-
-/*
-var (
-	defaultGrammar = Grammar{}
-	defaultStructure = Structure{
-		endian:  LittleEndian, // TODO Check this is the right default
-		signed:  True,         // TODO Check this is the right default
-		display: DecDisplay, // TODO Check this is the right default
-		lengthUnit: ByteLengthUnit, // TODO Check this is the right default
-		encoding: "UTF-8", // TODO Check this is the right default
-		order: FixedOrder, // TODO Check this is the right default
-	}
-	defaultGrammarRef = GrammarRef{}
-	defaultCustom = Custom{}
-	defaultStructRef = StructRef{}
-	defaultString = String{}
-	defaultBinary = Binary{}
-	defaultNumber = Number{}
-	defaultOffset = Offset{}
-)
-*/
 
 type Grammar struct {
 	Xml *XmlGrammar
@@ -227,7 +214,7 @@ type Structure struct {
 	extends      *Structure
 	parent       *Structure
 
-	length       Reference
+	length       Reference  `parent:"false"`
 	lengthUnit   LengthUnit `default:"ByteLengthUnit"`
 	lengthOffset Reference
 
@@ -239,7 +226,7 @@ type Structure struct {
 
 	display      Display `default:"DecDisplay"`
 
-	elements     []Element
+	elements     []Element `parent:"false"`
 
 	/*
 		Encoding  string `xml:"encoding,attr,omitempty" ufwb:"encoding"`
@@ -267,6 +254,8 @@ type GrammarRef struct {
 	extends      *GrammarRef
 
 	filename string
+	grammar *Grammar // TODO Actually implement this!
+
 	//disabled bool
 }
 
@@ -279,7 +268,7 @@ type Custom struct {
 
 	extends      *Custom
 
-	length            Reference
+	length            Reference  `parent:"false"`
 	lengthUnit        LengthUnit `default:"ByteLengthUnit"`
 
 	script string // TODO?
@@ -308,7 +297,7 @@ type String struct {
 
 	typ string // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
 
-	length        Reference
+	length        Reference  `parent:"false"`
 	lengthUnit    LengthUnit `default:"ByteLengthUnit"`
 
 	encoding  string `default:"\"UTF-8\""`
@@ -327,7 +316,7 @@ type Binary struct {
 	extends    *Binary
 	parent     *Structure
 
-	length     Reference
+	length     Reference  `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
 	//unused     Bool // TODO
@@ -348,7 +337,7 @@ type Number struct {
 	parent          *Structure
 
 	Type            string // TODO Convert to Type
-	length          Reference
+	length          Reference  `parent:"false"`
 	lengthUnit      LengthUnit `default:"ByteLengthUnit"`
 
 	endian          Endian  `default:"LittleEndian"`
@@ -367,41 +356,6 @@ type Number struct {
 	masks           []*Mask
 }
 
-// Bytes returns the width of this number in bytes
-func (n *Number) Bytes() int {
-	// TODO Change this to use Eval
-	len, err := strconv.Atoi(string(n.Length()))
-	if err != nil {
-		panic("TODO USE EVAL")
-	}
-
-	if n.LengthUnit() == BitLengthUnit {
-		return len / 8
-	}
-	if n.LengthUnit() == ByteLengthUnit {
-		return len
-	}
-
-	panic("Unknown length unit")
-}
-
-func (n *Number) Bits() int {
-	// TODO Change this to use Eval
-	len, err := strconv.Atoi(string(n.Length()))
-	if err != nil {
-		panic("TODO USE EVAL")
-	}
-
-	if n.LengthUnit() == BitLengthUnit {
-		return len
-	}
-	if n.LengthUnit() == ByteLengthUnit {
-		return len * 8
-	}
-
-	panic("Unknown length unit")
-}
-
 type Offset struct {
 	Xml *XmlOffset
 
@@ -411,7 +365,7 @@ type Offset struct {
 
 	extends         *Offset
 
-	length Reference
+	length          Reference  `parent:"false"`
 	lengthUnit      LengthUnit `default:"ByteLengthUnit"`
 
 	endian Endian  `default:"LittleEndian"`
@@ -498,7 +452,23 @@ type Script struct {
 	Text string // TODO Sometimes there is a source element beneath this, pull it up into this field
 }
 
+type Padding struct {
+	Base
+}
+
+// TODO This Elements is wrong. It has to take the extended ones, and merge them!
+func (s *Structure) Elements() []Element {
+	if s.elements != nil {
+		return s.elements
+	}
+	if s.extends != nil {
+		return s.extends.Elements()
+	}
+	return nil
+}
+
 func (s *Structure) Signed() bool {
+	// TODO Move this to be auto generated
 	if s.signed != UnknownBool {
 		return s.signed.bool()
 	}
@@ -532,3 +502,32 @@ func (n *Number) SetSigned(signed bool) {
 	n.signed = boolOf(signed)
 }
 
+func (s *StructRef) Length() Reference {
+	return s.Structure().Length()
+}
+func (s *StructRef) LengthUnit() LengthUnit {
+	return s.Structure().LengthUnit()
+}
+
+func (g *GrammarRef) Length() Reference {
+	return g.Grammar().Length()
+}
+func (g *GrammarRef) LengthUnit() LengthUnit {
+	return g.Grammar().LengthUnit()
+}
+
+func (g *Grammar) Length() Reference {
+	return "" // Always unset
+}
+
+func (g *Grammar) LengthUnit() LengthUnit {
+	return ByteLengthUnit // Always unset
+}
+
+func (s *ScriptElement) Length() Reference {
+	return "0" // ScriptElements have no form, thus no length
+}
+
+func (s *ScriptElement) LengthUnit() LengthUnit {
+	return ByteLengthUnit
+}

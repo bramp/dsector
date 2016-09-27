@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 	"io"
+	"github.com/kylelemons/godebug/pretty"
 )
 
 const (
@@ -17,9 +18,58 @@ const (
 	commonFooter = `</structure></grammar></ufwb>`
 )
 
+func testFile(t *testing.T, grammar *Ufwb, filename string, expectErr bool) {
 
+	file, err := OpenOSFile(filename)
+	if err != nil {
+		t.Errorf("OpenOSFile(%q) = %q want nil error", filename, err)
+		return
+	}
+	defer file.Close()
+
+	fileLen, err := file.Seek(0, io.SeekEnd)
+	if err != nil {
+		t.Errorf("file.Seek(0, io.SeekEnd) error %q want nil error", err)
+		return
+	}
+
+	// Reset to beginning
+	file.Seek(0, io.SeekStart)
+
+	decoder := NewDecoder(grammar, file)
+	got, err := decoder.Decode()
+
+	if expectErr {
+		if err == nil {
+			t.Errorf("decoder.Decode(%q) = nil want error", filename)
+		}
+		return // We expected a error, so return
+	}
+
+	if err != nil && err != io.EOF {
+		t.Errorf("decoder.Decode(%q) = %q want nil error", filename, err)
+		return
+	}
+
+	if got.Offset != 0 || got.Len != fileLen {
+		t.Errorf("got {Offset: %d, Len: %d} want {Offset: %d, Len: %d}", got.Offset, got.Len, 0, fileLen)
+		return
+	}
+
+	if err := got.validiate(); err != nil {
+		t.Errorf("got.validiate() error = %q want nil error", err)
+		return
+	}
+
+	_, err = got.Format(file)
+	if err != nil {
+		t.Errorf("got.Format() error = %q want nil error", err)
+		return
+	}
+}
+
+// Integration test
 func TestParserPng(t *testing.T) {
-
 	lang := "png"
 	langFile := lang + ".grammar"
 
@@ -47,32 +97,16 @@ func TestParserPng(t *testing.T) {
 			continue
 		}
 
-		file, err := OpenOSFile(filename)
-		if err != nil {
-			t.Errorf("OpenOSFile(%q) = %q want nil error", filename, err)
-			continue
-		}
+		// PNG starting with x are corrupt
+		expectErr := strings.HasPrefix(sample.Name(), "x")
 
-		decoder := NewDecoder(grammar, file)
-		got, err := decoder.Decode()
-		if err != nil && err != io.EOF {
-			t.Errorf("decoder.Decode(%q) = %q want nil error", sample.Name(), err)
-			file.Close()
-			continue
-		}
-
-		if err := got.validiate(); err != nil {
-			t.Errorf("value.Validiate() error = %q want nil error", err)
-			continue
-		}
-
-		s, _ := got.Format(file)
-		t.Logf("%s\n%s", filename, s)
-		file.Close()
+		// Now test
+		testFile(t, grammar, filename, expectErr)
 	}
+
 }
 
-func TestParserNumber(t *testing.T) {
+func TestReadNumber(t *testing.T) {
 	binary := []byte("\x81\x82\x83\x84\x85\x86\x87\x88")
 	var tests = []struct {
 		xml     string
@@ -159,7 +193,7 @@ func TestParserNumber(t *testing.T) {
 		xml := commonHeader + test.xml + commonFooter
 		grammar, errs := ParseXmlGrammar(strings.NewReader(xml))
 		if len(errs) > 0 {
-			t.Errorf("ParseGrammar(%q) = %q want nil error", test.xml, errs)
+			t.Errorf("ParseXmlGrammar(%q) = %q want nil error", test.xml, errs)
 			continue
 		}
 
@@ -200,10 +234,135 @@ func TestParserNumber(t *testing.T) {
 		if s != test.wantHex {
 			t.Errorf("hex num.Format(...) = %q want %q", s, test.wantHex)
 		}
+	}
+}
 
 
-		//if diff := pretty.Compare(got, test.want); diff != "" {
-		//	t.Errorf("decoder.Decode() = -got +want:\n%s", diff)
-		//}
+
+func TestReadString(t *testing.T) {
+	binary := []byte("abcdefghijklmnopqrstuvwxyz\x00")
+	var tests = []struct {
+		xml     string // TODO Change to be a String Element
+		want Value
+		wantString    string
+	}{
+		{
+			xml:  `<string id="1" type="zero-terminated"/>`,
+			want: Value{Offset:2, Len:25}, // 24 characters + 1 nul
+			wantString: "cdefghijklmnopqrstuvwxyz",
+		},
+		{
+			xml:  `<string id="1" type="fixed-length" length="10"/>`,
+			want: Value{Offset:2, Len:10},
+			wantString: "cdefghijkl",
+		},
+		/* // TODO
+		{
+			xml:  `<string id="1" type="pascal"/>`,
+			want: "abcdefghijklmnopqrstuvwxyz",
+		},
+		*/
+	}
+
+	for _, test := range tests {
+		xml := commonHeader + test.xml + commonFooter
+		grammar, errs := ParseXmlGrammar(strings.NewReader(xml))
+		if len(errs) > 0 {
+			t.Errorf("ParseXmlGrammar(%q) = %q want nil error", test.xml, errs)
+			continue
+		}
+
+		str, found := grammar.Get("1")
+		if !found {
+			t.Errorf("grammar.Get(1) = nil failed to find string element")
+			continue
+		}
+
+		file := NewFileFromBytes(binary)
+		file.Seek(2, io.SeekStart) // Seek two bytes to check for offset assumption
+
+		decoder := NewDecoder(grammar, file)
+		got, err := decoder.Decode()
+		if err != nil {
+			t.Errorf("decoder.Decode() error = %q want nil error", err)
+			continue
+		}
+
+		if err := got.validiate(); err != nil {
+			t.Errorf("value.Validiate() = %q want nil error", err)
+			continue
+		}
+
+		if got.Offset != test.want.Offset || got.Len != test.want.Len {
+			t.Errorf("got{Offset: %d, Len: %d} != want{Offset: %d, Len: %d}",
+				got.Offset, got.Len, test.want.Offset, test.want.Len)
+			continue
+		}
+
+		s, err := str.Format(file, got)
+		if err != nil {
+			t.Errorf("str.Format(...) error = %q want nil error", err)
+		}
+		if s != test.wantString {
+			t.Errorf("str.Format(...) = %q want %q", s, test.wantString)
+		}
+	}
+}
+
+
+func TestRepeating(t *testing.T) {
+	binary := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8}
+	xml := commonHeader +
+			`<structure name="Colours" id="1">
+				<structure name="Colour" id="2" repeatmax="unlimited">
+					<number name="Red"   id="3" type="integer" length="1"/>
+					<number name="Green" id="4" type="integer" length="1"/>
+					<number name="Blue"  id="5" type="integer" length="1"/>
+				</structure>
+			</structure>` +
+			commonFooter
+
+	want :=
+`Colours: (3 children)
+  [0] Colour: (3 children)
+    [0] Red: 0
+    [1] Green: 1
+    [2] Blue: 2
+  [1] Colour: (3 children)
+    [0] Red: 3
+    [1] Green: 4
+    [2] Blue: 5
+  [2] Colour: (3 children)
+    [0] Red: 6
+    [1] Green: 7
+    [2] Blue: 8`
+
+	grammar, errs := ParseXmlGrammar(strings.NewReader(xml))
+	if len(errs) > 0 {
+		t.Errorf("ParseXmlGrammar(%q) = %q want nil error", xml, errs)
+		return
+	}
+
+	file := NewFileFromBytes(binary)
+	decoder := NewDecoder(grammar, file)
+
+	value, err := decoder.Decode()
+	if err != nil {
+		t.Errorf("decoder.Decode() error = %q want nil error", err)
+		return
+	}
+
+	if err := value.validiate(); err != nil {
+		t.Errorf("value.Validiate() = %q want nil error", err)
+		return
+	}
+
+	got, err := grammar.Format(file, value)
+	if err != nil {
+		t.Errorf("grammar.Format(...) error = %q want nil error", err)
+	}
+
+	if diff := pretty.Compare(strings.TrimSpace(got), want); diff != "" {
+		t.Errorf("grammar.Format(...) = -got +want:\n%s", diff)
 	}
 }

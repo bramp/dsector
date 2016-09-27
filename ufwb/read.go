@@ -3,185 +3,16 @@ package ufwb
 // This file uses the grammar to parse the binary file.
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 	"reflect"
-	"strconv"
 
 	log "github.com/Sirupsen/logrus"
 	"bytes"
-	"strings"
-	"github.com/pkg/errors"
-	"math"
+	"encoding/binary"
 )
 
-type startElement struct {
-	start int64
-	element Element
-}
-
-const DEBUG = true
-const MAX_STACK = 10
-
-type StackPrinter []startElement
-
-func (stack StackPrinter) String() string {
-	var buffer bytes.Buffer
-
-	for _, s := range stack {
-		buffer.WriteString(fmt.Sprintf("[%d %s] ", s.start, s.element.String()))
-	}
-
-	return buffer.String()
-}
-
-type Decoder struct {
-	u             *Ufwb
-	f             File
-
-	// dynamicEndian be changed by scripts during processing.
-	dynamicEndian binary.ByteOrder
-
-	stack         []startElement
-
-	prevMap       map[string]*Value
-}
-
-func NewDecoder(u *Ufwb, f File) *Decoder {
-	return &Decoder{
-		u: u,
-		f: f,
-		prevMap: make(map[string]*Value),
-	}
-}
-
-func (d *Decoder) read(e Element) (*Value, error) {
-	start, err := d.f.Tell()
-	if err != nil {
-		return nil, err
-	}
-
-	if len(d.stack) > MAX_STACK {
-		panic(fmt.Sprintf("Exceeded max parsing stack depth of %d", MAX_STACK))
-	}
-
-	log.Debugf("[%d] Reading: %s", start, e.String())
-	//log.Debugf("[%d] Stack: %s", start, StackPrinter(d.stack))
-
-	d.stack = append(d.stack, startElement{start, e})
-	v, err := e.Read(d)
-	log.Debugf("[%d] Read: %s %s", start, v, err)
-
-	d.stack = d.stack[:len(d.stack) - 1]
-
-	if v != nil {
-		if DEBUG {
-			// Debug / validation code
-			v.mustValidiate()
-			if pos, err := d.f.Tell(); err != nil {
-				if (v.Offset + v.Len) != pos {
-					panic(fmt.Sprintf("Decoder was not left at right position after %v", v))
-				}
-			}
-		}
-
-		d.prevMap[v.Element.Name()] = v // TODO I'm not sure if this is the best defintion of "last"
-	}
-
-	return v, err
-}
-
-// TODO Make this actually eval the string, and determine the right value
-func (d *Decoder) eval(r Reference) (int64, error) {
-
-	str := string(r)
-	if str == "remaining" {
-		return d.remaining()
-	}
-
-	if str == "unlimited" {
-		return math.MaxInt64, nil
-	}
-
-	if strings.HasPrefix(str, "prev.") {
-		return d.prev(str)
-	}
-
-	// Try a number
-	i, err := strconv.Atoi(str)
-	if err != nil {
-		panic(err) // PANIC While we debug how eval should work. Eventually return error
-	}
-	return int64(i), err
-}
-
-// currentStruct returns the most recent structure on the stack
-func (d *Decoder) currentStruct() (int64, *Structure, error) {
-	for i := len(d.stack) - 1; i >= 0; i-- {
-		if s, ok := d.stack[i].element.(*Structure); ok {
-			return d.stack[i].start, s, nil
-		}
-	}
-	return -1, nil, errors.New("No structure found. This should never happen")
-}
-
-// remaining returns the number of bytes remaining in the current structure.
-func (d *Decoder) remaining() (int64, error) {
-	pos, err := d.f.Tell()
-	if err != nil {
-		return -1, err
-	}
-
-	start, s, err := d.currentStruct()
-	if err != nil {
-		return -1, err
-	}
-
-	len, err := d.eval(s.Length())
-	if err != nil {
-		return -1, err
-	}
-
-	return (start - pos + len), nil
-}
-
-// prev returns the value read by the previous element of this name.
-func (d *Decoder) prev(name string) (int64, error) {
-	name = strings.TrimPrefix(name, "prev.")
-
-	// TODO Instead of using a map, recurse up the d.stack/tree
-
-	v, ok := d.prevMap[name]
-	if !ok {
-		return -1, fmt.Errorf("no previous element named %q found", name)
-	}
-
-	n, ok := v.Element.(*Number)
-	if !ok {
-		return -1, fmt.Errorf("previous element %q must be a Number", name)
-	}
-
-	return n.Int(d.f, v)
-}
-
-
-// ByteOrder returns the current byte order
-// TODO Delete this method
-func (d *Decoder) ByteOrder(e Endian) binary.ByteOrder {
-	if e == LittleEndian {
-		return binary.LittleEndian
-	} else if e == BigEndian {
-		return binary.BigEndian
-	} else if e == DynamicEndian {
-		return d.dynamicEndian
-	}
-	panic(fmt.Sprintf("Unknown endian %v", e))
-}
-
-func (d *Decoder) String() string {
-	panic("blah")
-}
+var padElement = &Padding{Base: Base{"Padding", 0, "", ""}}
 
 // File interface provides the minimum needed to parse the binary file.
 type File interface {
@@ -194,169 +25,202 @@ type File interface {
 	Tell() (int64, error) // Here for convenience, perhaps remove.
 }
 
-func (d *Decoder) Decode() (*Value, error) {
-	return d.u.Read(d)
-}
-
 func (u *Ufwb) Read(d *Decoder) (*Value, error) {
-	return u.Grammar.Read(d)
+	return d.read(u.Grammar)
 }
 
 func (g *Grammar) Read(d *Decoder) (*Value, error) {
-	return g.Start.Read(d)
+	return d.read(g.Start)
+}
+
+// isEof returns if this error represents the end of file
+func isEof(err error) bool {
+	if err == io.EOF {
+		return true
+	}
+
+	if e, ok := err.(Eof); ok {
+		return e.IsEof()
+	}
+
+	return false
 }
 
 func (s *Structure) Read(d *Decoder) (*Value, error) {
 	start, err := d.f.Tell()
 	if err != nil {
-		return nil, &validationError{e: s, msg: err.Error()}
+		return nil, &validationError{e: s, err: err}
 	}
 
-	if DEBUG && start > 10000 {
-		panic("DEBUG: ENDING EARLY")
+	bounds := d.ParentBounds()
+	length := bounds.End - start
+
+	if DEBUG && bounds.Start > start {
+		panic(fmt.Sprintf("Starting before bounds %d < %d", start, bounds.Start))
 	}
 
-	length := int64(math.MaxInt64)
-	if s.Length() != "" {
-		length, err = d.eval(s.Length())
-		if err != nil {
-			return nil, &validationError{e: s, msg: err.Error()}
-		}
+	childrenCount := make(map[ElementLite]int64)
+
+	value := &Value{
+		Offset:   start,
+		Element:  s,
 	}
 
-	var eof error
-	var children []*Value
-	var childrenLength int64
-	childrenCount := make(map[Element]int64)
-
-	elements := s.Elements() // TODO This doesn't work correctly with extends
 	i := 0
-	for eof == nil && childrenLength < length && i < len(elements) {
+	elements := s.Elements() // TODO This doesn't work correctly with extends
+	eof := false
+
+	log.Debugf("[%d] Starting %s (bounds: [%d-%d], max length: %d)", start, s.IdString(), bounds.Start, bounds.End, length)
+
+	for value.Len < length && i < len(elements) {
+		//log.Debugf("Loop %v, %v < %v, %v < %v", eof, childrenLength, length, i, len(elements))
+
 		e := elements[i]
 
 		max, err := d.eval(e.RepeatMax())
 		if err != nil {
-			return nil, &validationError{e: s, msg: fmt.Sprintf("RepeatMax eval failed: %s", err.Error())}
+			return nil, &validationError{e: s, err: fmt.Errorf("RepeatMax eval failed: %s", err.Error())}
 		}
 
-		if max > childrenCount[e] {
+		// If we have found the max of this element, move on
+		if childrenCount[e] >= max {
+			log.Debugf("Skipping %s found %d of %d", e.IdString(), childrenCount[e], max)
 			i++
 			continue
 		}
 
-		log.Debugf("Looking at %d %s", i, e)
-		_, err = d.f.Seek(start + childrenLength, io.SeekStart)
+		min, err := d.eval(e.RepeatMin())
 		if err != nil {
-			return nil, &validationError{e: s, msg: err.Error()}
+			return nil, &validationError{e: s, err: fmt.Errorf("RepeatMin eval failed: %s", err.Error())}
+		}
+
+		// Ensure we parse this from the correct location.
+		_, err = d.f.Seek(start + value.Len, io.SeekStart)
+		if err != nil {
+			return nil, &validationError{e: s, err: err}
 		}
 
 		v, err := d.read(e)
-		if v != nil {
-			str, _ := v.Format(d.f)
-			log.Debugf("Found: %s %s %v", v, e, str)
 
-			childrenLength += v.Len
-			children = append(children, v)
+		eof = isEof(err)
+
+		// Only use the element if no error occurred (unless it was EOF)
+		if v != nil && (err == nil || eof) {
+			value.Children = append(value.Children, v)
+			value.Len += v.Len
 			childrenCount[v.Element]++
 
-			switch s.Order() {
-				case VariableOrder:
-					log.Debugf("variable order start again")
-					// If we are variable order, start again from the first element for the next round
-					i = 0
-					// TODO Detect if we are in parsing loop
-				case FixedOrder:
-					// Have we found the minimum number of this element, if so move on.
-					min, err := d.eval(e.RepeatMin())
-					if err != nil {
-						return nil, &validationError{e: s, msg: fmt.Sprintf("RepeatMin eval failed: %s", err.Error())}
-					}
-					if childrenCount[e] >= min {
-						i++
-					}
+			// If we are variable order, start again from the first element for the next round
+			if s.Order() == VariableOrder {
+				log.Debugf("reset")
+				i = 0
 			}
 		}
 
 		if err != nil {
-			if err == io.EOF {
-				// TODO Check if an end was expected here
-				eof = io.EOF
-				break
-			}
-
+			// There was an error, but we can possibly try the next element.
 			switch s.Order() {
 			case FixedOrder:
+				// There was an error reading this item, and we have already found the minimum
+				// number of this element, so lets move on.
+				if childrenCount[e] >= min {
+					i++
+					continue
+				}
+
+				// Otherwise return the error
 				return nil, err
 
 			case VariableOrder:
-				log.Debugf("try another %v: %s", e, err)
-
 				// This one failed, try another element
+				if i < len(elements) - 1 {
+					log.Debugf("move on from: %s to: %s", elements[i].IdString(), elements[i + 1].IdString())
+				} else {
+					log.Debugf("move on from: %s to: end", elements[i].IdString())
+				}
 				i++
 
 			default:
-				return nil, &validationError{e: s, msg: fmt.Sprintf("unknown order: %s", s.Order())}
+				return nil, &validationError{e: s, err: fmt.Errorf("unknown order: %s", s.Order())}
 			}
 		}
 	}
 
 	// TODO Check if we reached the min children
+	// TODO Check if we read all children
 
 	if s.Length() != "" {
-		// TODO Is this an error?
-		if length > childrenLength {
-			padding := &Value{
-				Offset:   start + childrenLength,
-				Len:      length - childrenLength,
-				Element:  nil, // TODO maybe change to a padding element
-			}
-			children = append(children, padding)
-			childrenLength = length
+		log.Debugf("%s Loop %v, %v < %v, %v < %v", s.IdString(), eof, value.Len, length, i, len(elements))
 
-		} else if length < childrenLength {
-			// TODO Is this an error?
-			return nil, &validationError{
-				e: s,
-				msg: fmt.Sprintf("children length is greater than the structure length, %d vs %s", childrenLength, length),
+		// TODO Is this an error?
+		if length > value.Len {
+			padding := &Value{
+				Offset:   start + value.Len,
+				Len:      length - value.Len,
+				Element:  padElement,
 			}
+			value.Children = append(value.Children, padding)
+			value.Len = length
+
+			// TODO remove this panic
+			panic(fmt.Sprintf("Shouldn't need to add any padding! %v", padding))
+
+		} else if length < value.Len {
+			panic(fmt.Sprintf("children length is greater than the structure length, %d vs %d", value.Len, length))
 		}
 	}
 
-	return &Value{
-		Offset:   start,
-		Len:      childrenLength,
-		Element:  s,
-		Children: children,
-	}, eof
+	if eof {
+		return value, io.EOF
+	}
+	return value, nil
 }
 
 func (s *String) Read(d *Decoder) (*Value, error) {
 	start, err := d.f.Tell()
 	if err != nil {
-		return nil, &validationError{e: s, msg: err.Error()}
+		return nil, &validationError{e: s, err: err}
 	}
 
 	var v *Value
 
 	switch s.Typ() {
 	case "zero-terminated":
-		n, err := seekUntil(d.f, '\x00')
-		if err != nil {
-			return nil, &validationError{e: s, msg: err.Error()}
+		n, err := seekUntil(d.f, '\x00', d.ParentBounds().End - start)
+		if err != nil{
+			return nil, &validationError{e: s, err: err}
 		}
 		v = &Value{Offset: start, Len: n, Element: s}
 
 	case "fixed-length":
-		len, err := d.eval(s.Length())
+		length, err := d.eval(s.Length()) // TODO Do I need this, or can I use ParentBounds()?
 		if err != nil {
-			return nil, &validationError{e: s, msg: err.Error()}
+			return nil, &validationError{e: s, err: err}
 		}
-		d.f.Seek(len, io.SeekCurrent)
-		v = &Value{Offset: start, Len: len, Element: s}
+		d.f.Seek(length, io.SeekCurrent) // Seek beyond the string (as if we read it)
+		v = &Value{Offset: start, Len: length, Element: s}
+
+	case "pascal":
+		// We assume 1 byte length prefix
+		// TODO Write tests for this.
+		i, err := readInt(d.f, 1, false, binary.LittleEndian)
+		if err != nil {
+			return nil, &validationError{e: s, err: err}
+		}
+
+		length := int64(i.(uint8))
+
+		d.f.Seek(length, io.SeekCurrent) // Seek beyond the string (as if we read it)
+		v = &Value{Offset: start, Len: length + 1, Element: s}
+
 
 	default:
-		return nil, fmt.Errorf("unknown type %q", s.Typ())
+		return nil, fmt.Errorf("unknown string type %q", s.Typ())
 	}
+
+	// TODO Implement the fixed values
+	//values := b.Values()
+	//if len(values) > 0 && b.MustMatch().bool() {
 
 	return v, nil
 }
@@ -368,17 +232,9 @@ func skip(d *Decoder, length Reference, lengthUnit LengthUnit) (*Value, error) {
 		return nil, err
 	}
 
-	len, err := d.eval(length)
+	len, err := d.Bytes(length, lengthUnit)
 	if err != nil {
 		return nil, err
-	}
-
-	if lengthUnit == BitLengthUnit {
-		len /= 8 // TODO Test edge cases (such as 20 bits)
-	} else if lengthUnit == ByteLengthUnit {
-		// Do nothing
-	} else {
-		return nil, fmt.Errorf("unknown length unit: %s", lengthUnit)
 	}
 
 	_, err = d.f.Seek(len, io.SeekCurrent)
@@ -396,7 +252,7 @@ func (b *Binary) Read(d *Decoder) (*Value, error) {
 	// TODO Binary.Read and Number.Read are almost identical.
 	v, err := skip(d, b.Length(), b.LengthUnit())
 	if err != nil {
-		return nil, &validationError{e: b, msg: err.Error()}
+		return nil, &validationError{e: b, err: err}
 	}
 
 	v.Element = b
@@ -407,7 +263,7 @@ func (b *Binary) Read(d *Decoder) (*Value, error) {
 		// Read the bytes value
 		bs, err := b.Bytes(d.f, v)
 		if err != nil {
-			return nil, &validationError{e: b, msg: err.Error()}
+			return nil, &validationError{e: b, err: err}
 		}
 		// Now check it matches one of the fixed values
 		for _, fv := range values {
@@ -428,7 +284,7 @@ func (b *Binary) Read(d *Decoder) (*Value, error) {
 
 		return nil, &validationError{
 			e: b,
-			msg: fmt.Sprintf("%q does match any of the fixed values %q", f, formatedValues),
+			err: fmt.Errorf("%q does match any of the fixed values %q", f, formatedValues),
 		}
 	}
 
@@ -436,12 +292,11 @@ func (b *Binary) Read(d *Decoder) (*Value, error) {
 }
 
 // Bytes returns the bytes from file, found at Value
-func (b *Binary) Bytes(file File, value *Value) ([]byte, error) {
+func (b *Binary) Bytes(file io.ReaderAt, value *Value) ([]byte, error) {
 	out := make([]byte, value.Len, value.Len)
-	log.Debugf("READING AT %d", value.Offset)
 	n, err := file.ReadAt(out, value.Offset)
 	if err != nil {
-		return nil, &validationError{e: b, msg: err.Error()}
+		return nil, &validationError{e: b, err: err}
 	}
 	return out[:n], nil
 
@@ -450,22 +305,24 @@ func (b *Binary) Bytes(file File, value *Value) ([]byte, error) {
 // int returns the integer stored at Value in f. The returned
 // integer is one of int{8,16,32,64} or uint{8,16,32,64} depending
 // on the width and sign of the integer.
-func (n *Number) int(f File, value *Value) (interface{}, error) {
-	if _, err := f.Seek(value.Offset, io.SeekStart); err != nil {
-		return 0, &validationError{e: n, msg: err.Error()}
+func (n *Number) int(file io.ReaderAt, value *Value) (interface{}, error) {
+	b := make([]byte, value.Len, value.Len)
+	if _, err := file.ReadAt(b, value.Offset); err != nil {
+		return 0, &validationError{e: n, err: err}
 	}
 
-	i, err := readInt(f, value.Len, n.Signed(), value.ByteOrder)
-	if err != nil && err != io.EOF {
-		return 0, &validationError{e: n, msg: err.Error()}
+	r := bytes.NewReader(b)
+	i, err := readInt(r, value.Len, n.Signed(), value.ByteOrder)
+	if err != nil && err != io.EOF { // TODO Remove EOF special case
+		return 0, &validationError{e: n, err: err}
 	}
 
 	return i, err
 }
 
 // Int returns the int this file/value refers to. If the int doesn't fit into a int64, it is truncated.
-func (n *Number) Int(f File, value *Value) (int64, error) {
-	i, err := n.int(f, value)
+func (n *Number) Int(file io.ReaderAt, value *Value) (int64, error) {
+	i, err := n.int(file, value)
 	if err != nil {
 		return 0, err
 	}
@@ -476,21 +333,10 @@ func (n *Number) Int(f File, value *Value) (int64, error) {
 	}
 }
 
-/*
-func (n *Number) Uint(f File, value *Value) (uint64, error) {
-	i, err := n.int(f, value)
-	if err != nil {
-		return 0, err
-	}
-	return reflect.ValueOf(i).Uint(), nil
-}
-*/
-
-
 func (n *Number) Read(d *Decoder) (*Value, error) {
 	v, err := skip(d, n.Length(), n.LengthUnit())
 	if err != nil {
-		return nil, &validationError{e: n, msg: err.Error()}
+		return nil, &validationError{e: n, err: err}
 	}
 
 	v.Element = n
@@ -522,7 +368,7 @@ func (n *Number) Read(d *Decoder) (*Value, error) {
 
 		return v, &validationError{
 			e: n,
-			msg: fmt.Sprintf("%q does match any of the fixed values %q", f, formatedValues),
+			err: fmt.Errorf("%q does match any of the fixed values %q", f, formatedValues),
 		}
 	}
 
@@ -530,24 +376,28 @@ func (n *Number) Read(d *Decoder) (*Value, error) {
 }
 
 
-func (n *Custom) Read(d *Decoder) (*Value, error) {
+func (c *Custom) Read(d *Decoder) (*Value, error) {
 	panic("TODO")
 }
 
-func (n *GrammarRef) Read(d *Decoder) (*Value, error) {
+func (g *GrammarRef) Read(d *Decoder) (*Value, error) {
 	panic("TODO")
 }
 
-func (n *Offset) Read(d *Decoder) (*Value, error) {
+func (o *Offset) Read(d *Decoder) (*Value, error) {
 	panic("TODO")
 }
 
-func (n *ScriptElement) Read(d *Decoder) (*Value, error) {
+func (s *ScriptElement) Read(d *Decoder) (*Value, error) {
+	panic("TODO")
+}
+
+func (p *Padding) Read(d *Decoder) (*Value, error) {
+	// TODO We never should read a padding element
 	panic("TODO")
 }
 
 func (s *StructRef) Read(d *Decoder) (*Value, error) {
-
 	v, err := d.read(s.Structure())
 	if err != nil {
 		return nil, err
@@ -556,3 +406,5 @@ func (s *StructRef) Read(d *Decoder) (*Value, error) {
 
 	return v, nil
 }
+
+

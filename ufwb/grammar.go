@@ -6,6 +6,7 @@ import (
 	"io"
 	"strconv"
 	"fmt"
+	"errors"
 )
 
 func indexer(u *Ufwb, element Element, parent *Structure, errs *Errors) {
@@ -18,7 +19,7 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 
 	id := element.Id()
 	if id == 0 {
-		errs.Append(&validationError{e: element, msg: "missing id field"})
+		errs.Append(&validationError{e: element, err: errors.New("missing id field")})
 		return
 	}
 
@@ -43,7 +44,7 @@ func extender(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 	if s.Xml.Extends != "" {
 		e, ok := u.Get(s.Xml.Extends)
 		if !ok {
-			errs.Append(&validationError{e: element, msg: fmt.Sprintf("extends element %q not found", s.Xml.Extends)})
+			errs.Append(&validationError{e: element, err: fmt.Errorf("extends element %q not found", s.Xml.Extends)})
 			return
 		}
 
