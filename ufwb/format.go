@@ -2,13 +2,13 @@
 package ufwb
 
 import (
+	"encoding/hex"
 	"fmt"
 	"strings"
-	"encoding/hex"
 
-	"reflect"
 	"bytes"
 	"io"
+	"reflect"
 )
 
 var (
@@ -19,7 +19,7 @@ func leftPad(s string, pad string, width int) string {
 	if len(s) >= width {
 		return s
 	}
-	return strings.Repeat(pad, width - len(s)) + s
+	return strings.Repeat(pad, width-len(s)) + s
 }
 
 func (u *Ufwb) Format(file io.ReaderAt, value *Value) (string, error) {
@@ -34,7 +34,7 @@ func (p *Padding) Format(file io.ReaderAt, value *Value) (string, error) {
 func (g *Grammar) Format(file io.ReaderAt, value *Value) (string, error) {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(g.Start.Name());
+	buffer.WriteString(g.Start.Name())
 	buffer.WriteString(": ")
 
 	str, err := g.Start.Format(file, value)
@@ -52,7 +52,7 @@ func (n *Structure) Format(file io.ReaderAt, value *Value) (string, error) {
 	indent++
 
 	var buffer bytes.Buffer
-	buffer.WriteString(fmt.Sprintf("(%d children)", len(value.Children)));
+	buffer.WriteString(fmt.Sprintf("(%d children)", len(value.Children)))
 	buffer.WriteString("\n")
 
 	pad := ""
@@ -92,7 +92,7 @@ func (s *String) Format(file io.ReaderAt, value *Value) (string, error) {
 	switch s.Typ() {
 	case "zero-terminated":
 		// Strip the nul character if it exists
-		if b[n - 1] == 0 {
+		if b[n-1] == 0 {
 			return string(b[:n-1]), nil
 		}
 
@@ -109,7 +109,7 @@ func (s *String) Format(file io.ReaderAt, value *Value) (string, error) {
 func (n *Number) format(i interface{}) (string, error) {
 	base := n.Display().Base()
 	if base < 2 || base > 36 {
-		return "",  &validationError{e: n, err: fmt.Errorf("invalid base %d", base)}
+		return "", &validationError{e: n, err: fmt.Errorf("invalid base %d", base)}
 	}
 
 	// TODO this needs fixing for non-multiple of 8 bit numbers
@@ -137,7 +137,6 @@ func (n *Number) Format(file io.ReaderAt, value *Value) (string, error) {
 	}
 	return n.format(i)
 }
-
 
 func (b *Binary) format(bs []byte) (string, error) {
 	// TODO Maybe use b.Length() to change the output?

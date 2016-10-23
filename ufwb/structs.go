@@ -15,7 +15,7 @@ const (
 
 type Colour uint32
 type Reference string // TODO At "parse time" check if this is a constant and record that.
-type Bool int8 // tri-state bool unset, false, true.
+type Bool int8        // tri-state bool unset, false, true.
 
 // No other value is allowed
 const (
@@ -26,8 +26,10 @@ const (
 
 func (b Bool) bool() bool {
 	switch b {
-	case False: return false
-	case True: return true
+	case False:
+		return false
+	case True:
+		return true
 	}
 	panic("Unknown bool state")
 }
@@ -83,10 +85,9 @@ type Order int
 
 const (
 	UnknownOrder Order = iota
-	FixedOrder // TODO Check this is the right name
+	FixedOrder         // TODO Check this is the right name
 	VariableOrder
 )
-
 
 type Reader interface {
 	// Read from file and return a Value.
@@ -123,8 +124,8 @@ type ElementLite interface {
 }
 
 type Lengthable interface {
-	Length()       Reference
-	LengthUnit()   LengthUnit
+	Length() Reference
+	LengthUnit() LengthUnit
 }
 
 type Element interface {
@@ -182,8 +183,8 @@ func (b *Base) IdString() string {
 }
 
 type Repeats struct {
-	repeatMin    Reference  `default:"Reference(\"1\")" parent:"false"`
-	repeatMax    Reference  `default:"Reference(\"1\")" parent:"false"`
+	repeatMin Reference `default:"Reference(\"1\")" parent:"false"`
+	repeatMax Reference `default:"Reference(\"1\")" parent:"false"`
 }
 
 type Grammar struct {
@@ -203,30 +204,29 @@ type Grammar struct {
 	Scripts  []Script
 }
 
-
 type Structure struct {
-	Xml          *XmlStructure
+	Xml *XmlStructure
 
 	Base
 	Repeats
 	Colourful
 
-	extends      *Structure
-	parent       *Structure
+	extends *Structure
+	parent  *Structure
 
 	length       Reference  `parent:"false"`
 	lengthUnit   LengthUnit `default:"ByteLengthUnit"`
 	lengthOffset Reference
 
-	endian       Endian `default:"LittleEndian"`
-	signed       Bool   `default:"True"`
-	encoding     string `default:"\"UTF-8\""`
+	endian   Endian `default:"LittleEndian"`
+	signed   Bool   `default:"True"`
+	encoding string `default:"\"UTF-8\""`
 
-	order        Order `default:"FixedOrder"`
+	order Order `default:"FixedOrder"`
 
-	display      Display `default:"DecDisplay"`
+	display Display `default:"DecDisplay"`
 
-	elements     []Element `parent:"false"`
+	elements []Element `parent:"false"`
 
 	/*
 		Encoding  string `xml:"encoding,attr,omitempty" ufwb:"encoding"`
@@ -251,10 +251,10 @@ type GrammarRef struct {
 	Base
 	Repeats
 
-	extends      *GrammarRef
+	extends *GrammarRef
 
 	filename string
-	grammar *Grammar // TODO Actually implement this!
+	grammar  *Grammar // TODO Actually implement this!
 
 	//disabled bool
 }
@@ -266,10 +266,10 @@ type Custom struct {
 	Repeats
 	Colourful
 
-	extends      *Custom
+	extends *Custom
 
-	length            Reference  `parent:"false"`
-	lengthUnit        LengthUnit `default:"ByteLengthUnit"`
+	length     Reference  `parent:"false"`
+	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
 	script string // TODO?
 }
@@ -281,7 +281,7 @@ type StructRef struct {
 	Repeats
 	Colourful
 
-	extends   *StructRef
+	extends *StructRef
 
 	structure *Structure
 }
@@ -293,29 +293,29 @@ type String struct {
 	Repeats
 	Colourful
 
-	extends      *String
-	parent       *Structure
+	extends *String
+	parent  *Structure
 
 	typ string // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
 
-	length        Reference  `parent:"false"`
-	lengthUnit    LengthUnit `default:"ByteLengthUnit"`
+	length     Reference  `parent:"false"`
+	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
-	encoding  string `default:"\"UTF-8\""`
+	encoding string `default:"\"UTF-8\""`
 
 	mustMatch Bool `default:"True"`
-	values []*FixedStringValue
+	values    []*FixedStringValue
 }
 
 type Binary struct {
-	Xml        *XmlBinary
+	Xml *XmlBinary
 
 	Base
 	Repeats
 	Colourful
 
-	extends    *Binary
-	parent     *Structure
+	extends *Binary
+	parent  *Structure
 
 	length     Reference  `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
@@ -323,38 +323,38 @@ type Binary struct {
 	//unused     Bool // TODO
 	//disabled   Bool
 
-	mustMatch  Bool `default:"True"`
-	values     []*FixedBinaryValue
+	mustMatch Bool `default:"True"`
+	values    []*FixedBinaryValue
 }
 
 type Number struct {
-	Xml             *XmlNumber
+	Xml *XmlNumber
 
 	Base
 	Repeats
 	Colourful
 
-	extends         *Number
-	parent          *Structure
+	extends *Number
+	parent  *Structure
 
-	Type            string // TODO Convert to Type
-	length          Reference  `parent:"false"`
-	lengthUnit      LengthUnit `default:"ByteLengthUnit"`
+	Type       string     // TODO Convert to Type
+	length     Reference  `parent:"false"`
+	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
-	endian          Endian  `default:"LittleEndian"`
-	signed          Bool    `default:"True"`
+	endian Endian `default:"LittleEndian"`
+	signed Bool   `default:"True"`
 
-	display         Display `default:"DecDisplay"`
+	display Display `default:"DecDisplay"`
 
 	// TODO Handle the below fields:
 	valueExpression string
 
-	minVal          string // TODO This should be a int
-	maxVal          string
+	minVal string // TODO This should be a int
+	maxVal string
 
-	mustMatch       Bool   `default:"True"`
-	values          []*FixedValue
-	masks           []*Mask
+	mustMatch Bool `default:"True"`
+	values    []*FixedValue
+	masks     []*Mask
 }
 
 type Offset struct {
@@ -364,12 +364,12 @@ type Offset struct {
 	Repeats
 	Colourful
 
-	extends         *Offset
+	extends *Offset
 
-	length          Reference  `parent:"false"`
-	lengthUnit      LengthUnit `default:"ByteLengthUnit"`
+	length     Reference  `parent:"false"`
+	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
-	endian Endian  `default:"LittleEndian"`
+	endian Endian `default:"LittleEndian"`
 
 	RelativeTo          Element // TODO
 	FollowNullReference string  // TODO
@@ -377,8 +377,7 @@ type Offset struct {
 	ReferencedSize      Element // TODO
 	Additional          string  // TODO
 
-	display         Display `default:"DecDisplay"`
-
+	display Display `default:"DecDisplay"`
 }
 
 type Mask struct {
@@ -401,7 +400,7 @@ type FixedValues struct {
 type FixedValue struct {
 	Xml *XmlFixedValue
 
-	extends         *FixedValue // TODO Can this actually be extended?
+	extends *FixedValue // TODO Can this actually be extended?
 
 	// TODO Add description
 
@@ -412,7 +411,7 @@ type FixedValue struct {
 type FixedBinaryValue struct {
 	Xml *XmlFixedValue
 
-	extends         *FixedBinaryValue // TODO Can this actually be extended?
+	extends *FixedBinaryValue // TODO Can this actually be extended?
 
 	name  string
 	value []byte
@@ -421,7 +420,7 @@ type FixedBinaryValue struct {
 type FixedStringValue struct {
 	Xml *XmlFixedValue
 
-	extends         *FixedStringValue // TODO Can this actually be extended?
+	extends *FixedStringValue // TODO Can this actually be extended?
 
 	name  string
 	value string
@@ -435,7 +434,7 @@ type ScriptElement struct {
 	Base
 	Repeats
 
-	extends         *ScriptElement
+	extends *ScriptElement
 
 	//Disabled bool
 
@@ -457,14 +456,27 @@ type Padding struct {
 	Base
 }
 
-// TODO This Elements is wrong. It has to take the extended ones, and merge them!
-func (s *Structure) Elements() []Element {
-	if s.elements != nil {
-		return s.elements
+type Elements []Element
+
+func (e Elements) Find(name string) (int, Element) {
+	for i, element := range e {
+		if element.Name() == name {
+			return i, element
+		}
 	}
+	return -1, nil
+}
+
+// ElementByName returns a child element with this name, or nil
+func (s *Structure) ElementByName(name string) Element {
+	if _, e := Elements(s.elements).Find(name); e != nil {
+		return e
+	}
+
 	if s.extends != nil {
-		return s.extends.Elements()
+		return s.extends.ElementByName(name)
 	}
+
 	return nil
 }
 

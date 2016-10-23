@@ -63,9 +63,8 @@ func (s *Structure) Elements() []Element {
 	return elements
 }
 
-
-func (g *GrammarRef) SetExtends(element Element) error{
-	parent, ok := element.(*GrammarRef);
+func (g *GrammarRef) SetExtends(element Element) error {
+	parent, ok := element.(*GrammarRef)
 	if !ok {
 		return cantExtendFromError(g, element)
 	}
@@ -73,8 +72,8 @@ func (g *GrammarRef) SetExtends(element Element) error{
 	return nil
 }
 
-func (c *Custom) SetExtends(element Element)error {
-	parent, ok := element.(*Custom);
+func (c *Custom) SetExtends(element Element) error {
+	parent, ok := element.(*Custom)
 	if !ok {
 		return cantExtendFromError(c, element)
 	}
@@ -82,8 +81,8 @@ func (c *Custom) SetExtends(element Element)error {
 	return nil
 }
 
-func (s *StructRef) SetExtends(element Element)error {
-	parent, ok := element.(*StructRef);
+func (s *StructRef) SetExtends(element Element) error {
+	parent, ok := element.(*StructRef)
 	if !ok {
 		return cantExtendFromError(s, element)
 	}
@@ -91,8 +90,8 @@ func (s *StructRef) SetExtends(element Element)error {
 	return nil
 }
 
-func (s *String) SetExtends(element Element)error {
-	parent, ok := element.(*String);
+func (s *String) SetExtends(element Element) error {
+	parent, ok := element.(*String)
 	if !ok {
 		return cantExtendFromError(s, element)
 	}
@@ -100,8 +99,8 @@ func (s *String) SetExtends(element Element)error {
 	return nil
 }
 
-func (b *Binary) SetExtends(element Element) (error) {
-	parent, ok := element.(*Binary);
+func (b *Binary) SetExtends(element Element) error {
+	parent, ok := element.(*Binary)
 	if !ok {
 		return cantExtendFromError(b, element)
 	}
@@ -109,8 +108,8 @@ func (b *Binary) SetExtends(element Element) (error) {
 	return nil
 }
 
-func (n *Number) SetExtends(element Element) error{
-	parent, ok := element.(*Number);
+func (n *Number) SetExtends(element Element) error {
+	parent, ok := element.(*Number)
 	if !ok {
 		return cantExtendFromError(n, element)
 	}
@@ -118,8 +117,8 @@ func (n *Number) SetExtends(element Element) error{
 	return nil
 }
 
-func (o *Offset) SetExtends(element Element) error{
-	parent, ok := element.(*Offset);
+func (o *Offset) SetExtends(element Element) error {
+	parent, ok := element.(*Offset)
 	if !ok {
 		return cantExtendFromError(o, element)
 	}
@@ -128,7 +127,7 @@ func (o *Offset) SetExtends(element Element) error{
 }
 
 func (s *ScriptElement) SetExtends(element Element) error {
-	parent, ok := element.(*ScriptElement);
+	parent, ok := element.(*ScriptElement)
 	if !ok {
 		return cantExtendFromError(s, element)
 	}

@@ -3,16 +3,15 @@
 package ufwb
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
-	"errors"
 )
 
 var (
 	AttrCounter = make(map[string][]string) // For debugging only
 )
-
 
 // For debugging only
 // TODO Add as method as AttrCounter
@@ -73,7 +72,7 @@ func (s *Structure) update(u *Ufwb, parent *Structure, errs *Errors) {
 
 	// TODO Add Min/Max
 	//if s.Order() == FixedOrder {
-		// TODO if FixedOrder then Min/Max should equal # of children
+	// TODO if FixedOrder then Min/Max should equal # of children
 	//}
 }
 

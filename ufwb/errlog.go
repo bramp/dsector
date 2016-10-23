@@ -6,23 +6,23 @@ type Errors struct {
 	errs []error
 }
 
-func (e * Errors) Append(err error) {
+func (e *Errors) Append(err error) {
 	e.errs = append(e.errs, err)
 }
 
-func (e * Errors) Ok() bool {
+func (e *Errors) Ok() bool {
 	return len(e.errs) == 0
 }
 
-func (e * Errors) NotOk() bool {
+func (e *Errors) NotOk() bool {
 	return !e.Ok()
 }
 
-func (e * Errors) Slice() []error {
+func (e *Errors) Slice() []error {
 	return e.errs
 }
 
-func (e * Errors) Error() string {
+func (e *Errors) Error() string {
 	// TODO Join all the errors together.
 	if len(e.errs) > 0 {
 		return e.errs[0].Error()

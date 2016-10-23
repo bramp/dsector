@@ -1,11 +1,11 @@
 package ufwb
 
 import (
-	"fmt"
 	"encoding/hex"
 	"errors"
-	"strings"
+	"fmt"
 	"regexp"
+	"strings"
 )
 
 var (
@@ -89,7 +89,6 @@ func colour(s string, errs *Errors) *Colour {
 	return &c
 }
 
-
 func order(s string, errs *Errors) Order {
 	switch s {
 	case "fixed":
@@ -104,13 +103,12 @@ func order(s string, errs *Errors) Order {
 	return UnknownOrder
 }
 
-
 func (xml *XmlUfwb) transform() (*Ufwb, []error) {
 	errs := &Errors{}
 
 	u := &Ufwb{
-		Xml:     xml,
-		Version: xml.Version,
+		Xml:      xml,
+		Version:  xml.Version,
 		Elements: make(map[string]Element),
 	}
 	u.Grammar = xml.Grammar.transform(errs).(*Grammar)
@@ -120,13 +118,13 @@ func (xml *XmlUfwb) transform() (*Ufwb, []error) {
 
 func (xml *XmlGrammar) transform(errs *Errors) Element {
 	g := &Grammar{
-		Xml:    xml,
-		Base: xml.XmlIdName.toIdName("Grammar", errs),
-		Author: xml.Author,
-		Ext: xml.Ext,
-		Email: xml.Email,
+		Xml:      xml,
+		Base:     xml.XmlIdName.toIdName("Grammar", errs),
+		Author:   xml.Author,
+		Ext:      xml.Ext,
+		Email:    xml.Email,
 		Complete: yesno(xml.Complete, errs),
-		Uti: xml.Uti,
+		Uti:      xml.Uti,
 	}
 
 	if g.Xml.Start == "" {
@@ -140,15 +138,14 @@ func (xml *XmlGrammar) transform(errs *Errors) Element {
 	return g
 }
 
-
 func (xml *XmlStructure) transform(errs *Errors) Element {
 	s := &Structure{
-		Xml:    xml,
+		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Structure", errs),
 
-		length: Reference(xml.Length),
+		length:       Reference(xml.Length),
 		lengthOffset: Reference(xml.LengthOffset),
-		lengthUnit: lengthunit(xml.LengthUnit, errs),
+		lengthUnit:   lengthunit(xml.LengthUnit, errs),
 
 		Repeats: Repeats{
 			repeatMin: Reference(xml.RepeatMin),
@@ -165,7 +162,7 @@ func (xml *XmlStructure) transform(errs *Errors) Element {
 		display: display(xml.Display, errs),
 
 		Colourful: Colourful{
-			fillColour: colour(xml.FillColour, errs),
+			fillColour:   colour(xml.FillColour, errs),
 			strokeColour: colour(xml.StrokeColour, errs),
 		},
 	}
@@ -177,19 +174,17 @@ func (xml *XmlStructure) transform(errs *Errors) Element {
 	return s
 }
 
-
 func (xml *XmlCustom) transform(errs *Errors) Element {
 	return &Custom{
-		Xml:    xml,
+		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Custom", errs),
 	}
 }
 
-
 func (xml *XmlStructRef) transform(errs *Errors) Element {
 
 	return &StructRef{
-		Xml:    xml,
+		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("StructRef", errs),
 
 		Repeats: Repeats{
@@ -198,23 +193,22 @@ func (xml *XmlStructRef) transform(errs *Errors) Element {
 		},
 
 		Colourful: Colourful{
-			fillColour: colour(xml.FillColour, errs),
+			fillColour:   colour(xml.FillColour, errs),
 			strokeColour: colour(xml.StrokeColour, errs),
 		},
 	}
 }
 
-
 func (xml *XmlString) transform(errs *Errors) Element {
 	s := &String{
-		Xml:    xml,
+		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("String", errs),
 
-		typ: xml.Type, // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
-		length: Reference(xml.Length),
+		typ:        xml.Type, // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
+		length:     Reference(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
-		encoding: xml.Encoding,
+		encoding:  xml.Encoding,
 		mustMatch: yesno(xml.MustMatch, errs),
 
 		Repeats: Repeats{
@@ -223,7 +217,7 @@ func (xml *XmlString) transform(errs *Errors) Element {
 		},
 
 		Colourful: Colourful{
-			fillColour: colour(xml.FillColour, errs),
+			fillColour:   colour(xml.FillColour, errs),
 			strokeColour: colour(xml.StrokeColour, errs),
 		},
 	}
@@ -248,13 +242,12 @@ func (xml *XmlString) transform(errs *Errors) Element {
 	return s
 }
 
-
 func (xml *XmlBinary) transform(errs *Errors) Element {
 	b := &Binary{
-		Xml:    xml,
+		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Binary", errs),
 
-		length: Reference(xml.Length),
+		length:     Reference(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
 		Repeats: Repeats{
@@ -263,7 +256,7 @@ func (xml *XmlBinary) transform(errs *Errors) Element {
 		},
 
 		Colourful: Colourful{
-			fillColour: colour(xml.FillColour, errs),
+			fillColour:   colour(xml.FillColour, errs),
 			strokeColour: colour(xml.StrokeColour, errs),
 		},
 
@@ -288,15 +281,14 @@ func (xml *XmlBinary) transform(errs *Errors) Element {
 	return b
 }
 
-
 func (xml *XmlNumber) transform(errs *Errors) Element {
 	n := &Number{
-		Xml:    xml,
+		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Number", errs),
 
 		Type: xml.Type, // TODO Convert to NumberType
 
-		length: Reference(xml.Length),
+		length:     Reference(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
 		Repeats: Repeats{
@@ -310,7 +302,7 @@ func (xml *XmlNumber) transform(errs *Errors) Element {
 		display: display(xml.Display, errs),
 
 		Colourful: Colourful{
-			fillColour: colour(xml.FillColour, errs),
+			fillColour:   colour(xml.FillColour, errs),
 			strokeColour: colour(xml.StrokeColour, errs),
 		},
 
@@ -319,8 +311,8 @@ func (xml *XmlNumber) transform(errs *Errors) Element {
 
 	for _, x := range xml.Values {
 		n.values = append(n.values, &FixedValue{
-			Xml:   x,
-			name:  x.Name,
+			Xml:  x,
+			name: x.Name,
 		})
 	}
 
@@ -331,18 +323,16 @@ func (xml *XmlNumber) transform(errs *Errors) Element {
 	return n
 }
 
-
 func (xml *XmlOffset) transform(errs *Errors) Element {
 	return &Offset{
-		Xml:    xml,
+		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Offset", errs),
 	}
 }
 
-
 func (xml *XmlScriptElement) transform(errs *Errors) Element {
 	return &ScriptElement{
-		Xml:    xml,
+		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("ScriptElement", errs),
 	}
 }
@@ -356,14 +346,13 @@ func (xml *XmlMask) transform(errs *Errors) *Mask {
 	for _, x := range xml.Values {
 		// TODO Do I need to change this to some other type?
 		m.values = append(m.values, &FixedValue{
-			Xml:   x,
-			name:  x.Name,
+			Xml:  x,
+			name: x.Name,
 		})
 	}
 
 	return m
 }
-
 
 func (xml *XmlScript) transform(errs *Errors) *Script {
 	s := &Script{
@@ -385,5 +374,5 @@ func (xml *XmlScript) transform(errs *Errors) *Script {
 		s.Language = xml.Language
 	}
 
-	return s;
+	return s
 }

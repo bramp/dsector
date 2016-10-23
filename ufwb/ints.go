@@ -2,11 +2,11 @@
 package ufwb
 
 import (
-	"reflect"
-	"fmt"
-	"strconv"
 	"encoding/binary"
+	"fmt"
 	"io"
+	"reflect"
+	"strconv"
 )
 
 // intEqual compares two integers stored in interfaces. Returns true if equal (regradless of bitsize)
@@ -30,7 +30,7 @@ func parseInt(s string, base int, bitSize int, signed bool) (interface{}, error)
 		cutoff := uint64(1 << uint(bitSize-1))
 		// ParseInt doesn't handle signed hex numbers, so we do it ourselves
 		if n >= cutoff {
-			return int64(n - cutoff) - int64(cutoff), nil
+			return int64(n-cutoff) - int64(cutoff), nil
 		}
 		return int64(n), nil
 	}
@@ -69,7 +69,7 @@ func readInt(r io.Reader, len int64, signed bool, order binary.ByteOrder) (inter
 		}
 	}
 	if i == nil {
-		return 0, fmt.Errorf("unsupported number length: %d",len)
+		return 0, fmt.Errorf("unsupported number length: %d", len)
 	}
 
 	err := binary.Read(r, order, i)
@@ -78,11 +78,10 @@ func readInt(r io.Reader, len int64, signed bool, order binary.ByteOrder) (inter
 	return reflect.ValueOf(i).Elem().Interface(), err
 }
 
-
 func formatIntPad(s string, base int, bitSize int) string {
 	// TODO Base 2
 	if base == 16 {
-		return "0x" + leftPad(s, "0", bitSize / 4)
+		return "0x" + leftPad(s, "0", bitSize/4)
 	}
 
 	return s
@@ -99,11 +98,11 @@ func formatInt(i interface{}, base int, bits int) (string, error) {
 		// Instead we flip the sign and print as unsigned.
 		if base == 16 && n < 0 {
 			cutoff := int64(1 << uint(bits-1))
-			u := uint64(n + cutoff) + uint64(cutoff)
+			u := uint64(n+cutoff) + uint64(cutoff)
 
 			// Mask off the high bits (which will all be one now)
-			mask := uint64(1 << uint(bits)) - 1
-			return formatInt(u & mask, base, bits)
+			mask := uint64(1<<uint(bits)) - 1
+			return formatInt(u&mask, base, bits)
 		}
 
 		return formatIntPad(strconv.FormatInt(n, base), base, bits), nil

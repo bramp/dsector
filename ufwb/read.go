@@ -7,9 +7,9 @@ import (
 	"io"
 	"reflect"
 
-	log "github.com/Sirupsen/logrus"
 	"bytes"
 	"encoding/binary"
+	log "github.com/Sirupsen/logrus"
 )
 
 var padElement = &Padding{Base: Base{"Padding", 0, "", ""}}
@@ -62,8 +62,8 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 	childrenCount := make(map[ElementLite]int64)
 
 	value := &Value{
-		Offset:   start,
-		Element:  s,
+		Offset:  start,
+		Element: s,
 	}
 
 	i := 0
@@ -95,7 +95,7 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 		}
 
 		// Ensure we parse this from the correct location.
-		_, err = d.f.Seek(start + value.Len, io.SeekStart)
+		_, err = d.f.Seek(start+value.Len, io.SeekStart)
 		if err != nil {
 			return nil, &validationError{e: s, err: err}
 		}
@@ -133,8 +133,8 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 
 			case VariableOrder:
 				// This one failed, try another element
-				if i < len(elements) - 1 {
-					log.Debugf("move on from: %s to: %s", elements[i].IdString(), elements[i + 1].IdString())
+				if i < len(elements)-1 {
+					log.Debugf("move on from: %s to: %s", elements[i].IdString(), elements[i+1].IdString())
 				} else {
 					log.Debugf("move on from: %s to: end", elements[i].IdString())
 				}
@@ -155,9 +155,9 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 		// TODO Is this an error?
 		if length > value.Len {
 			padding := &Value{
-				Offset:   start + value.Len,
-				Len:      length - value.Len,
-				Element:  padElement,
+				Offset:  start + value.Len,
+				Len:     length - value.Len,
+				Element: padElement,
 			}
 			value.Children = append(value.Children, padding)
 			value.Len = length
@@ -186,8 +186,8 @@ func (s *String) Read(d *Decoder) (*Value, error) {
 
 	switch s.Typ() {
 	case "zero-terminated":
-		n, err := seekUntil(d.f, '\x00', d.ParentBounds().End - start)
-		if err != nil{
+		n, err := seekUntil(d.f, '\x00', d.ParentBounds().End-start)
+		if err != nil {
 			return nil, &validationError{e: s, err: err}
 		}
 		v = &Value{Offset: start, Len: n, Element: s}
@@ -212,7 +212,6 @@ func (s *String) Read(d *Decoder) (*Value, error) {
 
 		d.f.Seek(length, io.SeekCurrent) // Seek beyond the string (as if we read it)
 		v = &Value{Offset: start, Len: length + 1, Element: s}
-
 
 	default:
 		return nil, fmt.Errorf("unknown string type %q", s.Typ())
@@ -283,7 +282,7 @@ func (b *Binary) Read(d *Decoder) (*Value, error) {
 		}
 
 		return nil, &validationError{
-			e: b,
+			e:   b,
 			err: fmt.Errorf("%q does match any of the fixed values %q", f, formatedValues),
 		}
 	}
@@ -367,14 +366,13 @@ func (n *Number) Read(d *Decoder) (*Value, error) {
 		}
 
 		return v, &validationError{
-			e: n,
+			e:   n,
 			err: fmt.Errorf("%q does match any of the fixed values %q", f, formatedValues),
 		}
 	}
 
 	return v, nil
 }
-
 
 func (c *Custom) Read(d *Decoder) (*Value, error) {
 	panic("TODO")
@@ -406,5 +404,3 @@ func (s *StructRef) Read(d *Decoder) (*Value, error) {
 
 	return v, nil
 }
-
-

@@ -13,14 +13,15 @@ import (
 )
 
 const grammarsPath = "../grammars"
+
 var config *pretty.Config
 
 func init() {
 	config = &pretty.Config{
-		IncludeUnexported   : true,
-		PrintStringers      : false,
-		PrintTextMarshalers : false,
-		SkipZeroFields     : true,
+		IncludeUnexported:   true,
+		PrintStringers:      false,
+		PrintTextMarshalers: false,
+		SkipZeroFields:      true,
 	}
 }
 
@@ -52,34 +53,41 @@ func normalise(root *Ufwb, element Element, parent *Structure, errs *Errors) {
 		e.Xml = nil
 		e.extends = nil
 		e.parent = nil
-	case *GrammarRef: e.Xml = nil
+	case *GrammarRef:
+		e.Xml = nil
 		e.extends = nil
-	case *Custom: e.Xml = nil
+	case *Custom:
+		e.Xml = nil
 		e.extends = nil
-	case *StructRef: e.Xml = nil
+	case *StructRef:
+		e.Xml = nil
 		e.extends = nil
-	case *String: e.Xml = nil
-		e.extends = nil
-		e.parent = nil
-		for _, v := range e.values {
-			v.Xml = nil
-			v.extends = nil
-		}
-	case *Binary: e.Xml = nil
+	case *String:
+		e.Xml = nil
 		e.extends = nil
 		e.parent = nil
 		for _, v := range e.values {
 			v.Xml = nil
 			v.extends = nil
 		}
-	case *Number: e.Xml = nil
+	case *Binary:
+		e.Xml = nil
 		e.extends = nil
 		e.parent = nil
 		for _, v := range e.values {
 			v.Xml = nil
 			v.extends = nil
 		}
-	case *Offset: e.Xml = nil
+	case *Number:
+		e.Xml = nil
+		e.extends = nil
+		e.parent = nil
+		for _, v := range e.values {
+			v.Xml = nil
+			v.extends = nil
+		}
+	case *Offset:
+		e.Xml = nil
 		e.extends = nil
 	default:
 		errs.Append(fmt.Errorf("unknown element type %T", element))
@@ -103,7 +111,7 @@ func TestParseGrammarFragment(t *testing.T) {
                     </fixedvalues>
                 </number>`,
 			want: &Number{
-				Base: Base{"Number", 1, "number name", ""},
+				Base:   Base{"Number", 1, "number name", ""},
 				Type:   "integer",
 				length: "1",
 				values: []*FixedValue{
@@ -134,7 +142,6 @@ func TestParseGrammarFragment(t *testing.T) {
 		}
 	}
 }
-
 
 func TestParseGrammar(t *testing.T) {
 
@@ -169,7 +176,7 @@ func TestParseGrammar(t *testing.T) {
 			want: &Ufwb{
 				Version: "1.0.3",
 				Grammar: &Grammar{
-					Base:   Base{"Grammar", 0, "Test Name", "Test Description"},
+					Base:     Base{"Grammar", 0, "Test Name", "Test Description"},
 					Author:   "bramp@",
 					Ext:      "test",
 					Complete: boolOf(true),
@@ -180,19 +187,19 @@ func TestParseGrammar(t *testing.T) {
 							elements: []Element{
 								&String{
 									Base: Base{"String", 2, "string", ""},
-									typ:   "zero-terminated",
+									typ:  "zero-terminated",
 								},
 								&Number{
-									Base: Base{"Number", 3, "number", ""},
+									Base:   Base{"Number", 3, "number", ""},
 									Type:   "integer",
 									length: "8",
 								},
 								&Structure{
-									Base: Base{"Structure", 4, "substruct", ""},
+									Base:   Base{"Structure", 4, "substruct", ""},
 									length: "prev.number",
 									elements: []Element{
 										&Binary{
-											Base: Base{"Binary", 5, "binary", ""},
+											Base:   Base{"Binary", 5, "binary", ""},
 											length: "4",
 											values: []*FixedBinaryValue{
 												{name: "one", value: []byte{0x01, 0x23, 0x45, 0x67}},
@@ -200,12 +207,12 @@ func TestParseGrammar(t *testing.T) {
 											},
 										},
 										&Number{
-											Base: Base{"Number", 6, "number_values", ""},
+											Base:   Base{"Number", 6, "number_values", ""},
 											Type:   "integer",
 											length: "4",
 											values: []*FixedValue{
 												{name: "three", value: 0xfedcba98},
-												{name: "four",  value: 0x76543210},
+												{name: "four", value: 0x76543210},
 											},
 										},
 									},

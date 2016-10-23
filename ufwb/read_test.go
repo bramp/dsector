@@ -1,13 +1,10 @@
 package ufwb
 
 import (
-	"bytes"
-	"io/ioutil"
-	"path"
+	"github.com/kylelemons/godebug/pretty"
+	"io"
 	"strings"
 	"testing"
-	"io"
-	"github.com/kylelemons/godebug/pretty"
 )
 
 const (
@@ -68,55 +65,6 @@ func testFile(t *testing.T, grammar *Ufwb, filename string, expectErr bool) {
 	}
 }
 
-// Integration test
-func TestParserPng(t *testing.T) {
-	lang := "png"
-	langFile := lang + ".grammar"
-
-	in, err := readGrammar(langFile)
-	if err != nil {
-		t.Fatalf("readGrammar(%q) = %s want nil error", langFile, err)
-	}
-
-	// Parse
-	grammar, errs := ParseXmlGrammar(bytes.NewReader(in))
-	if len(errs) > 0 {
-		t.Fatalf("Parse(%q) = %q want nil error", langFile, errs)
-	}
-
-	// Now read each sample png file:
-	root := path.Join(samplesPath, lang)
-	files, err := ioutil.ReadDir(root)
-	if err != nil {
-		t.Fatalf("ioutil.ReadDir(%q) = %q want nil error", root, err)
-	}
-
-	testFile(t, grammar, "../samples/png/basi0g01.png", false)
-	return
-
-	// Some files are excluded because they require more than just parsing to validate
-	exclude := []string{
-		"xhdn0g08.png", // incorrect IHDR checksum
-		"xdtn0g01.png", // missing IDAT chunk
-		"xcsn0g01.png", // incorrect IDAT checksum
-	}
-
-	for _, sample := range files {
-		name := sample.Name()
-		if contains(exclude, name) || !strings.HasSuffix(name, ".png")  {
-			continue
-		}
-
-		// PNG starting with x are corrupt (expect failures)
-		expectErr := strings.HasPrefix(name, "x")
-
-		// Now test
-		filename := path.Join(root, sample.Name())
-		testFile(t, grammar, filename, expectErr)
-	}
-
-}
-
 func TestReadNumber(t *testing.T) {
 	binary := []byte("\x81\x82\x83\x84\x85\x86\x87\x88")
 	var tests = []struct {
@@ -126,71 +74,70 @@ func TestReadNumber(t *testing.T) {
 	}{
 		// Unsigned
 		{
-			xml:  `<number id="1" type="integer" length="1" endian="big" signed="no"/>`,
+			xml:     `<number id="1" type="integer" length="1" endian="big" signed="no"/>`,
 			wantDec: "129",
 			wantHex: "0x81",
 		}, {
-			xml:  `<number id="1" type="integer" length="2" endian="big" signed="no"/>`,
+			xml:     `<number id="1" type="integer" length="2" endian="big" signed="no"/>`,
 			wantDec: "33154",
 			wantHex: "0x8182",
 		}, {
-			xml:  `<number id="1" type="integer" length="4" endian="big" signed="no"/>`,
+			xml:     `<number id="1" type="integer" length="4" endian="big" signed="no"/>`,
 			wantDec: "2172814212",
 			wantHex: "0x81828384",
 		}, {
-			xml:  `<number id="1" type="integer" length="8" endian="big" signed="no"/>`,
+			xml:     `<number id="1" type="integer" length="8" endian="big" signed="no"/>`,
 			wantDec: "9332165983064197000",
 			wantHex: "0x8182838485868788",
 		}, {
-			xml:  `<number id="1" type="integer" length="1" endian="little" signed="no"/>`,
+			xml:     `<number id="1" type="integer" length="1" endian="little" signed="no"/>`,
 			wantDec: "129",
 			wantHex: "0x81",
 		}, {
-			xml:  `<number id="1" type="integer" length="2" endian="little" signed="no"/>`,
+			xml:     `<number id="1" type="integer" length="2" endian="little" signed="no"/>`,
 			wantDec: "33409",
 			wantHex: "0x8281",
 		}, {
-			xml:  `<number id="1" type="integer" length="4" endian="little" signed="no"/>`,
+			xml:     `<number id="1" type="integer" length="4" endian="little" signed="no"/>`,
 			wantDec: "2223211137",
 			wantHex: "0x84838281",
 		}, {
-			xml:  `<number id="1" type="integer" length="8" endian="little" signed="no"/>`,
+			xml:     `<number id="1" type="integer" length="8" endian="little" signed="no"/>`,
 			wantDec: "9837979819026121345",
 			wantHex: "0x8887868584838281",
 		},
 
 		// Signed
 		{
-			xml:  `<number id="1" type="integer" length="1" endian="big" signed="yes"/>`,
+			xml:     `<number id="1" type="integer" length="1" endian="big" signed="yes"/>`,
 			wantDec: "-127",
 			wantHex: "0x81",
 		}, {
-			xml:  `<number id="1" type="integer" length="2" endian="big" signed="yes"/>`,
+			xml:     `<number id="1" type="integer" length="2" endian="big" signed="yes"/>`,
 			wantDec: "-32382",
 			wantHex: "0x8182",
 		}, {
-			xml:  `<number id="1" type="integer" length="4" endian="big" signed="yes"/>`,
+			xml:     `<number id="1" type="integer" length="4" endian="big" signed="yes"/>`,
 			wantDec: "-2122153084",
 			wantHex: "0x81828384",
 		}, {
-			xml:  `<number id="1" type="integer" length="8" endian="big" signed="yes"/>`,
+			xml:     `<number id="1" type="integer" length="8" endian="big" signed="yes"/>`,
 			wantDec: "-9114578090645354616",
 			wantHex: "0x8182838485868788",
 		}, {
-			xml:  `<number id="1" type="integer" length="1" endian="little" signed="yes"/>`,
+			xml:     `<number id="1" type="integer" length="1" endian="little" signed="yes"/>`,
 			wantDec: "-127",
 			wantHex: "0x81",
-
 		}, {
-			xml:  `<number id="1" type="integer" length="2" endian="little" signed="yes"/>`,
+			xml:     `<number id="1" type="integer" length="2" endian="little" signed="yes"/>`,
 			wantDec: "-32127",
 			wantHex: "0x8281",
 		}, {
-			xml:  `<number id="1" type="integer" length="4" endian="little" signed="yes"/>`,
+			xml:     `<number id="1" type="integer" length="4" endian="little" signed="yes"/>`,
 			wantDec: "-2071756159",
 			wantHex: "0x84838281",
 		}, {
-			xml:  `<number id="1" type="integer" length="8" endian="little" signed="yes"/>`,
+			xml:     `<number id="1" type="integer" length="8" endian="little" signed="yes"/>`,
 			wantDec: "-8608764254683430271",
 			wantHex: "0x8887868584838281",
 		},
@@ -248,23 +195,21 @@ func TestReadNumber(t *testing.T) {
 	}
 }
 
-
-
 func TestReadString(t *testing.T) {
 	binary := []byte("abcdefghijklmnopqrstuvwxyz\x00")
 	var tests = []struct {
-		xml     string // TODO Change to be a String Element
-		want Value
-		wantString    string
+		xml        string // TODO Change to be a String Element
+		want       Value
+		wantString string
 	}{
 		{
-			xml:  `<string id="1" type="zero-terminated"/>`,
-			want: Value{Offset:2, Len:25}, // 24 characters + 1 nul
+			xml:        `<string id="1" type="zero-terminated"/>`,
+			want:       Value{Offset: 2, Len: 25}, // 24 characters + 1 nul
 			wantString: "cdefghijklmnopqrstuvwxyz",
 		},
 		{
-			xml:  `<string id="1" type="fixed-length" length="10"/>`,
-			want: Value{Offset:2, Len:10},
+			xml:        `<string id="1" type="fixed-length" length="10"/>`,
+			want:       Value{Offset: 2, Len: 10},
 			wantString: "cdefghijkl",
 		},
 		/* // TODO
@@ -320,21 +265,20 @@ func TestReadString(t *testing.T) {
 	}
 }
 
-
 func TestRepeating(t *testing.T) {
 	binary := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8}
 	xml := commonHeader +
-			`<structure name="Colours" id="1">
+		`<structure name="Colours" id="1">
 				<structure name="Colour" id="2" repeatmax="unlimited">
 					<number name="Red"   id="3" type="integer" length="1"/>
 					<number name="Green" id="4" type="integer" length="1"/>
 					<number name="Blue"  id="5" type="integer" length="1"/>
 				</structure>
 			</structure>` +
-			commonFooter
+		commonFooter
 
 	want :=
-`Colours: (3 children)
+		`Colours: (3 children)
   [0] Colour: (3 children)
     [0] Red: 0
     [1] Green: 1

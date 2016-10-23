@@ -1,16 +1,16 @@
 package ufwb
 
 import (
-	"strings"
-	"fmt"
-	"encoding/binary"
 	"bytes"
+	"encoding/binary"
+	"fmt"
 	"math"
+	"strings"
 
-	log "github.com/Sirupsen/logrus"
 	"errors"
-	"strconv"
+	log "github.com/Sirupsen/logrus"
 	"io"
+	"strconv"
 )
 
 const DEBUG = true
@@ -39,21 +39,21 @@ func (stack StackPrinter) String() string {
 }
 
 type Decoder struct {
-	u             *Ufwb
-	f             File
+	u *Ufwb
+	f File
 
 	// dynamicEndian be changed by scripts during processing.
 	dynamicEndian binary.ByteOrder
 
-	stack         []ElementBounds
+	stack []ElementBounds
 
-	prevMap       map[string]*Value
+	prevMap map[string]*Value
 }
 
 func NewDecoder(u *Ufwb, f File) *Decoder {
 	return &Decoder{
-		u: u,
-		f: f,
+		u:       u,
+		f:       f,
 		prevMap: make(map[string]*Value),
 	}
 }
@@ -62,9 +62,9 @@ func (d *Decoder) Decode() (*Value, error) {
 	return d.u.Read(d)
 }
 
-func (d *Decoder) ParentBounds() (*ElementBounds) {
+func (d *Decoder) ParentBounds() *ElementBounds {
 	if len(d.stack) > 0 {
-		return &d.stack[len(d.stack) - 1]
+		return &d.stack[len(d.stack)-1]
 	}
 
 	return nil
@@ -120,8 +120,8 @@ func (d *Decoder) read(e Element) (*Value, error) {
 
 	d.stack = append(d.stack, ElementBounds{
 		Element: e,
-		Start: start,
-		End: end,
+		Start:   start,
+		End:     end,
 	})
 
 	// Real parsing is in here
@@ -134,7 +134,7 @@ func (d *Decoder) read(e Element) (*Value, error) {
 	log.Debugf("[%d] Read: %s %s %q err:%s", start, e.IdString(), v, ellipsis(vformat, 10), err)
 
 	// Pop off the stack
-	d.stack = d.stack[:len(d.stack) - 1]
+	d.stack = d.stack[:len(d.stack)-1]
 
 	if v != nil {
 		if DEBUG {
@@ -229,7 +229,6 @@ func (d *Decoder) prev(name string) (int64, error) {
 	return n.Int(d.f, v)
 }
 
-
 // ByteOrder returns the current byte order
 // TODO Delete this method
 func (d *Decoder) ByteOrder(e Endian) binary.ByteOrder {
@@ -243,7 +242,6 @@ func (d *Decoder) ByteOrder(e Endian) binary.ByteOrder {
 	panic(fmt.Sprintf("Unknown endian %v", e))
 }
 
-
 // Bytes returns the number of bytes this length represents.
 // If the unit is in bits, it rounds up or down.
 func (d *Decoder) Bytes(length Reference, unit LengthUnit) (int64, error) {
@@ -254,11 +252,12 @@ func (d *Decoder) Bytes(length Reference, unit LengthUnit) (int64, error) {
 
 	switch unit {
 	case BitLengthUnit:
-		if len % 8 != 0 {
+		if len%8 != 0 {
 			return -1, fmt.Errorf("unsupported length %s = %d bits", length, len)
 		}
 		return len / 8, nil
-	case ByteLengthUnit: return len, nil
+	case ByteLengthUnit:
+		return len, nil
 	}
 
 	return -1, fmt.Errorf("unknown length unit %d", unit)
@@ -272,8 +271,10 @@ func (d *Decoder) Bits(length Reference, unit LengthUnit) (int64, error) {
 	}
 
 	switch unit {
-	case BitLengthUnit: return len, nil
-	case ByteLengthUnit: return len * 8, nil
+	case BitLengthUnit:
+		return len, nil
+	case ByteLengthUnit:
+		return len * 8, nil
 	}
 
 	return -1, fmt.Errorf("unknown length unit %d", unit)

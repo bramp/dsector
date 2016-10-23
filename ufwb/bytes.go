@@ -23,14 +23,12 @@ func (f *BytesFile) Read(b []byte) (int, error) {
 }
 
 func (f *BytesFile) ReadAt(b []byte, off int64) (int, error) {
-	if off >= int64(len(f.bytes)) {
+	end := int(off) + len(b)
+	if off < 0 || end >= len(f.bytes) {
 		return 0, io.EOF
 	}
 
-	n := len(b) // TODO should not be allowed to overun
-	copy(b, f.bytes[off:(off+int64(n))])
-
-	return n, nil
+	return copy(b, f.bytes[off:end]), nil
 }
 
 func (f *BytesFile) ReadByte() (byte, error) {

@@ -3,10 +3,10 @@ package ufwb
 
 import (
 	"encoding/xml"
+	"errors"
+	"fmt"
 	"io"
 	"strconv"
-	"fmt"
-	"errors"
 )
 
 func indexer(u *Ufwb, element Element, parent *Structure, errs *Errors) {

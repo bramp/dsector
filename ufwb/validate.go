@@ -24,7 +24,7 @@ type Eof interface {
 }
 
 type validationError struct {
-	e   Element
+	e Element
 	//msg string
 	err error
 }
@@ -32,7 +32,6 @@ type validationError struct {
 func (err *validationError) IsEof() bool {
 	return err.err == io.EOF
 }
-
 
 func (err *validationError) Error() string {
 	elem := err.e
@@ -48,7 +47,6 @@ func (err assertationError) Error() string {
 	elem := err.e
 	return fmt.Sprintf("<%T id=%d name=%q>: %s", elem, elem.Id(), elem.Name(), err.msg)
 }
-
 
 type validateable interface {
 	validate(u *XmlUfwb) error

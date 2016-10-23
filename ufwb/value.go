@@ -1,11 +1,10 @@
 package ufwb
 
 import (
-	"fmt"
 	"encoding/binary"
+	"fmt"
 	"io"
 )
-
 
 // Value represents one of the parsed elements in the file.
 // It doesn't contain the element, just the offset where it starts, and which element it is.
@@ -14,7 +13,7 @@ type Value struct {
 	Len     int64 // In bytes
 	Element ElementLite
 
-	Children  []*Value
+	Children []*Value
 
 	ByteOrder binary.ByteOrder // Only used for Number, TODO, and TODO. Why have this?
 }

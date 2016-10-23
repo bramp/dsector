@@ -156,13 +156,13 @@ func TestXmlDecode(t *testing.T) {
 				Type:      "integer",
 				Values: []*XmlFixedValue{
 					{XMLName: xml.Name{Local: "fixedvalue"},
-						Name: "name",
-						Value: "0",
+						Name:        "name",
+						Value:       "0",
 						Description: "some long description",
 					},
 				},
 			},
-		},{
+		}, {
 			xml: `<string name="string" id="1">
 			        <fixedvalues>
                       <fixedvalue name="up" value="0"/>
