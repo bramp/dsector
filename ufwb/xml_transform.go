@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"bramp.net/dsector/toerr"
 )
 
 var (
@@ -13,7 +14,7 @@ var (
 )
 
 // yesno returns the boolean value of this "yes", "no" field.
-func yesno(s string, errs *Errors) Bool {
+func yesno(s string, errs *toerr.Errors) Bool {
 	// TODO Be strict on "yes", "no", "" only
 	if s == "" {
 		return UnknownBool
@@ -22,7 +23,7 @@ func yesno(s string, errs *Errors) Bool {
 }
 
 // byteOrder returns the binary.byteOrder for this string.
-func endian(s string, errs *Errors) Endian {
+func endian(s string, errs *toerr.Errors) Endian {
 	switch s {
 	case "big":
 		return BigEndian
@@ -38,7 +39,7 @@ func endian(s string, errs *Errors) Endian {
 	return UnknownEndian
 }
 
-func display(s string, errs *Errors) Display {
+func display(s string, errs *toerr.Errors) Display {
 	switch s {
 	case "dec":
 		return DecDisplay
@@ -54,7 +55,7 @@ func display(s string, errs *Errors) Display {
 	return UnknownDisplay
 }
 
-func lengthunit(s string, errs *Errors) LengthUnit {
+func lengthunit(s string, errs *toerr.Errors) LengthUnit {
 	switch s {
 	case "bit":
 		return BitLengthUnit
@@ -68,7 +69,7 @@ func lengthunit(s string, errs *Errors) LengthUnit {
 	return UnknownLengthUnit
 }
 
-func colour(s string, errs *Errors) *Colour {
+func colour(s string, errs *toerr.Errors) *Colour {
 	if s == "" {
 		return nil
 	}
@@ -89,7 +90,7 @@ func colour(s string, errs *Errors) *Colour {
 	return &c
 }
 
-func order(s string, errs *Errors) Order {
+func order(s string, errs *toerr.Errors) Order {
 	switch s {
 	case "fixed":
 		return FixedOrder
@@ -104,7 +105,7 @@ func order(s string, errs *Errors) Order {
 }
 
 func (xml *XmlUfwb) transform() (*Ufwb, []error) {
-	errs := &Errors{}
+	errs := &toerr.Errors{}
 
 	u := &Ufwb{
 		Xml:      xml,
@@ -116,7 +117,7 @@ func (xml *XmlUfwb) transform() (*Ufwb, []error) {
 	return u, errs.Slice()
 }
 
-func (xml *XmlGrammar) transform(errs *Errors) Element {
+func (xml *XmlGrammar) transform(errs *toerr.Errors) Element {
 	g := &Grammar{
 		Xml:      xml,
 		Base:     xml.XmlIdName.toIdName("Grammar", errs),
@@ -138,7 +139,14 @@ func (xml *XmlGrammar) transform(errs *Errors) Element {
 	return g
 }
 
-func (xml *XmlStructure) transform(errs *Errors) Element {
+func (xml *XmlGrammarRef) transform(errs *toerr.Errors) Element {
+	return &GrammarRef{
+		Xml:  xml,
+		Base: xml.XmlIdName.toIdName("GrammarRef", errs),
+	}
+}
+
+func (xml *XmlStructure) transform(errs *toerr.Errors) Element {
 	s := &Structure{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Structure", errs),
@@ -174,14 +182,14 @@ func (xml *XmlStructure) transform(errs *Errors) Element {
 	return s
 }
 
-func (xml *XmlCustom) transform(errs *Errors) Element {
+func (xml *XmlCustom) transform(errs *toerr.Errors) Element {
 	return &Custom{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Custom", errs),
 	}
 }
 
-func (xml *XmlStructRef) transform(errs *Errors) Element {
+func (xml *XmlStructRef) transform(errs *toerr.Errors) Element {
 
 	return &StructRef{
 		Xml:  xml,
@@ -199,7 +207,7 @@ func (xml *XmlStructRef) transform(errs *Errors) Element {
 	}
 }
 
-func (xml *XmlString) transform(errs *Errors) Element {
+func (xml *XmlString) transform(errs *toerr.Errors) Element {
 	s := &String{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("String", errs),
@@ -242,7 +250,7 @@ func (xml *XmlString) transform(errs *Errors) Element {
 	return s
 }
 
-func (xml *XmlBinary) transform(errs *Errors) Element {
+func (xml *XmlBinary) transform(errs *toerr.Errors) Element {
 	b := &Binary{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Binary", errs),
@@ -281,7 +289,7 @@ func (xml *XmlBinary) transform(errs *Errors) Element {
 	return b
 }
 
-func (xml *XmlNumber) transform(errs *Errors) Element {
+func (xml *XmlNumber) transform(errs *toerr.Errors) Element {
 	n := &Number{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Number", errs),
@@ -323,21 +331,21 @@ func (xml *XmlNumber) transform(errs *Errors) Element {
 	return n
 }
 
-func (xml *XmlOffset) transform(errs *Errors) Element {
+func (xml *XmlOffset) transform(errs *toerr.Errors) Element {
 	return &Offset{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Offset", errs),
 	}
 }
 
-func (xml *XmlScriptElement) transform(errs *Errors) Element {
+func (xml *XmlScriptElement) transform(errs *toerr.Errors) Element {
 	return &ScriptElement{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("ScriptElement", errs),
 	}
 }
 
-func (xml *XmlMask) transform(errs *Errors) *Mask {
+func (xml *XmlMask) transform(errs *toerr.Errors) *Mask {
 	m := &Mask{
 		Xml:  xml,
 		name: xml.Name,
@@ -354,7 +362,7 @@ func (xml *XmlMask) transform(errs *Errors) *Mask {
 	return m
 }
 
-func (xml *XmlScript) transform(errs *Errors) *Script {
+func (xml *XmlScript) transform(errs *toerr.Errors) *Script {
 	s := &Script{
 		Xml:  xml,
 		Name: xml.Name,

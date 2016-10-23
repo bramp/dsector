@@ -11,6 +11,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"io"
 	"strconv"
+	"bramp.net/dsector/input"
 )
 
 const DEBUG = true
@@ -40,7 +41,7 @@ func (stack StackPrinter) String() string {
 
 type Decoder struct {
 	u *Ufwb
-	f File
+	f input.Input
 
 	// dynamicEndian be changed by scripts during processing.
 	dynamicEndian binary.ByteOrder
@@ -50,7 +51,7 @@ type Decoder struct {
 	prevMap map[string]*Value
 }
 
-func NewDecoder(u *Ufwb, f File) *Decoder {
+func NewDecoder(u *Ufwb, f input.Input) *Decoder {
 	return &Decoder{
 		u:       u,
 		f:       f,

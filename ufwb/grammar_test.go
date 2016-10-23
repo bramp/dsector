@@ -10,6 +10,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"bramp.net/dsector/toerr"
 )
 
 const grammarsPath = "../grammars"
@@ -44,7 +45,7 @@ func readGrammar(filename string) ([]byte, error) {
 
 // normalise strips XML, and all pointers from the Ufwb. This is to avoid loops, which
 // confuse the pretty.Compare(...).
-func normalise(root *Ufwb, element Element, parent *Structure, errs *Errors) {
+func normalise(root *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 	switch e := element.(type) {
 	case *Grammar:
 		e.Xml = nil

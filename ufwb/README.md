@@ -1,3 +1,0 @@
-TODO
-* Fix extends for elements. Currently , we use index, but we should map by name.
-* Lots more...

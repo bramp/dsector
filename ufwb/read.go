@@ -10,20 +10,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	log "github.com/Sirupsen/logrus"
+	"bramp.net/dsector/input"
 )
 
 var padElement = &Padding{Base: Base{"Padding", 0, "", ""}}
-
-// File interface provides the minimum needed to parse the binary file.
-type File interface {
-	io.Seeker
-
-	io.Reader
-	io.ReaderAt
-	io.ByteReader
-
-	Tell() (int64, error) // Here for convenience, perhaps remove.
-}
 
 func (u *Ufwb) Read(d *Decoder) (*Value, error) {
 	return d.read(u.Grammar)
@@ -186,7 +176,7 @@ func (s *String) Read(d *Decoder) (*Value, error) {
 
 	switch s.Typ() {
 	case "zero-terminated":
-		n, err := seekUntil(d.f, '\x00', d.ParentBounds().End-start)
+		n, err := input.SeekUntil(d.f, '\x00', d.ParentBounds().End-start)
 		if err != nil {
 			return nil, &validationError{e: s, err: err}
 		}

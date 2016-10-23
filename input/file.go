@@ -1,5 +1,5 @@
 // TODO Write tests
-package ufwb
+package input
 
 import (
 	"io"
@@ -18,7 +18,7 @@ func OpenOSFile(filename string) (*OSFile, error) {
 	return (*OSFile)(f), nil
 }
 
-func NewOSFile(f *os.File) *OSFile {
+func FromOSFile(f *os.File) *OSFile {
 	return (*OSFile)(f)
 }
 

@@ -6,13 +6,14 @@ import (
 	"bytes"
 	"encoding/xml"
 	"fmt"
+	"bramp.net/dsector/toerr"
 )
 
 type Transformable interface {
 	// transform creates a new naitve Element to represent this XMLElement.
 	// Only the Base fields are transformed at this point, Name, ID, Description. The rest are validated
 	// and parsed at a later stage, when more context is available.
-	transform(errs *Errors) Element
+	transform(errs *toerr.Errors) Element
 }
 
 type XmlElement interface {
@@ -25,7 +26,7 @@ type XmlIdName struct {
 	Description string `xml:"description,omitempty"`
 }
 
-func (xml *XmlIdName) toIdName(elemType string, errs *Errors) Base {
+func (xml *XmlIdName) toIdName(elemType string, errs *toerr.Errors) Base {
 	return Base{
 		elemType:    elemType,
 		id:          xml.Id,
@@ -65,13 +66,6 @@ type XmlGrammarRef struct {
 
 	Filename string `xml:"filename,attr,omitempty"`
 	Disabled string `xml:"disabled,attr,omitempty" ufwb:"bool"`
-}
-
-func (xml *XmlGrammarRef) transform(errs *Errors) Element {
-	return &GrammarRef{
-		Xml:  xml,
-		Base: xml.XmlIdName.toIdName("GrammarRef", errs),
-	}
 }
 
 type XmlStructure struct {

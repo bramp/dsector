@@ -6,6 +6,7 @@ package ufwb
 import (
 	"fmt"
 	"io"
+	"bramp.net/dsector/toerr"
 )
 
 const (
@@ -102,7 +103,7 @@ type Formatter interface {
 
 type Updatable interface {
 	// Updates/validates the Element
-	update(u *Ufwb, parent *Structure, errs *Errors)
+	update(u *Ufwb, parent *Structure, errs *toerr.Errors)
 
 	SetExtends(parent Element) error
 }

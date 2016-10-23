@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"bramp.net/dsector/toerr"
 )
 
 var (
@@ -45,7 +46,7 @@ func (u *Ufwb) Get(id string) (Element, bool) {
 	return e, found
 }
 
-func (g *Grammar) update(u *Ufwb, parent *Structure, errs *Errors) {
+func (g *Grammar) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 	e, found := u.Get(g.Xml.Start)
 	if !found {
 		errs.Append(&validationError{e: g, err: fmt.Errorf("start struct %q not found", g.Xml.Start)})
@@ -53,7 +54,7 @@ func (g *Grammar) update(u *Ufwb, parent *Structure, errs *Errors) {
 	g.Start = e
 }
 
-func (s *Structure) update(u *Ufwb, parent *Structure, errs *Errors) {
+func (s *Structure) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 
 	// Repeat:[ id:1001 id:101 id:106 id:1064 id:1071 id:1078 id:1085 id:1092 id:1098 id:1105 id:115 id:1204 id:157 id:164 id:171 id:1730 id:1758 id:18 id:180 id:194 id:199 id:221 id:230 id:24 id:243 id:25 id:253 id:254 id:264 id:269 id:285 id:29 id:295 id:320 id:322 id:378 id:391 id:5259 id:5272 id:5287 id:5478 id:5620 id:5634 id:58 id:5824 id:5969 id:5984 id:6 id:6172 id:62 id:6313 id:6328 id:64 id:6516 id:691 id:692 id:72 id:7630 id:7638 id:7664 id:7689 id:7690 id:7770 id:8088 id:820 id:829 id:8328 id:838 id:8413 id:847 id:856 id:86 id:861 id:868 id:8768 id:8781 id:8790 id:8812 id:8857 id:8875 id:8881 id:8891 id:8897 id:8920 id:8926 id:8932 id:8935 id:9020 id:9040 id:9081 id:9094 id:9103 id:9125 id:9154 id:9170 id:9188 id:9194 id:9204 id:9210 id:9233 id:9239 id:9245 id:9248 id:9264 id:9333 id:934 id:935 id:9353 id:947 id:960 id:961 id:973 id:974 id:989]
 	// RepeatMax:[ -1 100 100000 110 127 16 2147483647 256 40 6 600 99 ClassSize Count CycleCount FieldCount FrameCount Height/2 MarkerCount MethodSize NumberOfBlocks NumberOfRecords NumberOfRecords-1 NumberOfSections OpcodeSize RecordCount StyleCount ValueCount numberOfHMetrics unlimited]
@@ -76,7 +77,7 @@ func (s *Structure) update(u *Ufwb, parent *Structure, errs *Errors) {
 	//}
 }
 
-func (n *Number) update(u *Ufwb, parent *Structure, errs *Errors) {
+func (n *Number) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 
 	// Length:[ 1 11 12 13 16 2 20 24 2^Count 2^NumberOfBytes 3 32 4 5 6 64 7 8 offsetRefSize]
 	// LengthUnit:[ bit]
@@ -102,7 +103,7 @@ func (n *Number) update(u *Ufwb, parent *Structure, errs *Errors) {
 	// TODO Check Masks  []*Mask       `xml:"mask,omitempty"`
 }
 
-func (b *Binary) update(u *Ufwb, parent *Structure, errs *Errors) {
+func (b *Binary) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 	// Length:[ 0 0x3F2 - PayloadLength 0xBF - ServerStringLength 0xFF - FilenameStringLength 1 10 1024 10520 11 1144 12 1276 128 13 1344 13628 13656 13988 14 144 1448 1476 15 15104 155 156 16 17336 18088 184 190 1960 2 22 228 24 24924 26280 272 28 28054 29252 3 3140 316 32 3468 37 3700 376 38 38911 3976 39963 4 40 400 404 42 435 44 4432 459 473 48 497 5 50 512 52416 53644 544 564 578756 58019 6 60928 6144 64 6428 68 7 70239 70767 72 772 7956 8 808 852 8766 888 8894 8898 9 908 BitsPerPixel/8 ByteCount DataSize FieldLength FileSize FilenameStringLength Frame_length_with_hdr-7 Frame_length_with_hdr-9 HeaderExtentionLength Length Length - 192 Length -128 NALULength NumberOfBytes+1 PacketLength SampleSize*SampleNumber ServerStringLength Size ValueCount cbSignature dt_size kernel_size ramdisk_size remaining second_size select(mod(FileSize, 512) - 1, 0, 512 - mod(FileSize, 512), 512 - mod(FileSize, 512)) size - 6]
 	// LengthUnit:[ bit]
 	// RepeatMin:[ 0 8 BaseNumber]
@@ -113,7 +114,7 @@ func (b *Binary) update(u *Ufwb, parent *Structure, errs *Errors) {
 	b.parent = parent
 }
 
-func (s *String) update(u *Ufwb, parent *Structure, errs *Errors) {
+func (s *String) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 
 	// Length:[ 0 1 10 100 11 114 12 128 13 14 16 16256 17 2 256 28 3 30 32 4 44 46 512 6 60 64 7 8 80 CharCount CharCount*2 CommentLength CommentsSize File_name_length Length NameSize NumberOfChars Remaining ShipID2Length ShipIDLength Size StringLength * 2 ValueCount descriptionLength length length - 1 nameLength raceLength remaining]
 	// Type:[fixed-length pascal zero-terminated]]
@@ -127,25 +128,25 @@ func (s *String) update(u *Ufwb, parent *Structure, errs *Errors) {
 	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
 }
 
-func (c *Custom) update(u *Ufwb, parent *Structure, errs *Errors) {
+func (c *Custom) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 	panic("TODO")
 }
 
-func (g *GrammarRef) update(u *Ufwb, parent *Structure, errs *Errors) {
+func (g *GrammarRef) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 	panic("TODO")
 }
 
-func (o *Offset) update(u *Ufwb, parent *Structure, errs *Errors) {
+func (o *Offset) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 	panic("TODO")
 }
 
-func (s *ScriptElement) update(u *Ufwb, parent *Structure, errs *Errors) {
+func (s *ScriptElement) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 	if s.Script == nil {
 		errs.Append(&validationError{e: s, err: errors.New("missing child script tag")})
 	}
 }
 
-func (s *StructRef) update(u *Ufwb, parent *Structure, errs *Errors) {
+func (s *StructRef) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 
 	if s.Xml.Structure == "" {
 		errs.Append(&validationError{e: s, err: fmt.Errorf("missing structure attribute")})
@@ -165,7 +166,7 @@ func (s *StructRef) update(u *Ufwb, parent *Structure, errs *Errors) {
 	}
 }
 
-func (s *Script) update(u *Ufwb, parent *Structure, errs *Errors) {
+func (s *Script) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 	// TODO Check we support the language
 	// TODO Actually parse the language at this point
 }

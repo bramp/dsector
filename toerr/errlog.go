@@ -1,4 +1,5 @@
-package ufwb
+// Package errors is a simple library to collect multiple errors.
+package toerr
 
 // TODO Look at https://play.golang.org/p/X2Q2aVJweW
 

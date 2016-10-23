@@ -5,6 +5,7 @@ import (
 	"io"
 	"strings"
 	"testing"
+	"bramp.net/dsector/input"
 )
 
 const (
@@ -17,7 +18,7 @@ const (
 
 func testFile(t *testing.T, grammar *Ufwb, filename string, expectErr bool) {
 
-	file, err := OpenOSFile(filename)
+	file, err := input.OpenOSFile(filename)
 	if err != nil {
 		t.Errorf("OpenOSFile(%q) = %q want nil error", filename, err)
 		return
@@ -161,7 +162,7 @@ func TestReadNumber(t *testing.T) {
 			continue
 		}
 
-		file := NewFileFromBytes(binary)
+		file := input.FromBytes(binary)
 		decoder := NewDecoder(grammar, file)
 		got, err := decoder.Decode()
 		if err != nil {
@@ -234,7 +235,7 @@ func TestReadString(t *testing.T) {
 			continue
 		}
 
-		file := NewFileFromBytes(binary)
+		file := input.FromBytes(binary)
 		file.Seek(2, io.SeekStart) // Seek two bytes to check for offset assumption
 
 		decoder := NewDecoder(grammar, file)
@@ -298,7 +299,7 @@ func TestRepeating(t *testing.T) {
 		return
 	}
 
-	file := NewFileFromBytes(binary)
+	file := input.FromBytes(binary)
 	decoder := NewDecoder(grammar, file)
 
 	value, err := decoder.Decode()

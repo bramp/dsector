@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"bramp.net/dsector/toerr"
 )
 
-func indexer(u *Ufwb, element Element, parent *Structure, errs *Errors) {
+func indexer(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 	_ = parent
 
 	if _, ok := element.(*Grammar); ok {
@@ -31,7 +32,7 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 	}
 }
 
-func extender(u *Ufwb, element Element, parent *Structure, errs *Errors) {
+func extender(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 	_ = parent
 
 	// Structure is the only one with an Extends field
@@ -54,7 +55,7 @@ func extender(u *Ufwb, element Element, parent *Structure, errs *Errors) {
 	}
 }
 
-func updater(u *Ufwb, element Element, parent *Structure, errs *Errors) {
+func updater(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 	element.update(u, parent, errs)
 }
 

@@ -1,12 +1,14 @@
 package ufwb
 
+import "bramp.net/dsector/toerr"
+
 // TODO Move Errors out of this API, we shouldn't expose that, instead return a single error
-type WalkFunc func(root *Ufwb, element Element, parent *Structure, errs *Errors)
+type WalkFunc func(root *Ufwb, element Element, parent *Structure, errs *toerr.Errors)
 
 type walker struct {
 	Root *Ufwb
 	Func WalkFunc
-	errs Errors
+	errs toerr.Errors
 }
 
 // Walk walks the tree of Elements in depth-first order

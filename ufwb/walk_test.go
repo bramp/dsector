@@ -5,6 +5,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"strings"
 	"testing"
+	"bramp.net/dsector/toerr"
 )
 
 func TestWalk(t *testing.T) {
@@ -33,7 +34,7 @@ func TestWalk(t *testing.T) {
 
 	var got []walkResult
 
-	errs := ufwb.Walk(g, func(root *ufwb.Ufwb, element ufwb.Element, parent *ufwb.Structure, errs *ufwb.Errors) {
+	errs := ufwb.Walk(g, func(root *ufwb.Ufwb, element ufwb.Element, parent *ufwb.Structure, errs *toerr.Errors) {
 		parentId := 0
 		if parent != nil {
 			parentId = parent.Id()

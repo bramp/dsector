@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"bramp.net/dsector/input"
 )
 
 // Value represents one of the parsed elements in the file.
@@ -43,7 +44,7 @@ func (v *Value) String() string {
 	return fmt.Sprintf("[%d len:%d] %s", v.Offset, v.Len, elem)
 }
 
-func (v *Value) Write(f File) {
+func (v *Value) Write(f input.Input) {
 	panic("TODO")
 }
 
