@@ -11,28 +11,26 @@ type walker struct {
 
 // Walk walks the tree of Elements in depth-first order
 func Walk(u *Ufwb, walkFunc WalkFunc) []error {
+	return WalkFrom(u, u.Grammar, walkFunc)
+}
+
+func WalkFrom(u *Ufwb, element Element, walkFunc WalkFunc) []error {
 	w := walker{
 		Root: u,
 		Func: walkFunc,
 	}
-	return w.start()
-}
-
-func (walk *walker) start() []error {
-	walk.grammer(walk.Root.Grammar)
-	return walk.errs.Slice()
-}
-
-func (walk *walker) grammer(grammar *Grammar) {
-	walk.Func(walk.Root, grammar, nil, &walk.errs)
-
-	for _, e := range grammar.Elements {
-		walk.element(e, nil)
-	}
+	w.element(element, nil)
+	return w.errs.Slice()
 }
 
 func (walk *walker) element(element Element, parent *Structure) {
 	walk.Func(walk.Root, element, parent, &walk.errs)
+
+	if g, ok := element.(*Grammar); ok {
+		for _, e := range g.Elements {
+			walk.element(e, nil)
+		}
+	}
 
 	if s, ok := element.(*Structure); ok {
 		for _, e := range s.elements {

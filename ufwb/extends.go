@@ -2,7 +2,6 @@ package ufwb
 
 import (
 	"fmt"
-	"errors"
 )
 
 func cantExtendFromError(child, parent Element) error {
@@ -15,7 +14,7 @@ func (g *Grammar) SetExtends(element Element) error {
 
 func (s *Structure) SetExtends(element Element) error {
 
-	// TODO Ensure that no parent extends from a child
+	// TODO Ensure that no parent extends from a child, or any kind of loop
 
 	parent, ok := element.(*Structure)
 	if !ok {
@@ -23,14 +22,11 @@ func (s *Structure) SetExtends(element Element) error {
 	}
 
 	s.extends = parent
-	if len(s.elements) < len(parent.elements) {
-		return &validationError{e: s, err: errors.New("child element must have atleast as many elements as the parent")}
-	}
 
-	// Update all child
-	for i, child := range parent.elements {
-		if e, ok := s.elements[i].(Updatable); ok {
-			if err := e.SetExtends(child); err != nil {
+	// Update all child to point to the right parent
+	for _, element := range s.elements {
+		if p := parent.ElementByName(element.Name()); p != nil {
+			if err := element.SetExtends(p); err != nil {
 				return err
 			}
 		}
@@ -38,6 +34,35 @@ func (s *Structure) SetExtends(element Element) error {
 
 	return nil
 }
+
+// TODO Precompute this
+func (s *Structure) Elements() []Element {
+
+	if s.extends == nil {
+		return s.elements
+	}
+
+	// Get the parent lists
+	parent := s.extends.Elements()
+
+	// Make a copy, as to not modify the parent
+	elements := make([]Element, len(parent), len(parent))
+	copy(elements, parent)
+
+	// Now for each child, merge it into the larger list
+	for _, e := range s.elements {
+		i, _ := Elements(elements).Find(e.Name())
+		if i >= 0 {
+			// Replace the existing element
+			elements[i] = e
+		} else {
+			elements = append(elements, e)
+		}
+	}
+
+	return elements
+}
+
 
 func (g *GrammarRef) SetExtends(element Element) error{
 	parent, ok := element.(*GrammarRef);

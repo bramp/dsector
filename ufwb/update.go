@@ -3,112 +3,16 @@
 package ufwb
 
 import (
-	"encoding/hex"
 	"fmt"
-	"regexp"
 	"sort"
 	"strconv"
-	"strings"
 	"errors"
 )
 
 var (
 	AttrCounter = make(map[string][]string) // For debugging only
-
-	colourRegex = regexp.MustCompile("^[0-9A-F]{6}$")
 )
 
-// yesno returns the boolean value of this "yes", "no" field.
-func yesno(s string, errs *Errors) Bool {
-	// TODO Be strict on "yes", "no", "" only
-	if s == "" {
-		return UnknownBool
-	}
-	return boolOf(s == "yes")
-}
-
-// byteOrder returns the binary.byteOrder for this string.
-func endian(s string, errs *Errors) Endian {
-	switch s {
-	case "big":
-		return BigEndian
-	case "little":
-		return LittleEndian
-	case "dynamic":
-		return DynamicEndian
-	case "":
-		return UnknownEndian
-	}
-
-	errs.Append(fmt.Errorf("unknown endian: %q", s))
-	return UnknownEndian
-}
-
-func display(s string, errs *Errors) Display {
-	switch s {
-	case "dec":
-		return DecDisplay
-	case "hex":
-		return HexDisplay
-	case "binary":
-		return BinaryDisplay
-	case "":
-		return UnknownDisplay
-	}
-
-	errs.Append(fmt.Errorf("unknown display: %q", s))
-	return UnknownDisplay
-}
-
-func lengthunit(s string, errs *Errors) LengthUnit {
-	switch s {
-	case "bit":
-		return BitLengthUnit
-	case "byte":
-		return ByteLengthUnit
-	case "":
-		return UnknownLengthUnit
-	}
-
-	errs.Append(fmt.Errorf("unknown length unit: %q", s))
-	return UnknownLengthUnit
-}
-
-func colour(s string, errs *Errors) *Colour {
-	if s == "" {
-		return nil
-	}
-
-	if !colourRegex.MatchString(s) {
-		errs.Append(fmt.Errorf("invalid colour: %q", s))
-		return nil
-	}
-
-	b, err := hex.DecodeString(s)
-	if err != nil {
-		errs.Append(err)
-		return nil
-	}
-
-	// TODO Check this is correct
-	c := Colour(uint32(b[0])<<16 | uint32(b[1])<<8 | uint32(b[2]))
-	return &c
-}
-
-
-func order(s string, errs *Errors) Order {
-	switch s {
-	case "fixed":
-		return FixedOrder
-	case "variable":
-		return VariableOrder
-	case "":
-		return UnknownOrder
-	}
-
-	errs.Append(fmt.Errorf("unknown order: %q", s))
-	return UnknownOrder
-}
 
 // For debugging only
 // TODO Add as method as AttrCounter
@@ -142,35 +46,7 @@ func (u *Ufwb) Get(id string) (Element, bool) {
 	return e, found
 }
 
-/*
-func get(u *Ufwb, id string, errs *Errors) Element {
-
-	if id == "" {
-		return nil
-	}
-
-	e, found := u.Get(id)
-	if e == nil || !found {
-		errs.Append(fmt.Errorf("%q is missing", id))
-	}
-
-	return e
-}
-*/
-
 func (g *Grammar) update(u *Ufwb, parent *Structure, errs *Errors) {
-	g.elemType = "Grammar"
-	g.Author = g.Xml.Author
-	g.Ext = g.Xml.Ext
-	g.Email = g.Xml.Email
-	g.Complete = yesno(g.Xml.Complete, errs)
-	g.Uti = g.Xml.Uti
-
-	if g.Xml.Start == "" {
-		errs.Append(&validationError{e: g, err: errors.New("missing start attribute")})
-		return
-	}
-
 	e, found := u.Get(g.Xml.Start)
 	if !found {
 		errs.Append(&validationError{e: g, err: fmt.Errorf("start struct %q not found", g.Xml.Start)})
@@ -193,27 +69,7 @@ func (s *Structure) update(u *Ufwb, parent *Structure, errs *Errors) {
 	// LengthOffset:[ 1 2]
 	// Endian:[ big dynamic little]
 	// Signed:[ no yes]]
-	s.elemType = "Structure"
 	s.parent = parent
-
-	s.length = Reference(s.Xml.Length)
-	s.lengthOffset = Reference(s.Xml.LengthOffset)
-	//s.lengthUnit = lengthunit(s.Xml.LengthUnit, defaults.LengthUnit(), errs)
-	s.lengthUnit = lengthunit(s.Xml.LengthUnit, errs)
-
-	s.repeatMin = Reference(s.Xml.RepeatMin)
-	s.repeatMax = Reference(s.Xml.RepeatMax)
-
-	s.endian = endian(s.Xml.Endian, errs)
-	s.signed = yesno(s.Xml.Signed, errs)
-
-	s.encoding = s.Xml.Encoding // TODO Validate
-
-	s.order = order(s.Xml.Order, errs)
-
-	s.display = display(s.Xml.Display, errs)
-	s.fillColour = colour(s.Xml.FillColour, errs)
-	s.strokeColour = colour(s.Xml.StrokeColour, errs)
 
 	// TODO Add Min/Max
 	//if s.Order() == FixedOrder {
@@ -234,22 +90,7 @@ func (n *Number) update(u *Ufwb, parent *Structure, errs *Errors) {
 	// ValueExpression:[ FontAssociationCount+1]
 	// MinVal:[ -128 -32768 0 0x0 0xA0D0A 0xA0D0A00 0xA0D0D 0xC1 0xD0D0A00 1 10 1024 129 14 15790321 16 2 24 3 32768 4 5 61680 64 8 9]
 	// MaxVal:[ -1 0 0x1 0xA0D0AFF 0xD0D0AFF 0xF8 0xFF 0xFF0A0D0A 0xFF0A0D0D 0xFFFE 1 10 100 1023 12 127 15 15988470 16 17 19 191 2 20 2147483647 215 23 250 254 255 3 300 31 32386 32767 35 4 4000 4294967295 59 62195 62969 63 63993 65534 65535 65536 7 70 8 8388607 9 96 99 999]
-	n.Type = "Number"
 	n.parent = parent
-
-	n.Type = n.Xml.Type // TODO Convert to NumberType
-	n.length = Reference(n.Xml.Length)
-	n.lengthUnit = lengthunit(n.Xml.LengthUnit, errs)
-
-	n.repeatMin = Reference(n.Xml.RepeatMin)
-	n.repeatMax = Reference(n.Xml.RepeatMax)
-
-	n.endian = endian(n.Xml.Endian, errs)
-	n.signed = yesno(n.Xml.Signed, errs)
-
-	n.display = display(n.Xml.Display, errs)
-	n.fillColour = colour(n.Xml.FillColour, errs)
-	n.strokeColour = colour(n.Xml.StrokeColour, errs)
 
 	for _, v := range n.values {
 		bs, err := parseInt(v.Xml.Value, 0, 0, n.Signed())
@@ -268,28 +109,9 @@ func (b *Binary) update(u *Ufwb, parent *Structure, errs *Errors) {
 	// RepeatMin:[ 0 8 BaseNumber]
 	// RepeatMax:[ -1 -PackbitCode + 1 40 8 BaseNumber prev.Frames]
 	// MustMatch:[ no yes]]
-	b.elemType = "Binary"
-	b.length = Reference(b.Xml.Length)
-	b.lengthUnit = lengthunit(b.Xml.LengthUnit, errs)
 
-	b.repeatMin = Reference(b.Xml.RepeatMin)
-	b.repeatMax = Reference(b.Xml.RepeatMax)
-
-	b.mustMatch = yesno(b.Xml.MustMatch, errs)
 	//b.unused = yesno(b.Xml.Unused, errs)
-
-	b.fillColour = colour(b.Xml.FillColour, errs)
-	b.strokeColour = colour(b.Xml.StrokeColour, errs)
-
-	for _, v := range b.values {
-		// Binary values shouldn't be prefixed, but incase they are:
-		value := strings.TrimPrefix(strings.TrimPrefix(v.Xml.Value, "0x"), "0X")
-		bs, err := hex.DecodeString(value)
-		if err != nil {
-			errs.Append(err)
-		}
-		v.value = bs
-	}
+	b.parent = parent
 }
 
 func (s *String) update(u *Ufwb, parent *Structure, errs *Errors) {
@@ -300,64 +122,31 @@ func (s *String) update(u *Ufwb, parent *Structure, errs *Errors) {
 	// MustMatch:[ yes]
 	// RepeatMin:[ 0 107 18 3 355 412 58 66 78 BaseNumber]
 	// RepeatMax:[ 100 107 18 3 355 412 58 66 78 BaseNumber numberOfGlyphs]
-	s.elemType = "String"
-	s.typ = s.Xml.Type // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
-	s.length = Reference(s.Xml.Length)
-	s.encoding = s.Xml.Encoding
-	s.mustMatch = yesno(s.Xml.MustMatch, errs)
 
-	s.repeatMin = Reference(s.Xml.RepeatMin)
-	s.repeatMax = Reference(s.Xml.RepeatMax)
-
-	s.fillColour = colour(s.Xml.FillColour, errs)
-	s.strokeColour = colour(s.Xml.StrokeColour, errs)
-
-	if s.length == "" {
-		if s.typ == "fixed-length" {
-			errs.Append(&validationError{e: s, err: errors.New("fixed-length strings requires a length")})
-
-		} else if s.typ == "pascal" { // TODO I don't think this is strictly required, I just don't know how to handle them yet!
-			errs.Append(&validationError{e: s, err: errors.New("pascal strings requires a length")})
-		}
-	}
+	s.parent = parent
 
 	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
 }
 
 func (c *Custom) update(u *Ufwb, parent *Structure, errs *Errors) {
-	c.elemType = "Custom"
-
 	panic("TODO")
 }
 
 func (g *GrammarRef) update(u *Ufwb, parent *Structure, errs *Errors) {
-	g.elemType = "GrammarRef"
-
 	panic("TODO")
 }
 
 func (o *Offset) update(u *Ufwb, parent *Structure, errs *Errors) {
-	o.elemType = "Offset"
-
 	panic("TODO")
 }
 
 func (s *ScriptElement) update(u *Ufwb, parent *Structure, errs *Errors) {
-	s.elemType = "ScriptElement"
-
 	if s.Script == nil {
 		errs.Append(&validationError{e: s, err: errors.New("missing child script tag")})
 	}
 }
 
 func (s *StructRef) update(u *Ufwb, parent *Structure, errs *Errors) {
-	s.elemType = "StructRef"
-
-	s.repeatMin = Reference(s.Xml.RepeatMin)
-	s.repeatMax = Reference(s.Xml.RepeatMax)
-
-	s.fillColour = colour(s.Xml.FillColour, errs)
-	s.strokeColour = colour(s.Xml.StrokeColour, errs)
 
 	if s.Xml.Structure == "" {
 		errs.Append(&validationError{e: s, err: fmt.Errorf("missing structure attribute")})
@@ -378,19 +167,6 @@ func (s *StructRef) update(u *Ufwb, parent *Structure, errs *Errors) {
 }
 
 func (s *Script) update(u *Ufwb, parent *Structure, errs *Errors) {
-	s.Type = "Script"
-
-	if s.Xml.Source != nil {
-		s.Text = s.Xml.Source.Text
-		s.Language = s.Xml.Source.Language
-	} else {
-		s.Text = s.Xml.Text
-	}
-
-	if s.Language == "" {
-		s.Language = s.Xml.Language
-	}
-
 	// TODO Check we support the language
 	// TODO Actually parse the language at this point
 }

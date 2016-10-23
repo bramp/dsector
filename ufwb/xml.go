@@ -25,8 +25,9 @@ type XmlIdName struct {
 	Description string `xml:"description,omitempty"`
 }
 
-func (xml *XmlIdName) toIdName(errs *Errors) Base {
+func (xml *XmlIdName) toIdName(elemType string, errs *Errors) Base {
 	return Base{
+		elemType:    elemType,
 		id:          xml.Id,
 		name:        xml.Name,
 		description: xml.Description,
@@ -38,19 +39,6 @@ type XmlUfwb struct {
 
 	Version string      `xml:"version,attr,omitempty"`
 	Grammar *XmlGrammar `xml:"grammar"`
-}
-
-func (xml *XmlUfwb) transform() (*Ufwb, []error) {
-	errs := &Errors{}
-
-	u := &Ufwb{
-		Xml:     xml,
-		Version: xml.Version,
-		Elements: make(map[string]Element),
-	}
-	u.Grammar = xml.Grammar.transform(errs).(*Grammar)
-
-	return u, errs.Slice()
 }
 
 type XmlGrammar struct {
@@ -69,19 +57,6 @@ type XmlGrammar struct {
 	Structures []*XmlStructure `xml:"structure,omitempty"`
 }
 
-func (xml *XmlGrammar) transform(errs *Errors) Element {
-
-	g := &Grammar{
-		Xml:    xml,
-		Base: xml.XmlIdName.toIdName(errs),
-	}
-
-	for _, s := range xml.Structures {
-		g.Elements = append(g.Elements, s.transform(errs))
-	}
-
-	return g
-}
 
 type XmlGrammarRef struct {
 	XMLName  xml.Name `xml:"grammarref"`
@@ -96,7 +71,7 @@ type XmlGrammarRef struct {
 func (xml *XmlGrammarRef) transform(errs *Errors) Element {
 	return &GrammarRef{
 		Xml:    xml,
-		Base: xml.XmlIdName.toIdName(errs),
+		Base: xml.XmlIdName.toIdName("GrammarRef", errs),
 	}
 }
 
@@ -135,36 +110,18 @@ type XmlStructure struct {
 	Elements        []XmlElement `xml:",any"`
 }
 
-func (xml *XmlStructure) transform(errs *Errors) Element {
-	s := &Structure{
-		Xml:    xml,
-		Base: xml.XmlIdName.toIdName(errs),
-	}
-
-	for _, e := range xml.Elements {
-		s.elements = append(s.elements, e.transform(errs))
-	}
-
-	return s
-}
-
 type XmlCustom struct {
 	XMLName      xml.Name `xml:"custom"`
 
 	XmlIdName
 
 	Length       string `xml:"length,attr,omitempty" ufwb:"ref"`
+	LengthUnit   string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"`
+
 	Script       string `xml:"script,attr,omitempty" ufwb:"id"`
 
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
-}
-
-func (xml *XmlCustom) transform(errs *Errors) Element {
-	return &Custom{
-		Xml:    xml,
-		Base: xml.XmlIdName.toIdName(errs),
-	}
 }
 
 type XmlStructRef struct {
@@ -180,13 +137,6 @@ type XmlStructRef struct {
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 }
 
-func (xml *XmlStructRef) transform(errs *Errors) Element {
-	return &StructRef{
-		Xml:    xml,
-		Base: xml.XmlIdName.toIdName(errs),
-	}
-}
-
 type XmlString struct {
 	XMLName      xml.Name `xml:"string"`
 
@@ -195,6 +145,8 @@ type XmlString struct {
 	Type         string `xml:"type,attr,omitempty" ufwb:"string-type"`  // "zero-terminated", "fixed-length"
 
 	Length       string `xml:"length,attr,omitempty" ufwb:"ref"`
+	LengthUnit   string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"`
+
 	Encoding     string `xml:"encoding,attr,omitempty" ufwb:"encoding"` // Should be valid encoding
 	MustMatch    string `xml:"mustmatch,attr,omitempty" ufwb:"bool"`    // "yes", "no"
 
@@ -205,22 +157,6 @@ type XmlString struct {
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
 	Values       []*XmlFixedValue `xml:"fixedvalue,omitempty"`
-}
-
-func (xml *XmlString) transform(errs *Errors) Element {
-	s := &String{
-		Xml:    xml,
-		Base: xml.XmlIdName.toIdName(errs),
-	}
-
-	for _, x := range xml.Values {
-		s.values = append(s.values, &FixedStringValue{
-			Xml:   x,
-			name:  x.Name,
-		})
-	}
-
-	return s
 }
 
 type XmlBinary struct {
@@ -242,22 +178,6 @@ type XmlBinary struct {
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 
 	Values       []*XmlFixedValue `xml:"fixedvalue,omitempty"`
-}
-
-func (xml *XmlBinary) transform(errs *Errors) Element {
-	b := &Binary{
-		Xml:    xml,
-		Base: xml.XmlIdName.toIdName(errs),
-	}
-
-	for _, x := range xml.Values {
-		b.values = append(b.values, &FixedBinaryValue{
-			Xml:   x,
-			name:  x.Name,
-		})
-	}
-
-	return b
 }
 
 type XmlNumber struct {
@@ -290,26 +210,6 @@ type XmlNumber struct {
 	Masks           []*XmlMask       `xml:"mask,omitempty"`
 }
 
-func (xml *XmlNumber) transform(errs *Errors) Element {
-	n := &Number{
-		Xml:    xml,
-		Base: xml.XmlIdName.toIdName(errs),
-	}
-
-	for _, x := range xml.Values {
-		n.values = append(n.values, &FixedValue{
-			Xml:   x,
-			name:  x.Name,
-		})
-	}
-
-	for _, v := range xml.Masks {
-		n.masks = append(n.masks, v.transform(errs))
-	}
-
-	return n
-}
-
 type XmlOffset struct {
 	XMLName             xml.Name `xml:"offset"`
 
@@ -331,13 +231,6 @@ type XmlOffset struct {
 	StrokeColour        string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 }
 
-func (xml *XmlOffset) transform(errs *Errors) Element {
-	return &Offset{
-		Xml:    xml,
-		Base: xml.XmlIdName.toIdName(errs),
-	}
-}
-
 type XmlScriptElement struct {
 	XMLName  xml.Name `xml:"scriptelement"`
 
@@ -347,13 +240,6 @@ type XmlScriptElement struct {
 	Script   *XmlScript `xml:"script"`
 }
 
-func (xml *XmlScriptElement) transform(errs *Errors) Element {
-	return &ScriptElement{
-		Xml:    xml,
-		Base: xml.XmlIdName.toIdName(errs),
-	}
-}
-
 type XmlMask struct {
 	XMLName xml.Name `xml:"mask"`
 
@@ -361,23 +247,6 @@ type XmlMask struct {
 	Value   string `xml:"value,attr,omitempty"`
 
 	Values  []*XmlFixedValue `xml:"fixedvalue,omitempty"`
-}
-
-func (xml *XmlMask) transform(errs *Errors) *Mask {
-	m := &Mask{
-		Xml:  xml,
-		name: xml.Name,
-	}
-
-	for _, x := range xml.Values {
-		// TODO Do I need to change this to some other type?
-		m.values = append(m.values, &FixedValue{
-			Xml:   x,
-			name:  x.Name,
-		})
-	}
-
-	return m
 }
 
 type XmlScripts []*XmlScript
@@ -393,14 +262,6 @@ type XmlScript struct {
 
 													// Sometimes the text is defined here, or in the child Source element
 	Text     string `xml:",chardata"`               // TODO Should this be cdata?
-}
-
-func (xml *XmlScript) transform(errs *Errors) *Script {
-	return &Script{
-		Xml:  xml,
-		Name: xml.Name,
-		// TODO Pull info from XmlSource tag
-	}
 }
 
 type XmlSource struct {

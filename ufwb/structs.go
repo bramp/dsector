@@ -154,7 +154,7 @@ type Ufwb struct {
 
 // Base is what all Elements implement
 type Base struct {
-	elemType    string
+	elemType    string `setter:"false"` // This field is only for debug printing
 	id          int
 	name        string
 	description string
@@ -294,6 +294,7 @@ type String struct {
 	Colourful
 
 	extends      *String
+	parent       *Structure
 
 	typ string // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
 

@@ -32,10 +32,6 @@ func (b *Binary) ElemType() string {
 	return ""
 }
 
-func (b *Binary) SetElemType(elemType string) {
-	b.elemType = elemType
-}
-
 func (b *Binary) FillColour() Colour {
 	if b.fillColour != nil {
 		return *b.fillColour
@@ -209,10 +205,6 @@ func (c *Custom) ElemType() string {
 	return ""
 }
 
-func (c *Custom) SetElemType(elemType string) {
-	c.elemType = elemType
-}
-
 func (c *Custom) FillColour() Colour {
 	if c.fillColour != nil {
 		return *c.fillColour
@@ -357,10 +349,6 @@ func (g *Grammar) ElemType() string {
 	return ""
 }
 
-func (g *Grammar) SetElemType(elemType string) {
-	g.elemType = elemType
-}
-
 func (g *Grammar) Id() int {
 	if g.id != 0 {
 		return g.id
@@ -427,10 +415,6 @@ func (g *GrammarRef) ElemType() string {
 		return g.extends.ElemType()
 	}
 	return ""
-}
-
-func (g *GrammarRef) SetElemType(elemType string) {
-	g.elemType = elemType
 }
 
 func (g *GrammarRef) Filename() string {
@@ -562,10 +546,6 @@ func (n *Number) ElemType() string {
 		return n.parent.ElemType()
 	}
 	return ""
-}
-
-func (n *Number) SetElemType(elemType string) {
-	n.elemType = elemType
 }
 
 func (n *Number) Endian() Endian {
@@ -828,10 +808,6 @@ func (o *Offset) ElemType() string {
 	return ""
 }
 
-func (o *Offset) SetElemType(elemType string) {
-	o.elemType = elemType
-}
-
 func (o *Offset) Endian() Endian {
 	if o.endian != Endian(0) {
 		return o.endian
@@ -982,10 +958,6 @@ func (s *ScriptElement) ElemType() string {
 	return ""
 }
 
-func (s *ScriptElement) SetElemType(elemType string) {
-	s.elemType = elemType
-}
-
 func (s *ScriptElement) Id() int {
 	if s.id != 0 {
 		return s.id
@@ -1064,10 +1036,6 @@ func (s *String) ElemType() string {
 		return s.extends.ElemType()
 	}
 	return ""
-}
-
-func (s *String) SetElemType(elemType string) {
-	s.elemType = elemType
 }
 
 func (s *String) Encoding() string {
@@ -1262,10 +1230,6 @@ func (s *StructRef) ElemType() string {
 	return ""
 }
 
-func (s *StructRef) SetElemType(elemType string) {
-	s.elemType = elemType
-}
-
 func (s *StructRef) FillColour() Colour {
 	if s.fillColour != nil {
 		return *s.fillColour
@@ -1409,10 +1373,6 @@ func (s *Structure) ElemType() string {
 		return s.parent.ElemType()
 	}
 	return ""
-}
-
-func (s *Structure) SetElemType(elemType string) {
-	s.elemType = elemType
 }
 
 func (s *Structure) SetElements(elements []Element) {

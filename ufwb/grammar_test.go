@@ -60,6 +60,7 @@ func normalise(root *Ufwb, element Element, parent *Structure, errs *Errors) {
 		e.extends = nil
 	case *String: e.Xml = nil
 		e.extends = nil
+		e.parent = nil
 		for _, v := range e.values {
 			v.Xml = nil
 			v.extends = nil
