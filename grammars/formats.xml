@@ -486,6 +486,21 @@
         </description>
     </format>
     <format>
+        <name long="GZIP" short="GZIP"></name>
+        <type uti="org.gnu.gnu-zip-archive" mimetype="application/x-gzip" extension="gz"></type>
+        <specification name="Specifications" language="en" url="http://www.gzip.org/zlib/rfc-gzip.html"></specification>
+        <specification name="Spezifikation" language="de" url="http://www.gzip.org/zlib/rfc-gzip.html"></specification>
+        <specification name="Wikipedia" language="en" url="https://en.wikipedia.org/wiki/Gzip"></specification>
+        <specification name="Wikipedia" language="de" url="https://de.wikipedia.org/wiki/Gzip"></specification>
+        <grammar url="https://www.synalysis.net/Grammars/gzip.grammar" applink="grammar://www.synalysis.net/Grammars/gzip.grammar"></grammar>
+        <description language="en">
+            Grammar for GZIP-compressed files.
+        </description>
+        <description language="de">
+            Grammatik für GZIP-komprimierte Dateien.
+        </description>
+    </format>
+    <format>
         <name long="H264" short="H264"></name>
         <type uti="public.h264" mimetype="video/mp4" extension="h264"></type>
         <specification name="Specifications" language="en" url="http://www.nhzjj.com/asp/admin/editor/newsfile/201011314552121.pdf"></specification>
