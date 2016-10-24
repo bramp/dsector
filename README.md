@@ -1,4 +1,5 @@
 # dsector [![Build Status](https://img.shields.io/travis/bramp/dsector.svg)](https://travis-ci.org/bramp/dsector) [![Coverage](https://img.shields.io/coveralls/bramp/dsector.svg)](https://coveralls.io/github/bramp/dsector) [![Report card](https://goreportcard.com/badge/github.com/bramp/dsector)](https://goreportcard.com/report/github.com/bramp/dsector)
+by Andrew Brampton [bramp.net](https://bramp.net) (c) 2016
 
 <!-- [![GoDoc](https://godoc.org/github.com/bramp/dsector?status.svg)](https://godoc.org/github.com/bramp/dsector) -->
 
@@ -46,7 +47,8 @@ PNG Images: (1 children)
 
 Dsector is able to parse the same XML grammar files provided by [Synalyze It!](https://www.synalysis.net/) a commerical Hex Editor for the Mac. If you need a better, more complete tool, then please consider [Synalyze It!](https://www.synalysis.net/) or [Hexinator](https://hexinator.com/).
 
-#TODO
+TODO
+----
 
 * Better document the API.
 * Move the code into multiple packages. Ideally the parsing/xml/structs would all be in seperate packages.
@@ -54,3 +56,31 @@ Dsector is able to parse the same XML grammar files provided by [Synalyze It!](h
 * More sample files for each Grammar
 * Run a fuzzing library to check we don't crash!
 * Many more things
+
+
+Licence (Simplified BSD License)
+--------------------------------
+```
+Copyright (c) 2016, Andrew Brampton
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
