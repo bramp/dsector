@@ -2,10 +2,8 @@ go_import_path: bramp.net/dsector
 language: go
 sudo: false
 
+# Earlier than 1.7 are not supported
 go:
-  - 1.4
-  - 1.5
-  - 1.6
   - 1.7
   - tip
 
