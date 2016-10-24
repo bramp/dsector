@@ -2,12 +2,12 @@
 package ufwb
 
 import (
+	"bramp.net/dsector/toerr"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
 	"strconv"
-	"bramp.net/dsector/toerr"
 )
 
 func indexer(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {

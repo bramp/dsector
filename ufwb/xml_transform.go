@@ -1,12 +1,12 @@
 package ufwb
 
 import (
+	"bramp.net/dsector/toerr"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"regexp"
 	"strings"
-	"bramp.net/dsector/toerr"
 )
 
 var (

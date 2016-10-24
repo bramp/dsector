@@ -1,11 +1,11 @@
 package ufwb
 
 import (
+	"bramp.net/dsector/input"
 	"github.com/kylelemons/godebug/pretty"
 	"io"
 	"strings"
 	"testing"
-	"bramp.net/dsector/input"
 )
 
 const (

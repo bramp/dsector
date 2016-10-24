@@ -7,10 +7,10 @@ import (
 	"io"
 	"reflect"
 
+	"bramp.net/dsector/input"
 	"bytes"
 	"encoding/binary"
 	log "github.com/Sirupsen/logrus"
-	"bramp.net/dsector/input"
 )
 
 var padElement = &Padding{Base: Base{"Padding", 0, "", ""}}
@@ -20,7 +20,17 @@ func (u *Ufwb) Read(d *Decoder) (*Value, error) {
 }
 
 func (g *Grammar) Read(d *Decoder) (*Value, error) {
-	return d.read(g.Start)
+	s, err := d.read(g.Start)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Value{
+		Offset:   s.Offset,
+		Len:      s.Len,
+		Element:  g,
+		Children: []*Value{s},
+	}, nil
 }
 
 // isEof returns if this error represents the end of file
@@ -257,6 +267,7 @@ func (b *Binary) Read(d *Decoder) (*Value, error) {
 		// Now check it matches one of the fixed values
 		for _, fv := range values {
 			if bytes.Equal(fv.value, bs) {
+				v.Extra = fv
 				return v, nil
 			}
 		}
@@ -342,6 +353,7 @@ func (n *Number) Read(d *Decoder) (*Value, error) {
 		// Now check it matches one of the fixed values
 		for _, fv := range values {
 			if intEqual(fv.value, i) {
+				v.Extra = fv
 				return v, nil
 			}
 		}

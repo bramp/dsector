@@ -1,6 +1,7 @@
 package ufwb
 
 import (
+	"bramp.net/dsector/toerr"
 	"bufio"
 	"bytes"
 	"fmt"
@@ -10,7 +11,6 @@ import (
 	"path"
 	"strings"
 	"testing"
-	"bramp.net/dsector/toerr"
 )
 
 const grammarsPath = "../grammars"

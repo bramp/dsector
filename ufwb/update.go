@@ -3,11 +3,11 @@
 package ufwb
 
 import (
+	"bramp.net/dsector/toerr"
 	"errors"
 	"fmt"
 	"sort"
 	"strconv"
-	"bramp.net/dsector/toerr"
 )
 
 var (

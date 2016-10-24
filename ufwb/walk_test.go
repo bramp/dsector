@@ -1,11 +1,11 @@
 package ufwb_test
 
 import (
+	"bramp.net/dsector/toerr"
 	"bramp.net/dsector/ufwb"
 	"github.com/kylelemons/godebug/pretty"
 	"strings"
 	"testing"
-	"bramp.net/dsector/toerr"
 )
 
 func TestWalk(t *testing.T) {

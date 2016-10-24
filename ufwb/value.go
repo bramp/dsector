@@ -1,10 +1,10 @@
 package ufwb
 
 import (
+	"bramp.net/dsector/input"
 	"encoding/binary"
 	"fmt"
 	"io"
-	"bramp.net/dsector/input"
 )
 
 // Value represents one of the parsed elements in the file.
@@ -13,6 +13,7 @@ type Value struct {
 	Offset  int64 // In bytes from the beginning of the file
 	Len     int64 // In bytes
 	Element ElementLite
+	Extra   interface{} // Extra info defined by the Element
 
 	Children []*Value
 
@@ -74,9 +75,9 @@ func (v *Value) validiate() error {
 
 	if len(v.Children) > 0 {
 		switch v.Element.(type) {
-		case *Structure, *StructRef: // ok
+		case *Structure, *StructRef, *Grammar: // ok
 		default:
-			return fmt.Errorf("%v only Structure Values can have children, got %T", v, v.Element)
+			return fmt.Errorf("%v only Structure and Grammar Values can have children, got %T", v, v.Element)
 		}
 
 		offset := v.Offset

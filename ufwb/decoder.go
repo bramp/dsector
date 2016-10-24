@@ -7,11 +7,11 @@ import (
 	"math"
 	"strings"
 
+	"bramp.net/dsector/input"
 	"errors"
 	log "github.com/Sirupsen/logrus"
 	"io"
 	"strconv"
-	"bramp.net/dsector/input"
 )
 
 const DEBUG = true

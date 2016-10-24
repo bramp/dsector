@@ -34,7 +34,7 @@ func (p *Padding) Format(file io.ReaderAt, value *Value) (string, error) {
 func (g *Grammar) Format(file io.ReaderAt, value *Value) (string, error) {
 	var buffer bytes.Buffer
 
-	buffer.WriteString(g.Start.Name())
+	buffer.WriteString(g.Name())
 	buffer.WriteString(": ")
 
 	str, err := g.Start.Format(file, value)
@@ -135,15 +135,25 @@ func (n *Number) Format(file io.ReaderAt, value *Value) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return n.format(i)
+
+	s, err := n.format(i)
+	if err == nil {
+		if fv, ok := value.Extra.(*FixedValue); ok && fv.name != "" {
+			s += fmt.Sprintf(" (%s)", fv.name)
+		}
+	}
+	return s, err
 }
 
 func (b *Binary) format(bs []byte) (string, error) {
 	// TODO Maybe use b.Length() to change the output?
-	if len(bs) > 8 {
-		return hex.EncodeToString(bs[:6]) + "..", nil
+	s := ""
+	if len(bs) <= 8 {
+		s = hex.EncodeToString(bs)
+	} else {
+		s = hex.EncodeToString(bs[:6]) + "..."
 	}
-	return hex.EncodeToString(bs), nil
+	return s, nil
 }
 
 func (b *Binary) formatValues() ([]string, error) {
@@ -164,7 +174,16 @@ func (b *Binary) Format(file io.ReaderAt, value *Value) (string, error) {
 		return "", err
 	}
 
-	return b.format(bs)
+	s, err := b.format(bs)
+	if err == nil {
+		if fv, ok := value.Extra.(*FixedBinaryValue); ok {
+			s += fmt.Sprintf(" (%s)", fv.name)
+		} else {
+			s += fmt.Sprintf(" (%d bytes)", len(bs))
+		}
+	}
+
+	return s, err
 }
 
 func (n *Custom) Format(file io.ReaderAt, value *Value) (string, error) {

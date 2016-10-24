@@ -4,9 +4,9 @@
 package ufwb
 
 import (
+	"bramp.net/dsector/toerr"
 	"fmt"
 	"io"
-	"bramp.net/dsector/toerr"
 )
 
 const (
