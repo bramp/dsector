@@ -1021,6 +1021,9 @@ func (s *String) Description() string {
 	if s.extends != nil {
 		return s.extends.Description()
 	}
+	if s.parent != nil {
+		return s.parent.Description()
+	}
 	return ""
 }
 
@@ -1035,6 +1038,9 @@ func (s *String) ElemType() string {
 	if s.extends != nil {
 		return s.extends.ElemType()
 	}
+	if s.parent != nil {
+		return s.parent.ElemType()
+	}
 	return ""
 }
 
@@ -1044,6 +1050,9 @@ func (s *String) Encoding() string {
 	}
 	if s.extends != nil {
 		return s.extends.Encoding()
+	}
+	if s.parent != nil {
+		return s.parent.Encoding()
 	}
 	return "UTF-8"
 }
@@ -1073,6 +1082,9 @@ func (s *String) Id() int {
 	if s.extends != nil {
 		return s.extends.Id()
 	}
+	if s.parent != nil {
+		return s.parent.Id()
+	}
 	return 0
 }
 
@@ -1101,6 +1113,9 @@ func (s *String) LengthUnit() LengthUnit {
 	if s.extends != nil {
 		return s.extends.LengthUnit()
 	}
+	if s.parent != nil {
+		return s.parent.LengthUnit()
+	}
 	return ByteLengthUnit
 }
 
@@ -1128,6 +1143,9 @@ func (s *String) Name() string {
 	}
 	if s.extends != nil {
 		return s.extends.Name()
+	}
+	if s.parent != nil {
+		return s.parent.Name()
 	}
 	return ""
 }
