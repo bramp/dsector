@@ -7,6 +7,7 @@ import (
 	"io"
 	"reflect"
 	"strconv"
+	"strings"
 )
 
 // intEqual compares two integers stored in interfaces. Returns true if equal (regradless of bitsize)
@@ -23,18 +24,33 @@ func intEqual(a, b interface{}) bool {
 	return af == bf
 }
 
-func parseInt(s string, base int, bitSize int, signed bool) (interface{}, error) {
-	n, err := strconv.ParseUint(s, base, bitSize)
+// isHex returns if this string looks like a hexidemical number
+func isHex(s string) bool {
+	return strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X")
+}
 
-	if signed && err == nil {
-		cutoff := uint64(1 << uint(bitSize-1))
+// parseInt returns a signed or unsigned int depending on args
+func parseInt(s string, base int, bitSize int, signed bool) (interface{}, error) {
+	if signed {
 		// ParseInt doesn't handle signed hex numbers, so we do it ourselves
-		if n >= cutoff {
-			return int64(n-cutoff) - int64(cutoff), nil
+		if isHex(s) {
+			n, err := strconv.ParseUint(s, base, bitSize)
+			if err == nil {
+				cutoff := uint64(1 << uint(bitSize-1))
+				if n >= cutoff {
+					return int64(n-cutoff) - int64(cutoff), nil
+				}
+				return int64(n), nil
+			}
+			return n, err
+
 		}
-		return int64(n), nil
+
+		// All other bases, just return ParseInt
+		return strconv.ParseInt(s, base, bitSize)
 	}
-	return n, err
+
+	return strconv.ParseUint(s, base, bitSize)
 }
 
 // readInt returns the integer stored in f. The returned
