@@ -16,16 +16,16 @@ func (s *Structure) SetExtends(element Element) error {
 
 	// TODO Ensure that no parent extends from a child, or any kind of loop
 
-	parent, ok := element.(*Structure)
+	extends, ok := element.(*Structure)
 	if !ok {
 		return cantExtendFromError(s, element)
 	}
 
-	s.extends = parent
+	s.extends = extends
 
 	// Update all child to point to the right parent
 	for _, element := range s.elements {
-		if p := parent.ElementByName(element.Name()); p != nil {
+		if p := extends.ElementByName(element.Name()); p != nil {
 			if err := element.SetExtends(p); err != nil {
 				return err
 			}
