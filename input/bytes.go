@@ -23,16 +23,26 @@ func (f *Bytes) Read(b []byte) (int, error) {
 }
 
 func (f *Bytes) ReadAt(b []byte, off int64) (int, error) {
-	end := int(off) + len(b)
-	if off < 0 || end >= len(f.bytes) {
+
+	if off < 0 || off >= int64(len(f.bytes)) {
 		return 0, io.EOF
 	}
 
-	return copy(b, f.bytes[off:end]), nil
+	var err error
+	end := int(off) + len(b)
+	if end > len(f.bytes) {
+		end = len(f.bytes)
+		err = ShortReadError{n: len(f.bytes) - int(off)}
+	}
+
+	return copy(b, f.bytes[off:end]), err
 }
 
 func (f *Bytes) ReadByte() (byte, error) {
-	// TODO No boundary checking!
+	if f.offset < 0 || f.offset >= len(f.bytes) {
+		return 0, io.EOF
+	}
+
 	b := f.bytes[f.offset]
 	f.offset++
 	return b, nil
