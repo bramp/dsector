@@ -104,7 +104,9 @@ type Formatter interface {
 type Updatable interface {
 	// Updates/validates the Element
 	update(u *Ufwb, parent *Structure, errs *toerr.Errors)
+}
 
+type Extendable interface {
 	SetExtends(parent Element) error
 }
 
@@ -136,6 +138,7 @@ type Element interface {
 	Lengthable
 	Repeatable
 	Updatable
+	Extendable
 
 	// TODO Add Colourful here
 }
@@ -156,10 +159,10 @@ type Ufwb struct {
 
 // Base is what all Elements implement
 type Base struct {
-	elemType    string `setter:"false"` // This field is only for debug printing
-	id          int
-	name        string
-	description string
+	elemType    string `parent:"false" extends:"false" setter:"false"` // This field is only for debug printing
+	id          int    `parent:"false" extends:"false"`
+	name        string `parent:"false" extends:"false"`
+	description string `parent:"false" extends:"false"`
 }
 
 func (b *Base) Id() int {
@@ -390,18 +393,8 @@ type Mask struct {
 	values []*FixedValue
 }
 
-/*
-type FixedValues struct {
-	Xml *XmlFixedValues
-
-	values []*FixedValue
-}
-*/
-
 type FixedValue struct {
 	Xml *XmlFixedValue
-
-	extends *FixedValue // TODO Can this actually be extended?
 
 	// TODO Add description
 
@@ -412,8 +405,6 @@ type FixedValue struct {
 type FixedBinaryValue struct {
 	Xml *XmlFixedValue
 
-	extends *FixedBinaryValue // TODO Can this actually be extended?
-
 	name  string
 	value []byte
 }
@@ -421,27 +412,11 @@ type FixedBinaryValue struct {
 type FixedStringValue struct {
 	Xml *XmlFixedValue
 
-	extends *FixedStringValue // TODO Can this actually be extended?
-
 	name  string
 	value string
 }
 
 // TODO Reconsider the script elements, as they don't need to correct match the XML
-
-type ScriptElement struct {
-	Xml *XmlScriptElement
-
-	Base
-	Repeats
-
-	extends *ScriptElement
-
-	//Disabled bool
-
-	Script *Script
-}
-
 type Script struct {
 	Xml *XmlScript
 

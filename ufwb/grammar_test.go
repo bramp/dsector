@@ -69,7 +69,6 @@ func normalise(root *Ufwb, element Element, parent *Structure, errs *toerr.Error
 		e.parent = nil
 		for _, v := range e.values {
 			v.Xml = nil
-			v.extends = nil
 		}
 	case *Binary:
 		e.Xml = nil
@@ -77,7 +76,6 @@ func normalise(root *Ufwb, element Element, parent *Structure, errs *toerr.Error
 		e.parent = nil
 		for _, v := range e.values {
 			v.Xml = nil
-			v.extends = nil
 		}
 	case *Number:
 		e.Xml = nil
@@ -85,7 +83,6 @@ func normalise(root *Ufwb, element Element, parent *Structure, errs *toerr.Error
 		e.parent = nil
 		for _, v := range e.values {
 			v.Xml = nil
-			v.extends = nil
 		}
 	case *Offset:
 		e.Xml = nil

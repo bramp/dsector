@@ -6,12 +6,6 @@ func (b *Binary) Description() string {
 	if b.description != "" {
 		return b.description
 	}
-	if b.extends != nil {
-		return b.extends.Description()
-	}
-	if b.parent != nil {
-		return b.parent.Description()
-	}
 	return ""
 }
 
@@ -22,12 +16,6 @@ func (b *Binary) SetDescription(description string) {
 func (b *Binary) ElemType() string {
 	if b.elemType != "" {
 		return b.elemType
-	}
-	if b.extends != nil {
-		return b.extends.ElemType()
-	}
-	if b.parent != nil {
-		return b.parent.ElemType()
 	}
 	return ""
 }
@@ -49,12 +37,6 @@ func (b *Binary) SetFillColour(fillColour Colour) {
 func (b *Binary) Id() int {
 	if b.id != 0 {
 		return b.id
-	}
-	if b.extends != nil {
-		return b.extends.Id()
-	}
-	if b.parent != nil {
-		return b.parent.Id()
 	}
 	return 0
 }
@@ -111,12 +93,6 @@ func (b *Binary) SetMustMatch(mustMatch Bool) {
 func (b *Binary) Name() string {
 	if b.name != "" {
 		return b.name
-	}
-	if b.extends != nil {
-		return b.extends.Name()
-	}
-	if b.parent != nil {
-		return b.parent.Name()
 	}
 	return ""
 }
@@ -185,9 +161,6 @@ func (c *Custom) Description() string {
 	if c.description != "" {
 		return c.description
 	}
-	if c.extends != nil {
-		return c.extends.Description()
-	}
 	return ""
 }
 
@@ -198,9 +171,6 @@ func (c *Custom) SetDescription(description string) {
 func (c *Custom) ElemType() string {
 	if c.elemType != "" {
 		return c.elemType
-	}
-	if c.extends != nil {
-		return c.extends.ElemType()
 	}
 	return ""
 }
@@ -222,9 +192,6 @@ func (c *Custom) SetFillColour(fillColour Colour) {
 func (c *Custom) Id() int {
 	if c.id != 0 {
 		return c.id
-	}
-	if c.extends != nil {
-		return c.extends.Id()
 	}
 	return 0
 }
@@ -264,9 +231,6 @@ func (c *Custom) SetLengthUnit(lengthUnit LengthUnit) {
 func (c *Custom) Name() string {
 	if c.name != "" {
 		return c.name
-	}
-	if c.extends != nil {
-		return c.extends.Name()
 	}
 	return ""
 }
@@ -397,9 +361,6 @@ func (g *GrammarRef) Description() string {
 	if g.description != "" {
 		return g.description
 	}
-	if g.extends != nil {
-		return g.extends.Description()
-	}
 	return ""
 }
 
@@ -410,9 +371,6 @@ func (g *GrammarRef) SetDescription(description string) {
 func (g *GrammarRef) ElemType() string {
 	if g.elemType != "" {
 		return g.elemType
-	}
-	if g.extends != nil {
-		return g.extends.ElemType()
 	}
 	return ""
 }
@@ -449,9 +407,6 @@ func (g *GrammarRef) Id() int {
 	if g.id != 0 {
 		return g.id
 	}
-	if g.extends != nil {
-		return g.extends.Id()
-	}
 	return 0
 }
 
@@ -462,9 +417,6 @@ func (g *GrammarRef) SetId(id int) {
 func (g *GrammarRef) Name() string {
 	if g.name != "" {
 		return g.name
-	}
-	if g.extends != nil {
-		return g.extends.Name()
 	}
 	return ""
 }
@@ -505,12 +457,6 @@ func (n *Number) Description() string {
 	if n.description != "" {
 		return n.description
 	}
-	if n.extends != nil {
-		return n.extends.Description()
-	}
-	if n.parent != nil {
-		return n.parent.Description()
-	}
 	return ""
 }
 
@@ -538,12 +484,6 @@ func (n *Number) SetDisplay(display Display) {
 func (n *Number) ElemType() string {
 	if n.elemType != "" {
 		return n.elemType
-	}
-	if n.extends != nil {
-		return n.extends.ElemType()
-	}
-	if n.parent != nil {
-		return n.parent.ElemType()
 	}
 	return ""
 }
@@ -582,12 +522,6 @@ func (n *Number) SetFillColour(fillColour Colour) {
 func (n *Number) Id() int {
 	if n.id != 0 {
 		return n.id
-	}
-	if n.extends != nil {
-		return n.extends.Id()
-	}
-	if n.parent != nil {
-		return n.parent.Id()
 	}
 	return 0
 }
@@ -687,12 +621,6 @@ func (n *Number) Name() string {
 	if n.name != "" {
 		return n.name
 	}
-	if n.extends != nil {
-		return n.extends.Name()
-	}
-	if n.parent != nil {
-		return n.parent.Name()
-	}
 	return ""
 }
 
@@ -774,9 +702,6 @@ func (o *Offset) Description() string {
 	if o.description != "" {
 		return o.description
 	}
-	if o.extends != nil {
-		return o.extends.Description()
-	}
 	return ""
 }
 
@@ -801,9 +726,6 @@ func (o *Offset) SetDisplay(display Display) {
 func (o *Offset) ElemType() string {
 	if o.elemType != "" {
 		return o.elemType
-	}
-	if o.extends != nil {
-		return o.extends.ElemType()
 	}
 	return ""
 }
@@ -840,9 +762,6 @@ func (o *Offset) Id() int {
 	if o.id != 0 {
 		return o.id
 	}
-	if o.extends != nil {
-		return o.extends.Id()
-	}
 	return 0
 }
 
@@ -871,6 +790,9 @@ func (o *Offset) LengthUnit() LengthUnit {
 	if o.extends != nil {
 		return o.extends.LengthUnit()
 	}
+	if o.parent != nil {
+		return o.parent.LengthUnit()
+	}
 	return ByteLengthUnit
 }
 
@@ -881,9 +803,6 @@ func (o *Offset) SetLengthUnit(lengthUnit LengthUnit) {
 func (o *Offset) Name() string {
 	if o.name != "" {
 		return o.name
-	}
-	if o.extends != nil {
-		return o.extends.Name()
 	}
 	return ""
 }
@@ -938,9 +857,6 @@ func (s *ScriptElement) Description() string {
 	if s.description != "" {
 		return s.description
 	}
-	if s.extends != nil {
-		return s.extends.Description()
-	}
 	return ""
 }
 
@@ -952,18 +868,12 @@ func (s *ScriptElement) ElemType() string {
 	if s.elemType != "" {
 		return s.elemType
 	}
-	if s.extends != nil {
-		return s.extends.ElemType()
-	}
 	return ""
 }
 
 func (s *ScriptElement) Id() int {
 	if s.id != 0 {
 		return s.id
-	}
-	if s.extends != nil {
-		return s.extends.Id()
 	}
 	return 0
 }
@@ -975,9 +885,6 @@ func (s *ScriptElement) SetId(id int) {
 func (s *ScriptElement) Name() string {
 	if s.name != "" {
 		return s.name
-	}
-	if s.extends != nil {
-		return s.extends.Name()
 	}
 	return ""
 }
@@ -1018,12 +925,6 @@ func (s *String) Description() string {
 	if s.description != "" {
 		return s.description
 	}
-	if s.extends != nil {
-		return s.extends.Description()
-	}
-	if s.parent != nil {
-		return s.parent.Description()
-	}
 	return ""
 }
 
@@ -1034,12 +935,6 @@ func (s *String) SetDescription(description string) {
 func (s *String) ElemType() string {
 	if s.elemType != "" {
 		return s.elemType
-	}
-	if s.extends != nil {
-		return s.extends.ElemType()
-	}
-	if s.parent != nil {
-		return s.parent.ElemType()
 	}
 	return ""
 }
@@ -1078,12 +973,6 @@ func (s *String) SetFillColour(fillColour Colour) {
 func (s *String) Id() int {
 	if s.id != 0 {
 		return s.id
-	}
-	if s.extends != nil {
-		return s.extends.Id()
-	}
-	if s.parent != nil {
-		return s.parent.Id()
 	}
 	return 0
 }
@@ -1140,12 +1029,6 @@ func (s *String) SetMustMatch(mustMatch Bool) {
 func (s *String) Name() string {
 	if s.name != "" {
 		return s.name
-	}
-	if s.extends != nil {
-		return s.extends.Name()
-	}
-	if s.parent != nil {
-		return s.parent.Name()
 	}
 	return ""
 }
@@ -1228,9 +1111,6 @@ func (s *StructRef) Description() string {
 	if s.description != "" {
 		return s.description
 	}
-	if s.extends != nil {
-		return s.extends.Description()
-	}
 	return ""
 }
 
@@ -1241,9 +1121,6 @@ func (s *StructRef) SetDescription(description string) {
 func (s *StructRef) ElemType() string {
 	if s.elemType != "" {
 		return s.elemType
-	}
-	if s.extends != nil {
-		return s.extends.ElemType()
 	}
 	return ""
 }
@@ -1266,9 +1143,6 @@ func (s *StructRef) Id() int {
 	if s.id != 0 {
 		return s.id
 	}
-	if s.extends != nil {
-		return s.extends.Id()
-	}
 	return 0
 }
 
@@ -1279,9 +1153,6 @@ func (s *StructRef) SetId(id int) {
 func (s *StructRef) Name() string {
 	if s.name != "" {
 		return s.name
-	}
-	if s.extends != nil {
-		return s.extends.Name()
 	}
 	return ""
 }
@@ -1350,12 +1221,6 @@ func (s *Structure) Description() string {
 	if s.description != "" {
 		return s.description
 	}
-	if s.extends != nil {
-		return s.extends.Description()
-	}
-	if s.parent != nil {
-		return s.parent.Description()
-	}
 	return ""
 }
 
@@ -1383,12 +1248,6 @@ func (s *Structure) SetDisplay(display Display) {
 func (s *Structure) ElemType() string {
 	if s.elemType != "" {
 		return s.elemType
-	}
-	if s.extends != nil {
-		return s.extends.ElemType()
-	}
-	if s.parent != nil {
-		return s.parent.ElemType()
 	}
 	return ""
 }
@@ -1449,12 +1308,6 @@ func (s *Structure) Id() int {
 	if s.id != 0 {
 		return s.id
 	}
-	if s.extends != nil {
-		return s.extends.Id()
-	}
-	if s.parent != nil {
-		return s.parent.Id()
-	}
 	return 0
 }
 
@@ -1513,12 +1366,6 @@ func (s *Structure) SetLengthUnit(lengthUnit LengthUnit) {
 func (s *Structure) Name() string {
 	if s.name != "" {
 		return s.name
-	}
-	if s.extends != nil {
-		return s.extends.Name()
-	}
-	if s.parent != nil {
-		return s.parent.Name()
 	}
 	return ""
 }
