@@ -62,8 +62,8 @@ type XmlGrammarRef struct {
 	XMLName xml.Name `xml:"grammarref"`
 
 	XmlIdName
-	Uti string `xml:"uti,attr,omitempty"`
 
+	Uti string `xml:"uti,attr,omitempty"`
 	Filename string `xml:"filename,attr,omitempty"`
 	Disabled string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 }
@@ -212,6 +212,7 @@ type XmlOffset struct {
 	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
 
 	Length              string `xml:"length,attr,omitempty" ufwb:"ref"`
+	LengthUnit string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"` // "", "bit" (default "byte")
 	Endian              string `xml:"endian,attr,omitempty" ufwb:"endian"`
 	RelativeTo          string `xml:"relative-to,attr,omitempty" ufwb:"id"`
 	FollowNullReference string `xml:"follownullreference,attr,omitempty"`

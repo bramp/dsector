@@ -239,45 +239,17 @@ func (c *Custom) SetName(name string) {
 	c.name = name
 }
 
-func (c *Custom) RepeatMax() Reference {
-	if c.repeatMax != Reference("") {
-		return c.repeatMax
-	}
-	if c.extends != nil {
-		return c.extends.RepeatMax()
-	}
-	return Reference("1")
-}
-
-func (c *Custom) SetRepeatMax(repeatMax Reference) {
-	c.repeatMax = repeatMax
-}
-
-func (c *Custom) RepeatMin() Reference {
-	if c.repeatMin != Reference("") {
-		return c.repeatMin
-	}
-	if c.extends != nil {
-		return c.extends.RepeatMin()
-	}
-	return Reference("1")
-}
-
-func (c *Custom) SetRepeatMin(repeatMin Reference) {
-	c.repeatMin = repeatMin
-}
-
-func (c *Custom) Script() string {
-	if c.script != "" {
+func (c *Custom) Script() *ScriptElement {
+	if c.script != nil {
 		return c.script
 	}
 	if c.extends != nil {
 		return c.extends.Script()
 	}
-	return ""
+	return nil
 }
 
-func (c *Custom) SetScript(script string) {
+func (c *Custom) SetScript(script *ScriptElement) {
 	c.script = script
 }
 
@@ -368,6 +340,20 @@ func (g *GrammarRef) SetDescription(description string) {
 	g.description = description
 }
 
+func (g *GrammarRef) Disabled() Bool {
+	if g.disabled != Bool(0) {
+		return g.disabled
+	}
+	if g.extends != nil {
+		return g.extends.Disabled()
+	}
+	return Bool(0)
+}
+
+func (g *GrammarRef) SetDisabled(disabled Bool) {
+	g.disabled = disabled
+}
+
 func (g *GrammarRef) ElemType() string {
 	if g.elemType != "" {
 		return g.elemType
@@ -451,6 +437,20 @@ func (g *GrammarRef) RepeatMin() Reference {
 
 func (g *GrammarRef) SetRepeatMin(repeatMin Reference) {
 	g.repeatMin = repeatMin
+}
+
+func (g *GrammarRef) Uti() string {
+	if g.uti != "" {
+		return g.uti
+	}
+	if g.extends != nil {
+		return g.extends.Uti()
+	}
+	return ""
+}
+
+func (g *GrammarRef) SetUti(uti string) {
+	g.uti = uti
 }
 
 func (n *Number) Description() string {
@@ -698,6 +698,20 @@ func (n *Number) SetValues(values []*FixedValue) {
 	n.values = values
 }
 
+func (o *Offset) Additional() string {
+	if o.additional != "" {
+		return o.additional
+	}
+	if o.extends != nil {
+		return o.extends.Additional()
+	}
+	return ""
+}
+
+func (o *Offset) SetAdditional(additional string) {
+	o.additional = additional
+}
+
 func (o *Offset) Description() string {
 	if o.description != "" {
 		return o.description
@@ -715,6 +729,9 @@ func (o *Offset) Display() Display {
 	}
 	if o.extends != nil {
 		return o.extends.Display()
+	}
+	if o.parent != nil {
+		return o.parent.Display()
 	}
 	return DecDisplay
 }
@@ -737,6 +754,9 @@ func (o *Offset) Endian() Endian {
 	if o.extends != nil {
 		return o.extends.Endian()
 	}
+	if o.parent != nil {
+		return o.parent.Endian()
+	}
 	return LittleEndian
 }
 
@@ -756,6 +776,20 @@ func (o *Offset) FillColour() Colour {
 
 func (o *Offset) SetFillColour(fillColour Colour) {
 	o.fillColour = &fillColour
+}
+
+func (o *Offset) FollowNullReference() Bool {
+	if o.followNullReference != Bool(0) {
+		return o.followNullReference
+	}
+	if o.extends != nil {
+		return o.extends.FollowNullReference()
+	}
+	return Bool(0)
+}
+
+func (o *Offset) SetFollowNullReference(followNullReference Bool) {
+	o.followNullReference = followNullReference
 }
 
 func (o *Offset) Id() int {
@@ -809,6 +843,48 @@ func (o *Offset) Name() string {
 
 func (o *Offset) SetName(name string) {
 	o.name = name
+}
+
+func (o *Offset) ReferencedSize() Element {
+	if o.referencedSize != Element(nil) {
+		return o.referencedSize
+	}
+	if o.extends != nil {
+		return o.extends.ReferencedSize()
+	}
+	return Element(nil)
+}
+
+func (o *Offset) SetReferencedSize(referencedSize Element) {
+	o.referencedSize = referencedSize
+}
+
+func (o *Offset) References() Element {
+	if o.references != Element(nil) {
+		return o.references
+	}
+	if o.extends != nil {
+		return o.extends.References()
+	}
+	return Element(nil)
+}
+
+func (o *Offset) SetReferences(references Element) {
+	o.references = references
+}
+
+func (o *Offset) RelativeTo() Element {
+	if o.relativeTo != Element(nil) {
+		return o.relativeTo
+	}
+	if o.extends != nil {
+		return o.extends.RelativeTo()
+	}
+	return Element(nil)
+}
+
+func (o *Offset) SetRelativeTo(relativeTo Element) {
+	o.relativeTo = relativeTo
 }
 
 func (o *Offset) RepeatMax() Reference {

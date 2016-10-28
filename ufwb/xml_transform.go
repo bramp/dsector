@@ -41,7 +41,7 @@ func endian(s string, errs *toerr.Errors) Endian {
 
 func display(s string, errs *toerr.Errors) Display {
 	switch s {
-	case "dec":
+	case "decimal":
 		return DecDisplay
 	case "hex":
 		return HexDisplay
@@ -132,6 +132,11 @@ func (xml *XmlGrammar) transform(errs *toerr.Errors) Element {
 		errs.Append(&validationError{e: g, err: errors.New("missing start attribute")})
 	}
 
+	for _, s := range xml.Scripts {
+		g.Scripts = append(g.Scripts, s.transform(errs))
+		// TODO Put the scripts into the Elements
+	}
+
 	for _, s := range xml.Structures {
 		g.Elements = append(g.Elements, s.transform(errs))
 	}
@@ -143,6 +148,10 @@ func (xml *XmlGrammarRef) transform(errs *toerr.Errors) Element {
 	return &GrammarRef{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("GrammarRef", errs),
+
+		uti: xml.Uti,
+		filename: xml.Filename,
+		disabled: yesno(xml.Disabled, errs),
 	}
 }
 
@@ -186,6 +195,14 @@ func (xml *XmlCustom) transform(errs *toerr.Errors) Element {
 	return &Custom{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Custom", errs),
+
+		length:     Reference(xml.Length),
+		lengthUnit: lengthunit(xml.LengthUnit, errs),
+
+		Colourful: Colourful{
+			fillColour:   colour(xml.FillColour, errs),
+			strokeColour: colour(xml.StrokeColour, errs),
+		},
 	}
 }
 
@@ -228,15 +245,6 @@ func (xml *XmlString) transform(errs *toerr.Errors) Element {
 			fillColour:   colour(xml.FillColour, errs),
 			strokeColour: colour(xml.StrokeColour, errs),
 		},
-	}
-
-	if s.length == "" {
-		if s.typ == "fixed-length" {
-			errs.Append(&validationError{e: s, err: errors.New("fixed-length strings requires a length")})
-
-		} else if s.typ == "pascal" { // TODO I don't think this is strictly required, I just don't know how to handle them yet!
-			errs.Append(&validationError{e: s, err: errors.New("pascal strings requires a length")})
-		}
 	}
 
 	for _, x := range xml.Values {
@@ -335,6 +343,21 @@ func (xml *XmlOffset) transform(errs *toerr.Errors) Element {
 	return &Offset{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("Offset", errs),
+
+		length:     Reference(xml.Length),
+		lengthUnit: lengthunit(xml.LengthUnit, errs),
+
+		Repeats: Repeats{
+			repeatMin: Reference(xml.RepeatMin),
+			repeatMax: Reference(xml.RepeatMax),
+		},
+
+		endian: endian(xml.Endian, errs),
+
+		display: display(xml.Display, errs),
+
+		followNullReference: yesno(xml.FollowNullReference, errs),
+		additional: xml.Additional, // TODO Validate
 	}
 }
 
@@ -366,9 +389,7 @@ func (xml *XmlScript) transform(errs *toerr.Errors) *Script {
 	s := &Script{
 		Xml:  xml,
 		Name: xml.Name,
-		Type: "Script",
-
-		// TODO Pull info from XmlSource tag
+		Type: "Script", // TODO Do I need this field?
 	}
 
 	if xml.Source != nil {

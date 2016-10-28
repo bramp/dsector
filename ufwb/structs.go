@@ -254,20 +254,19 @@ type GrammarRef struct {
 
 	Base
 	Repeats
-
 	extends *GrammarRef
 
+	uti string
 	filename string
-	grammar  *Grammar // TODO Actually implement this!
+	disabled Bool
 
-	//disabled bool
+	grammar  *Grammar // TODO Actually load this!
 }
 
 type Custom struct {
 	Xml *XmlCustom
 
 	Base
-	Repeats
 	Colourful
 
 	extends *Custom
@@ -275,7 +274,7 @@ type Custom struct {
 	length     Reference  `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
-	script string // TODO?
+	script *ScriptElement
 }
 
 type StructRef struct {
@@ -361,6 +360,7 @@ type Number struct {
 	masks     []*Mask
 }
 
+// TODO Support parsing the Offsets
 type Offset struct {
 	Xml *XmlOffset
 
@@ -369,19 +369,34 @@ type Offset struct {
 	Colourful
 
 	extends *Offset
+	parent  *Structure
 
 	length     Reference  `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
 	endian Endian `default:"LittleEndian"`
 
-	RelativeTo          Element // TODO
-	FollowNullReference string  // TODO
-	References          Element // TODO
-	ReferencedSize      Element // TODO
-	Additional          string  // TODO
-
 	display Display `default:"DecDisplay"`
+
+	relativeTo          Element
+	followNullReference Bool
+	references          Element
+	referencedSize      Element
+	additional          string
+}
+
+
+type ScriptElement struct {
+	Xml *XmlScriptElement
+
+	Base
+	Repeats // TODO Do Script elements really have this?
+
+	extends *ScriptElement
+
+	//Disabled bool
+
+	Script *Script
 }
 
 type Mask struct {
@@ -514,9 +529,18 @@ func (g *Grammar) LengthUnit() LengthUnit {
 }
 
 func (s *ScriptElement) Length() Reference {
-	return "0" // ScriptElements have no form, thus no length
+	// ScriptElements have no form, thus no length
+	return "0" // TODO Change to a constant Reference (when such a thing exists)
 }
 
 func (s *ScriptElement) LengthUnit() LengthUnit {
 	return ByteLengthUnit
+}
+
+func (*Custom) RepeatMin() Reference {
+	return Reference("1") // TODO Change to a constant Reference (when such a thing exists)
+}
+
+func (*Custom) RepeatMax() Reference {
+	return Reference("1")  // TODO Change to a constant Reference (when such a thing exists)
 }

@@ -47,11 +47,12 @@ func (u *Ufwb) Get(id string) (Element, bool) {
 }
 
 func (g *Grammar) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
-	e, found := u.Get(g.Xml.Start)
-	if !found {
+
+	if e, found := u.Get(g.Xml.Start); found {
+		g.Start = e
+	} else {
 		errs.Append(&validationError{e: g, err: fmt.Errorf("start struct %q not found", g.Xml.Start)})
 	}
-	g.Start = e
 }
 
 func (s *Structure) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
@@ -125,19 +126,63 @@ func (s *String) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 
 	s.parent = parent
 
+	if s.Length() == "" {
+		if s.Typ() == "fixed-length" {
+			errs.Append(&validationError{e: s, err: errors.New("fixed-length strings requires a length")})
+
+		//} else if s.Typ() == "pascal" { // TODO I don't think this is strictly required, I just don't know how to handle them yet!
+		//	errs.Append(&validationError{e: s, err: errors.New("pascal strings requires a length")})
+		}
+	}
+
+	// TODO Check the FixedValues match the length
+
 	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
 }
 
 func (c *Custom) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
-	panic("TODO")
+	if e, found := u.Get(c.Xml.Script); found {
+		if s, ok := e.(*ScriptElement); ok {
+			c.script = s
+		} else {
+			errs.Append(&validationError{e: c, err: fmt.Errorf("script %q is not a Script Element", c.Xml.Script)})
+		}
+	} else {
+		errs.Append(&validationError{e: c, err: fmt.Errorf("script %q not found", c.Xml.Script)})
+	}
+
 }
 
 func (g *GrammarRef) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
-	panic("TODO")
+	// TODO Load the grammar
 }
 
 func (o *Offset) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
-	panic("TODO")
+	o.parent = parent
+
+	if o.Xml.RelativeTo != "" {
+		if e, found := u.Get(o.Xml.RelativeTo); found {
+			o.relativeTo = e
+		} else {
+			errs.Append(&validationError{e: o, err: fmt.Errorf("relativeTo %q not found", o.Xml.RelativeTo)})
+		}
+	}
+
+	if o.Xml.References != "" {
+		if e, found := u.Get(o.Xml.References); found {
+			o.references = e
+		} else {
+			errs.Append(&validationError{e: o, err: fmt.Errorf("references %q not found", o.Xml.References)})
+		}
+	}
+
+	if o.Xml.ReferencedSize != "" {
+		if e, found := u.Get(o.Xml.ReferencedSize); found {
+			o.referencedSize = e
+		} else {
+			errs.Append(&validationError{e: o, err: fmt.Errorf("referencedSize %q not found", o.Xml.ReferencedSize)})
+		}
+	}
 }
 
 func (s *ScriptElement) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
@@ -147,22 +192,21 @@ func (s *ScriptElement) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 }
 
 func (s *StructRef) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
-
-	if s.Xml.Structure == "" {
-		errs.Append(&validationError{e: s, err: fmt.Errorf("missing structure attribute")})
-		return
+	ref := s.Xml.Structure
+	if ref == "" {
+		// Old versions used the name, instead of a structure field
+		ref = s.Xml.Name
 	}
 
-	e, found := u.Get(s.Xml.Structure)
-	if !found {
-		errs.Append(&validationError{e: s, err: fmt.Errorf("referenced struct %q not found", s.Xml.Structure)})
-		return
-	}
+	if e, found := u.Get(ref); found {
+		if structure, ok := e.(*Structure); ok {
+			s.structure = structure
+		} else {
+			errs.Append(&validationError{e: s, err: fmt.Errorf("reference element %q is not a structure", ref)})
+		}
 
-	if structure, ok := e.(*Structure); ok {
-		s.structure = structure
 	} else {
-		errs.Append(&validationError{e: s, err: errors.New("reference element is not a structure")})
+		errs.Append(&validationError{e: s, err: fmt.Errorf("referenced struct %q not found", ref)})
 	}
 }
 
