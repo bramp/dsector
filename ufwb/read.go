@@ -306,6 +306,10 @@ func (b *Binary) Bytes(file io.ReaderAt, value *Value) ([]byte, error) {
 // integer is one of int{8,16,32,64} or uint{8,16,32,64} depending
 // on the width and sign of the integer.
 func (n *Number) int(file io.ReaderAt, value *Value) (interface{}, error) {
+	if n != value.Element {
+		return 0, &assertationError{e: n, err: fmt.Errorf("trying to use wrong value %v", value)}
+	}
+
 	b := make([]byte, value.Len, value.Len)
 	if _, err := file.ReadAt(b, value.Offset); err != nil {
 		return 0, &validationError{e: n, err: err}

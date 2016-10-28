@@ -57,6 +57,9 @@ func parseInt(s string, base int, bitSize int, signed bool) (interface{}, error)
 // integer is one of int{8,16,32,64} or uint{8,16,32,64} depending
 // on the width and sign of the integer.
 func readInt(r io.Reader, len int64, signed bool, order binary.ByteOrder) (interface{}, error) {
+	if r == nil {
+		return 0, fmt.Errorf("invalid reader")
+	}
 
 	// Create a correctly sized int. This is so binary.Read reads the correct length
 	// TODO Rewrite this so we can handle say 24 bit ints
@@ -86,6 +89,10 @@ func readInt(r io.Reader, len int64, signed bool, order binary.ByteOrder) (inter
 	}
 	if i == nil {
 		return 0, fmt.Errorf("unsupported number length: %d", len)
+	}
+
+	if order == nil {
+		return 0, fmt.Errorf("invalid order")
 	}
 
 	err := binary.Read(r, order, i)
