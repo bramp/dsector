@@ -274,12 +274,12 @@ func (b *Binary) Read(d *Decoder) (*Value, error) {
 
 		f, err := b.format(bs)
 		if err != nil {
-			return v, &assertationError{e: b, msg: fmt.Sprintf("failed to format %v: %s", bs, err)}
+			return v, &assertationError{e: b, err: fmt.Errorf("failed to format %v: %s", bs, err)}
 		}
 
 		formatedValues, err := b.formatValues()
 		if err != nil {
-			return v, &assertationError{e: b, msg: fmt.Sprintf("failed to format values %v: %s", values, err)}
+			return v, &assertationError{e: b, err: fmt.Errorf("failed to format values %v: %s", values, err)}
 		}
 
 		return nil, &validationError{
@@ -363,12 +363,12 @@ func (n *Number) Read(d *Decoder) (*Value, error) {
 		}
 		f, err := n.format(i)
 		if err != nil {
-			return v, &assertationError{e: n, msg: fmt.Sprintf("failed to format %v: %s", i, err)}
+			return v, &assertationError{e: n, err: fmt.Errorf("failed to format %v: %s", i, err)}
 		}
 
 		formatedValues, err := n.formatValues()
 		if err != nil {
-			return v, &assertationError{e: n, msg: fmt.Sprintf("failed to format values %v: %s", values, err)}
+			return v, &assertationError{e: n, err: fmt.Errorf("failed to format values %v: %s", values, err)}
 		}
 
 		return v, &validationError{
