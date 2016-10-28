@@ -404,17 +404,19 @@ type Mask struct {
 
 	name  string
 	value uint64 // The mask
+	description string `parent:"false" extends:"false"`
 
 	values []*FixedValue
 }
 
+// TODO FixedValue is for what? Numbers? Rename to FixedNumberValue
 type FixedValue struct {
 	Xml *XmlFixedValue
 
-	// TODO Add description
-
 	name  string
 	value interface{}
+
+	description string
 }
 
 type FixedBinaryValue struct {
@@ -422,6 +424,8 @@ type FixedBinaryValue struct {
 
 	name  string
 	value []byte
+
+	description string
 }
 
 type FixedStringValue struct {
@@ -429,6 +433,8 @@ type FixedStringValue struct {
 
 	name  string
 	value string
+
+	description string
 }
 
 // TODO Reconsider the script elements, as they don't need to correct match the XML

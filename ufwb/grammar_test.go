@@ -113,7 +113,7 @@ func TestParseGrammarFragment(t *testing.T) {
 				Type:   "integer",
 				length: "1",
 				values: []*FixedValue{
-					{name: "first value", value: 0},
+					{name: "first value", value: 0, description: "Some description"},
 				},
 			},
 		},

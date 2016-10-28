@@ -239,6 +239,7 @@ type XmlMask struct {
 
 	Name  string `xml:"name,attr,omitempty"`
 	Value string `xml:"value,attr,omitempty"`
+	Description string `xml:"description,omitempty"`
 
 	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
 }

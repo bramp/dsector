@@ -252,6 +252,7 @@ func (xml *XmlString) transform(errs *toerr.Errors) Element {
 			Xml:   x,
 			name:  x.Name,
 			value: x.Value,
+			description: strings.TrimSpace(x.Description),
 		})
 	}
 
@@ -291,6 +292,7 @@ func (xml *XmlBinary) transform(errs *toerr.Errors) Element {
 			Xml:   x,
 			name:  x.Name,
 			value: value,
+			description: strings.TrimSpace(x.Description),
 		})
 	}
 
@@ -329,6 +331,7 @@ func (xml *XmlNumber) transform(errs *toerr.Errors) Element {
 		n.values = append(n.values, &FixedValue{
 			Xml:  x,
 			name: x.Name,
+			description: strings.TrimSpace(x.Description),
 		})
 	}
 
@@ -372,6 +375,7 @@ func (xml *XmlMask) transform(errs *toerr.Errors) *Mask {
 	m := &Mask{
 		Xml:  xml,
 		name: xml.Name,
+		description: strings.TrimSpace(xml.Description),
 	}
 
 	for _, x := range xml.Values {
@@ -379,6 +383,7 @@ func (xml *XmlMask) transform(errs *toerr.Errors) *Mask {
 		m.values = append(m.values, &FixedValue{
 			Xml:  x,
 			name: x.Name,
+			description: strings.TrimSpace(x.Description),
 		})
 	}
 
