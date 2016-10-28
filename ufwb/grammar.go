@@ -4,7 +4,6 @@ package ufwb
 import (
 	"bramp.net/dsector/toerr"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -13,29 +12,40 @@ import (
 func indexer(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 	_ = parent
 
+	// Skip over Grammar elements
 	if _, ok := element.(*Grammar); ok {
-		// Skip over Grammar elements
 		return
 	}
 
-	id := element.Id()
-	if id == 0 {
-		errs.Append(&validationError{e: element, err: errors.New("missing id field")})
-		return
+	if id := element.Id(); id != 0 {
+		// TODO Check we don't replace existing IDs
+		u.Elements["id:" + strconv.Itoa(id)] = element
+	//} else {
+	//	errs.Append(&validationError{e: element, err: errors.New("missing id field")})
 	}
 
-	// TODO Check we don't replace existing IDs
-	u.Elements["id:"+strconv.Itoa(id)] = element
+	// I don't quite understand the index needed by name, as it is very common for many
+	// Elements to share the same name. So, index only top level structs for now.
+
+	// Only index Structures by name
+	if _, ok := element.(*Structure); !ok || parent != nil {
+		return
+	}
 
 	if name := element.Name(); name != "" {
+		if _, exists := u.Elements[name]; exists {
+			// TODO Add more info about the element being replaced
+			errs.Append(&validationError{e: element, err: fmt.Errorf("indexer replacing existing element %q", name)})
+		}
 		u.Elements[name] = element
 	}
 }
 
+// extender finds all structures, and ensures all their children extend from the correct elements.
 func extender(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 	_ = parent
 
-	// Structure is the only one with an Extends field
+	// Structure is the only XML element with an extends field
 	s, ok := element.(*Structure)
 	if !ok {
 		// Skip non-structures
@@ -75,12 +85,12 @@ func ParseXmlGrammar(r io.Reader) (*Ufwb, []error) {
 		return u, errs
 	}
 
-	// Building the initial id index
+	// 3. Building the initial id index
 	if errs := Walk(u, indexer); len(errs) > 0 {
 		return u, errs
 	}
 
-	// Setup the extending
+	// 4. Setup the extending
 	if errs := Walk(u, extender); len(errs) > 0 {
 		return u, errs
 	}

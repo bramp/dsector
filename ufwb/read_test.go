@@ -172,21 +172,28 @@ func TestReadNumber(t *testing.T) {
 
 		if err := got.validiate(); err != nil {
 			t.Errorf("value.Validiate() = %q want nil error", err)
+			continue
 		}
+
+		if len(got.Children) == 0 {
+			t.Errorf("value has no children")
+			continue
+		}
+		numValue := got.Children[0]
 
 		// Decimal
 		num.(*Number).SetDisplay(DecDisplay)
-		s, err := num.Format(file, got)
+		s, err := num.Format(file, numValue)
 		if err != nil {
-			t.Errorf("dec num.Format(...) error = %q want nil error", err)
+			t.Errorf("dec num.Format(..., %v) error = %q want nil error", numValue, err)
 		}
 		if s != test.wantDec {
-			t.Errorf("dec num.Format(...) = %q want %q", s, test.wantDec)
+			t.Errorf("dec num.Format(..., %v) = %q want %q", numValue, s, test.wantDec)
 		}
 
 		// Hex
 		num.(*Number).SetDisplay(HexDisplay)
-		s, err = num.Format(file, got)
+		s, err = num.Format(file, numValue)
 		if err != nil {
 			t.Errorf("hex num.Format(...) error = %q want nil error", err)
 		}

@@ -204,8 +204,8 @@ type Grammar struct {
 	Uti      string
 
 	Start    Element // TODO Is this always a Structure?
+	Scripts  []*Script
 	Elements []Element
-	Scripts  []Script
 }
 
 type Structure struct {
