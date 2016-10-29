@@ -70,7 +70,7 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 	elements := s.Elements() // TODO This doesn't work correctly with extends
 	eof := false
 
-	log.Debugf("[%d] Starting %s (bounds: [%d-%d], max length: %d)", start, s.IdString(), bounds.Start, bounds.End, length)
+	log.Debugf("[0x%x] Starting %s (bounds: [0x%x-0x%x], max length: %d)", start, s.IdString(), bounds.Start, bounds.End, length)
 
 	for value.Len < length && i < len(elements) {
 		//log.Debugf("Loop %v, %v < %v, %v < %v", eof, childrenLength, length, i, len(elements))

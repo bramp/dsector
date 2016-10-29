@@ -24,7 +24,7 @@ type ElementBounds struct {
 }
 
 func (bounds *ElementBounds) String() string {
-	return fmt.Sprintf("[%d-%d] %s", bounds.Start, bounds.End, bounds.Element.IdString())
+	return fmt.Sprintf("[0x%x-0x%x] %s", bounds.Start, bounds.End, bounds.Element.IdString())
 }
 
 type StackPrinter []ElementBounds
@@ -84,11 +84,8 @@ func (d *Decoder) read(e Element) (*Value, error) {
 	}
 	var end int64
 
-	//89 50 4e 47 0d 0a 20 0a
-	//89 50 4e 47 0d 0a 1a 0a
-
-	log.Debugf("[%d] Reading: %s", start, e.IdString())
-	//log.Debugf("[%d] Stack: %s", start, StackPrinter(d.stack))
+	log.Debugf("[0x%x] Reading: %s", start, e.IdString())
+	//log.Debugf("[0x%x] Stack: %s", start, StackPrinter(d.stack))
 
 	bounds := d.ParentBounds()
 	if bounds == nil {
@@ -132,7 +129,7 @@ func (d *Decoder) read(e Element) (*Value, error) {
 	if v != nil {
 		vformat, _ = v.Format(d.f)
 	}
-	log.Debugf("[%d] Read: %s %s %q err:%s", start, e.IdString(), v, ellipsis(vformat, 10), err)
+	log.Debugf("[0x%x] Read: %s %s %q err:%v", start, e.IdString(), v, ellipsis(vformat, 10), err)
 
 	// Pop off the stack
 	d.stack = d.stack[:len(d.stack)-1]

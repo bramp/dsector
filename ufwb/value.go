@@ -42,7 +42,7 @@ func (v *Value) String() string {
 	if v.Element != nil {
 		elem = v.Element.IdString()
 	}
-	return fmt.Sprintf("[%d len:%d] %s", v.Offset, v.Len, elem)
+	return fmt.Sprintf("[0x%x len:%d] %s", v.Offset, v.Len, elem)
 }
 
 func (v *Value) Write(f input.Input) {
