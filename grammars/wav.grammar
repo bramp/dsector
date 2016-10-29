@@ -66,7 +66,11 @@
             </structure>
         </structure>
         <structure name="DataChunk" id="108" repeatmin="0" extends="id:55">
-            <string name="chunkID" mustmatch="yes" id="109" type="fixed-length" length="4" fixedval="data"/>
+            <string name="chunkID" mustmatch="yes" id="109" type="fixed-length" length="4">
+                <fixedvalues>
+                    <fixedvalue value="data" />
+                </fixedvalues>
+            </string>
             <number name="chunkSize" id="110" type="integer"/>
             <structure name="Contents" id="111">
                 <binary name="Samples" id="112" fillcolor="FE7E7B"/>
