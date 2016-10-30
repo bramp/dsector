@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -121,7 +121,7 @@ func (xml *XmlUfwb) transform() (*Ufwb, []error) {
 func (xml *XmlGrammar) transform(errs *toerr.Errors) Element {
 	g := &Grammar{
 		Xml:      xml,
-		Base:     xml.XmlIdName.toIdName("Grammar", errs),
+		Base:     xml.toBase("Grammar", errs),
 		Author:   xml.Author,
 		Ext:      xml.Ext,
 		Email:    xml.Email,
@@ -148,9 +148,9 @@ func (xml *XmlGrammar) transform(errs *toerr.Errors) Element {
 func (xml *XmlGrammarRef) transform(errs *toerr.Errors) Element {
 	return &GrammarRef{
 		Xml:  xml,
-		Base: xml.XmlIdName.toIdName("GrammarRef", errs),
+		Base: xml.toBase("GrammarRef", errs),
 
-		uti: xml.Uti,
+		uti:      xml.Uti,
 		filename: xml.Filename,
 		disabled: yesno(xml.Disabled, errs),
 	}
@@ -159,7 +159,7 @@ func (xml *XmlGrammarRef) transform(errs *toerr.Errors) Element {
 func (xml *XmlStructure) transform(errs *toerr.Errors) Element {
 	s := &Structure{
 		Xml:  xml,
-		Base: xml.XmlIdName.toIdName("Structure", errs),
+		Base: xml.toBase("Structure", errs),
 
 		length:       Reference(xml.Length),
 		lengthOffset: Reference(xml.LengthOffset),
@@ -192,7 +192,7 @@ func (xml *XmlStructure) transform(errs *toerr.Errors) Element {
 func (xml *XmlCustom) transform(errs *toerr.Errors) Element {
 	return &Custom{
 		Xml:  xml,
-		Base: xml.XmlIdName.toIdName("Custom", errs),
+		Base: xml.toBase("Custom", errs),
 
 		length:     Reference(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
@@ -207,7 +207,7 @@ func (xml *XmlCustom) transform(errs *toerr.Errors) Element {
 func (xml *XmlStructRef) transform(errs *toerr.Errors) Element {
 	return &StructRef{
 		Xml:  xml,
-		Base: xml.XmlIdName.toIdName("StructRef", errs),
+		Base: xml.toBase("StructRef", errs),
 
 		Repeats: xml.toRepeats(errs),
 
@@ -217,7 +217,6 @@ func (xml *XmlStructRef) transform(errs *toerr.Errors) Element {
 		},
 	}
 }
-
 
 // Parses a delimiter and returns the byte it represents. Currently the delimiter is required to
 // be exact two hex characters, representing a single byte.
@@ -232,7 +231,7 @@ func delimiterToByte(delimiter string, errs *toerr.Errors) byte {
 func (xml *XmlString) transform(errs *toerr.Errors) Element {
 	s := &String{
 		Xml:  xml,
-		Base: xml.XmlIdName.toIdName("String", errs),
+		Base: xml.toBase("String", errs),
 
 		typ:        xml.Type, // TODO Convert to "StringType" // "zero-terminated", "fixed-length", "pascal", "delimiter-terminated"
 		length:     Reference(xml.Length),
@@ -257,9 +256,9 @@ func (xml *XmlString) transform(errs *toerr.Errors) Element {
 
 	for _, x := range xml.Values {
 		s.values = append(s.values, &FixedStringValue{
-			Xml:   x,
-			name:  x.Name,
-			value: x.Value,
+			Xml:         x,
+			name:        x.Name,
+			value:       x.Value,
 			description: strings.TrimSpace(x.Description),
 		})
 	}
@@ -270,7 +269,7 @@ func (xml *XmlString) transform(errs *toerr.Errors) Element {
 func (xml *XmlBinary) transform(errs *toerr.Errors) Element {
 	b := &Binary{
 		Xml:  xml,
-		Base: xml.XmlIdName.toIdName("Binary", errs),
+		Base: xml.toBase("Binary", errs),
 
 		length:     Reference(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
@@ -294,9 +293,9 @@ func (xml *XmlBinary) transform(errs *toerr.Errors) Element {
 		}
 
 		b.values = append(b.values, &FixedBinaryValue{
-			Xml:   x,
-			name:  x.Name,
-			value: value,
+			Xml:         x,
+			name:        x.Name,
+			value:       value,
 			description: strings.TrimSpace(x.Description),
 		})
 	}
@@ -307,7 +306,7 @@ func (xml *XmlBinary) transform(errs *toerr.Errors) Element {
 func (xml *XmlNumber) transform(errs *toerr.Errors) Element {
 	n := &Number{
 		Xml:  xml,
-		Base: xml.XmlIdName.toIdName("Number", errs),
+		Base: xml.toBase("Number", errs),
 
 		Type: xml.Type, // TODO Convert to NumberType
 
@@ -331,8 +330,8 @@ func (xml *XmlNumber) transform(errs *toerr.Errors) Element {
 
 	for _, x := range xml.Values {
 		n.values = append(n.values, &FixedValue{
-			Xml:  x,
-			name: x.Name,
+			Xml:         x,
+			name:        x.Name,
 			description: strings.TrimSpace(x.Description),
 		})
 	}
@@ -347,7 +346,7 @@ func (xml *XmlNumber) transform(errs *toerr.Errors) Element {
 func (xml *XmlOffset) transform(errs *toerr.Errors) Element {
 	return &Offset{
 		Xml:  xml,
-		Base: xml.XmlIdName.toIdName("Offset", errs),
+		Base: xml.toBase("Offset", errs),
 
 		length:     Reference(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
@@ -359,29 +358,29 @@ func (xml *XmlOffset) transform(errs *toerr.Errors) Element {
 		display: display(xml.Display, errs),
 
 		followNullReference: yesno(xml.FollowNullReference, errs),
-		additional: xml.Additional, // TODO Validate
+		additional:          xml.Additional, // TODO Validate
 	}
 }
 
 func (xml *XmlScriptElement) transform(errs *toerr.Errors) Element {
 	return &ScriptElement{
 		Xml:  xml,
-		Base: xml.XmlIdName.toIdName("ScriptElement", errs),
+		Base: xml.toBase("ScriptElement", errs),
 	}
 }
 
 func (xml *XmlMask) transform(errs *toerr.Errors) *Mask {
 	m := &Mask{
-		Xml:  xml,
-		name: xml.Name,
+		Xml:         xml,
+		name:        xml.Name,
 		description: strings.TrimSpace(xml.Description),
 	}
 
 	for _, x := range xml.Values {
 		// TODO Do I need to change this to some other type?
 		m.values = append(m.values, &FixedValue{
-			Xml:  x,
-			name: x.Name,
+			Xml:         x,
+			name:        x.Name,
 			description: strings.TrimSpace(x.Description),
 		})
 	}

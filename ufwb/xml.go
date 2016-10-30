@@ -26,7 +26,7 @@ type XmlIdName struct {
 	Description string `xml:"description,omitempty"`
 }
 
-func (xml *XmlIdName) toIdName(elemType string, errs *toerr.Errors) Base {
+func (xml *XmlIdName) toBase(elemType string, errs *toerr.Errors) Base {
 	return Base{
 		elemType:    elemType,
 		id:          xml.Id,
@@ -80,7 +80,7 @@ type XmlGrammarRef struct {
 
 	XmlIdName
 
-	Uti string `xml:"uti,attr,omitempty"`
+	Uti      string `xml:"uti,attr,omitempty"`
 	Filename string `xml:"filename,attr,omitempty"`
 	Disabled string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 }
@@ -106,7 +106,7 @@ type XmlStructure struct {
 	Floating   string `xml:"floating,attr,omitempty"` // ??
 	ConsistsOf string `xml:"consists-of,attr,omitempty" ufwb:"id"`
 
-	Repeat    string `xml:"repeat,attr,omitempty" ufwb:"id"` // TODO What is this field?
+	Repeat string `xml:"repeat,attr,omitempty" ufwb:"id"` // TODO What is this field?
 
 	ValueExpression string `xml:"valueexpression,attr,omitempty"`
 	Debug           string `xml:"debug,attr,omitempty" ufwb:"bool"`
@@ -160,7 +160,7 @@ type XmlString struct {
 	Encoding  string `xml:"encoding,attr,omitempty" ufwb:"encoding"` // Should be valid encoding
 	MustMatch string `xml:"mustmatch,attr,omitempty" ufwb:"bool"`    // "yes", "no"
 
-	Delimiter  string `xml:"delimiter,attr,omitempty"`
+	Delimiter string `xml:"delimiter,attr,omitempty"`
 
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
@@ -222,7 +222,7 @@ type XmlOffset struct {
 	XmlRepeats
 
 	Length              string `xml:"length,attr,omitempty" ufwb:"ref"`
-	LengthUnit string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"` // "", "bit" (default "byte")
+	LengthUnit          string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"` // "", "bit" (default "byte")
 	Endian              string `xml:"endian,attr,omitempty" ufwb:"endian"`
 	RelativeTo          string `xml:"relative-to,attr,omitempty" ufwb:"id"`
 	FollowNullReference string `xml:"follownullreference,attr,omitempty"`
@@ -247,8 +247,8 @@ type XmlScriptElement struct {
 type XmlMask struct {
 	XMLName xml.Name `xml:"mask"`
 
-	Name  string `xml:"name,attr,omitempty"`
-	Value string `xml:"value,attr,omitempty"`
+	Name        string `xml:"name,attr,omitempty"`
+	Value       string `xml:"value,attr,omitempty"`
 	Description string `xml:"description,omitempty"`
 
 	Values []*XmlFixedValue `xml:"fixedvalue,omitempty"`
