@@ -35,6 +35,23 @@ func (xml *XmlIdName) toIdName(elemType string, errs *toerr.Errors) Base {
 	}
 }
 
+type XmlRepeats struct {
+	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
+	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
+}
+
+func (xml *XmlRepeats) toRepeats(errs *toerr.Errors) Repeats {
+	repeatMax := xml.RepeatMax
+	if repeatMax == "-1" {
+		repeatMax = "unlimited"
+	}
+
+	return Repeats{
+		repeatMin: Reference(xml.RepeatMin),
+		repeatMax: Reference(repeatMax),
+	}
+}
+
 type XmlUfwb struct {
 	XMLName xml.Name `xml:"ufwb"`
 
@@ -72,6 +89,7 @@ type XmlStructure struct {
 	XMLName xml.Name `xml:"structure"`
 
 	XmlIdName
+	XmlRepeats
 
 	Length     string `xml:"length,attr,omitempty" ufwb:"ref"`
 	LengthUnit string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"`
@@ -88,9 +106,7 @@ type XmlStructure struct {
 	Floating   string `xml:"floating,attr,omitempty"` // ??
 	ConsistsOf string `xml:"consists-of,attr,omitempty" ufwb:"id"`
 
-	Repeat    string `xml:"repeat,attr,omitempty" ufwb:"id"`
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
+	Repeat    string `xml:"repeat,attr,omitempty" ufwb:"id"` // TODO What is this field?
 
 	ValueExpression string `xml:"valueexpression,attr,omitempty"`
 	Debug           string `xml:"debug,attr,omitempty" ufwb:"bool"`
@@ -107,6 +123,7 @@ type XmlCustom struct {
 	XMLName xml.Name `xml:"custom"`
 
 	XmlIdName
+	// TODO XmlRepeats ?
 
 	Length     string `xml:"length,attr,omitempty" ufwb:"ref"`
 	LengthUnit string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"`
@@ -121,10 +138,9 @@ type XmlStructRef struct {
 	XMLName xml.Name `xml:"structref"`
 
 	XmlIdName
+	XmlRepeats
 
 	Structure string `xml:"structure,attr,omitempty" ufwb:"id"`
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
 
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
@@ -134,6 +150,7 @@ type XmlString struct {
 	XMLName xml.Name `xml:"string"`
 
 	XmlIdName
+	XmlRepeats
 
 	Type string `xml:"type,attr,omitempty" ufwb:"string-type"` // "zero-terminated", "fixed-length"
 
@@ -143,8 +160,7 @@ type XmlString struct {
 	Encoding  string `xml:"encoding,attr,omitempty" ufwb:"encoding"` // Should be valid encoding
 	MustMatch string `xml:"mustmatch,attr,omitempty" ufwb:"bool"`    // "yes", "no"
 
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
+	Delimiter  string `xml:"delimiter,attr,omitempty"`
 
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
@@ -156,12 +172,10 @@ type XmlBinary struct {
 	XMLName xml.Name `xml:"binary"`
 
 	XmlIdName
+	XmlRepeats
 
 	Length     string `xml:"length,attr,omitempty" ufwb:"ref"`
 	LengthUnit string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"` // "bit"
-
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
 
 	MustMatch string `xml:"mustmatch,attr,omitempty"  ufwb:"bool"`
 	Unused    string `xml:"unused,attr,omitempty" ufwb:"bool"`
@@ -177,9 +191,7 @@ type XmlNumber struct {
 	XMLName xml.Name `xml:"number"`
 
 	XmlIdName
-
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
+	XmlRepeats
 
 	Type       string `xml:"type,attr,omitempty" ufwb:"number-type"`
 	Length     string `xml:"length,attr,omitempty" ufwb:"ref"`
@@ -207,9 +219,7 @@ type XmlOffset struct {
 	XMLName xml.Name `xml:"offset"`
 
 	XmlIdName
-
-	RepeatMin string `xml:"repeatmin,attr,omitempty" ufwb:"ref"`
-	RepeatMax string `xml:"repeatmax,attr,omitempty" ufwb:"ref"`
+	XmlRepeats
 
 	Length              string `xml:"length,attr,omitempty" ufwb:"ref"`
 	LengthUnit string `xml:"lengthunit,attr,omitempty" ufwb:"lengthunit"` // "", "bit" (default "byte")

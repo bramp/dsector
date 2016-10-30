@@ -997,6 +997,20 @@ func (s *ScriptElement) SetRepeatMin(repeatMin Reference) {
 	s.repeatMin = repeatMin
 }
 
+func (s *String) Delimiter() byte {
+	if s.delimiter != 0 {
+		return s.delimiter
+	}
+	if s.extends != nil {
+		return s.extends.Delimiter()
+	}
+	return 0
+}
+
+func (s *String) SetDelimiter(delimiter byte) {
+	s.delimiter = delimiter
+}
+
 func (s *String) Description() string {
 	if s.description != "" {
 		return s.description

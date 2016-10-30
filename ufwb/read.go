@@ -188,8 +188,8 @@ func (s *String) Read(d *Decoder) (*Value, error) {
 	var v *Value
 
 	switch s.Typ() {
-	case "zero-terminated":
-		n, err := input.SeekUntil(d.f, '\x00', d.ParentBounds().End-start)
+	case "zero-terminated", "delimiter-terminated":
+		n, err := input.SeekUntil(d.f, s.delimiter, d.ParentBounds().End-start)
 		if err != nil {
 			return nil, &validationError{e: s, err: err}
 		}

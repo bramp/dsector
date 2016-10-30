@@ -299,12 +299,14 @@ type String struct {
 	extends *String
 	parent  *Structure
 
-	typ string // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
+	typ string // TODO Convert to "StringType" // "zero-terminated", "fixed-length", "pascal", "delimiter-terminated"
 
 	length     Reference  `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
 	encoding string `default:"\"UTF-8\""`
+
+	delimiter byte // Used when typ is "delimiter-terminated" or "zero-terminated"
 
 	mustMatch Bool `default:"True"`
 	values    []*FixedStringValue

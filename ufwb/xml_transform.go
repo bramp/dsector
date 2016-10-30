@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"strconv"
 )
 
 var (
@@ -164,10 +165,7 @@ func (xml *XmlStructure) transform(errs *toerr.Errors) Element {
 		lengthOffset: Reference(xml.LengthOffset),
 		lengthUnit:   lengthunit(xml.LengthUnit, errs),
 
-		Repeats: Repeats{
-			repeatMin: Reference(xml.RepeatMin),
-			repeatMax: Reference(xml.RepeatMax),
-		},
+		Repeats: xml.toRepeats(errs),
 
 		endian: endian(xml.Endian, errs),
 		signed: yesno(xml.Signed, errs),
@@ -207,15 +205,11 @@ func (xml *XmlCustom) transform(errs *toerr.Errors) Element {
 }
 
 func (xml *XmlStructRef) transform(errs *toerr.Errors) Element {
-
 	return &StructRef{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("StructRef", errs),
 
-		Repeats: Repeats{
-			repeatMin: Reference(xml.RepeatMin),
-			repeatMax: Reference(xml.RepeatMax),
-		},
+		Repeats: xml.toRepeats(errs),
 
 		Colourful: Colourful{
 			fillColour:   colour(xml.FillColour, errs),
@@ -224,27 +218,41 @@ func (xml *XmlStructRef) transform(errs *toerr.Errors) Element {
 	}
 }
 
+
+// Parses a delimiter and returns the byte it represents. Currently the delimiter is required to
+// be exact two hex characters, representing a single byte.
+func delimiterToByte(delimiter string, errs *toerr.Errors) byte {
+	b, err := strconv.ParseUint(delimiter, 16, 8)
+	if err != nil {
+		errs.Append(fmt.Errorf("invalid delimiter %q: %s", delimiter, err))
+	}
+	return byte(b)
+}
+
 func (xml *XmlString) transform(errs *toerr.Errors) Element {
 	s := &String{
 		Xml:  xml,
 		Base: xml.XmlIdName.toIdName("String", errs),
 
-		typ:        xml.Type, // TODO Convert to "StringType" // "zero-terminated", "fixed-length"
+		typ:        xml.Type, // TODO Convert to "StringType" // "zero-terminated", "fixed-length", "pascal", "delimiter-terminated"
 		length:     Reference(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
 		encoding:  xml.Encoding,
 		mustMatch: yesno(xml.MustMatch, errs),
 
-		Repeats: Repeats{
-			repeatMin: Reference(xml.RepeatMin),
-			repeatMax: Reference(xml.RepeatMax),
-		},
+		delimiter: delimiterToByte(xml.Delimiter, errs),
+
+		Repeats: xml.toRepeats(errs),
 
 		Colourful: Colourful{
 			fillColour:   colour(xml.FillColour, errs),
 			strokeColour: colour(xml.StrokeColour, errs),
 		},
+	}
+
+	if s.typ == "zero-terminated" {
+		s.delimiter = '\x00'
 	}
 
 	for _, x := range xml.Values {
@@ -267,10 +275,7 @@ func (xml *XmlBinary) transform(errs *toerr.Errors) Element {
 		length:     Reference(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
-		Repeats: Repeats{
-			repeatMin: Reference(xml.RepeatMin),
-			repeatMax: Reference(xml.RepeatMax),
-		},
+		Repeats: xml.toRepeats(errs),
 
 		Colourful: Colourful{
 			fillColour:   colour(xml.FillColour, errs),
@@ -309,10 +314,7 @@ func (xml *XmlNumber) transform(errs *toerr.Errors) Element {
 		length:     Reference(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
-		Repeats: Repeats{
-			repeatMin: Reference(xml.RepeatMin),
-			repeatMax: Reference(xml.RepeatMax),
-		},
+		Repeats: xml.toRepeats(errs),
 
 		endian: endian(xml.Endian, errs),
 		signed: yesno(xml.Signed, errs),
@@ -350,10 +352,7 @@ func (xml *XmlOffset) transform(errs *toerr.Errors) Element {
 		length:     Reference(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
-		Repeats: Repeats{
-			repeatMin: Reference(xml.RepeatMin),
-			repeatMax: Reference(xml.RepeatMax),
-		},
+		Repeats: xml.toRepeats(errs),
 
 		endian: endian(xml.Endian, errs),
 
