@@ -221,6 +221,10 @@ func (xml *XmlStructRef) transform(errs *toerr.Errors) Element {
 // Parses a delimiter and returns the byte it represents. Currently the delimiter is required to
 // be exact two hex characters, representing a single byte.
 func delimiterToByte(delimiter string, errs *toerr.Errors) byte {
+	if delimiter == "" {
+		return 0
+	}
+
 	b, err := strconv.ParseUint(delimiter, 16, 8)
 	if err != nil {
 		errs.Append(fmt.Errorf("invalid delimiter %q: %s", delimiter, err))
