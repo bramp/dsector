@@ -142,7 +142,7 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 				i++
 
 			default:
-				return nil, &validationError{e: s, err: fmt.Errorf("unknown order: %s", s.Order())}
+				return nil, &validationError{e: s, err: fmt.Errorf("unknown order: %d", s.Order())}
 			}
 		}
 	}

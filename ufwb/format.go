@@ -28,7 +28,7 @@ func (u *Ufwb) Format(file io.ReaderAt, value *Value) (string, error) {
 }
 
 func (p *Padding) Format(file io.ReaderAt, value *Value) (string, error) {
-	return fmt.Sprint("<padding len:%d>", value.Len), nil
+	return fmt.Sprintf("<padding len:%d>", value.Len), nil
 }
 
 func (g *Grammar) Format(file io.ReaderAt, value *Value) (string, error) {

@@ -71,7 +71,7 @@ func (d Display) Base() int {
 	case UnknownDisplay:
 		return 0
 	}
-	panic(fmt.Sprintf("unknown base %s", d))
+	panic(fmt.Sprintf("unknown base %d", d))
 }
 
 type LengthUnit int
@@ -256,11 +256,11 @@ type GrammarRef struct {
 	Repeats
 	extends *GrammarRef
 
-	uti string
+	uti      string
 	filename string
 	disabled Bool
 
-	grammar  *Grammar // TODO Actually load this!
+	grammar *Grammar // TODO Actually load this!
 }
 
 type Custom struct {
@@ -387,7 +387,6 @@ type Offset struct {
 	additional          string
 }
 
-
 type ScriptElement struct {
 	Xml *XmlScriptElement
 
@@ -404,8 +403,8 @@ type ScriptElement struct {
 type Mask struct {
 	Xml *XmlMask
 
-	name  string
-	value uint64 // The mask
+	name        string
+	value       uint64 // The mask
 	description string `parent:"false" extends:"false"`
 
 	values []*FixedValue
@@ -550,5 +549,5 @@ func (*Custom) RepeatMin() Reference {
 }
 
 func (*Custom) RepeatMax() Reference {
-	return Reference("1")  // TODO Change to a constant Reference (when such a thing exists)
+	return Reference("1") // TODO Change to a constant Reference (when such a thing exists)
 }

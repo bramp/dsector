@@ -19,9 +19,9 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 
 	if id := element.Id(); id != 0 {
 		// TODO Check we don't replace existing IDs
-		u.Elements["id:" + strconv.Itoa(id)] = element
-	//} else {
-	//	errs.Append(&validationError{e: element, err: errors.New("missing id field")})
+		u.Elements["id:"+strconv.Itoa(id)] = element
+		//} else {
+		//	errs.Append(&validationError{e: element, err: errors.New("missing id field")})
 	}
 
 	// I don't quite understand the index needed by name, as it is very common for many

@@ -24,7 +24,7 @@ type Eof interface {
 }
 
 type validationError struct {
-	e Element
+	e   Element
 	err error
 }
 
