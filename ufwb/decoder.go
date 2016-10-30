@@ -23,6 +23,10 @@ type ElementBounds struct {
 	End     int64
 }
 
+func (bounds *ElementBounds) Length() int64 {
+	return bounds.End - bounds.Start
+}
+
 func (bounds *ElementBounds) String() string {
 	return fmt.Sprintf("[0x%x-0x%x] %s", bounds.Start, bounds.End, bounds.Element.IdString())
 }

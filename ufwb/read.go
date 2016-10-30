@@ -52,8 +52,9 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 		return nil, &validationError{e: s, err: err}
 	}
 
+	// This Structure should not be bigger than the parent element
 	bounds := d.ParentBounds()
-	length := bounds.End - start
+	bounds_remaining := bounds.End - start
 
 	if DEBUG && bounds.Start > start {
 		panic(fmt.Sprintf("Starting before bounds %d < %d", start, bounds.Start))
@@ -70,9 +71,9 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 	elements := s.Elements() // TODO This doesn't work correctly with extends
 	eof := false
 
-	log.Debugf("[0x%x] Starting %s (bounds: [0x%x-0x%x], max length: %d)", start, s.IdString(), bounds.Start, bounds.End, length)
+	log.Debugf("[0x%x] Starting %s (bounds: [0x%x-0x%x], max length: %d)", start, s.IdString(), bounds.Start, bounds.End, bounds_remaining)
 
-	for value.Len < length && i < len(elements) {
+	for value.Len < bounds_remaining && i < len(elements) {
 		//log.Debugf("Loop %v, %v < %v, %v < %v", eof, childrenLength, length, i, len(elements))
 
 		e := elements[i]
@@ -150,23 +151,25 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 	// TODO Check if we read all children
 
 	if s.Length() != "" {
-		log.Debugf("%s Loop %v, %v < %v, %v < %v", s.IdString(), eof, value.Len, length, i, len(elements))
+		log.Debugf("%s Loop %v, %v < %v, %v < %v", s.IdString(), eof, value.Len, bounds_remaining, i, len(elements))
 
 		// TODO Is this an error?
-		if length > value.Len {
+		if bounds_remaining > value.Len {
+			log.Debugf("parent larger than children parent: %v, child: %v", bounds, value)
 			padding := &Value{
 				Offset:  start + value.Len,
-				Len:     length - value.Len,
+				Len:     bounds_remaining - value.Len,
 				Element: padElement,
 			}
 			value.Children = append(value.Children, padding)
-			value.Len = length
+			value.Len = bounds_remaining
 
-			// TODO remove this panic
+			// TODO Eventually remove this error, since padding may be valid (but right now we are parsing strictly)
 			panic(fmt.Sprintf("Shouldn't need to add any padding! %v", padding))
+			return value, fmt.Errorf("Shouldn't need to add any padding! %v", padding)
 
-		} else if length < value.Len {
-			panic(fmt.Sprintf("children length is greater than the structure length, %d vs %d", value.Len, length))
+		} else if bounds_remaining < value.Len {
+			panic(fmt.Sprintf("children length is greater than the structure length, %d vs %d", value.Len, bounds_remaining))
 		}
 	}
 
