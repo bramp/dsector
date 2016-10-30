@@ -156,27 +156,29 @@ func (d *Decoder) read(e Element) (*Value, error) {
 }
 
 // TODO Make this actually eval the string, and determine the right value
-func (d *Decoder) eval(r Reference) (int64, error) {
+func (d *Decoder) eval(r Reference) (i int64, err error) {
 	str := string(r)
 
-	if str == "remaining" {
-		return d.remaining()
+	switch {
+	case str == "remaining":
+		i, err = d.remaining()
+
+	case str == "unlimited":
+		i = math.MaxInt64
+
+	case strings.HasPrefix(str, "prev."):
+		i, err = d.prev(str)
+
+	default:
+		// Try a number // TODO Remove this path when we created ConstReferences
+		i, err = strconv.ParseInt(str, 10, 0)
+		if err != nil {
+			panic(err) // PANIC While we debug how eval should work. Eventually return error
+		}
 	}
 
-	if str == "unlimited" {
-		return math.MaxInt64, nil
-	}
-
-	if strings.HasPrefix(str, "prev.") {
-		return d.prev(str)
-	}
-
-	// Try a number
-	i, err := strconv.Atoi(str)
-	if err != nil {
-		panic(err) // PANIC While we debug how eval should work. Eventually return error
-	}
-	return int64(i), err
+	log.Debugf("eval(%q) = %d, %v", str, i, err)
+	return
 }
 
 // currentStruct returns the most recent structure on the stack
@@ -228,6 +230,7 @@ func (d *Decoder) prev(name string) (int64, error) {
 		return -1, fmt.Errorf("previous element %q must be a Number", name)
 	}
 
+	log.Debugf("prev(%q) value: %s", name, v)
 	return n.Int(d.f, v)
 }
 
