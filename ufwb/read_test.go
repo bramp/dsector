@@ -9,8 +9,6 @@ import (
 )
 
 const (
-	samplesPath = "../samples"
-
 	// commonHeader and commonFooter is prefixed to test data as it is common to all grammars
 	commonHeader = `<ufwb><grammar name="Test" start="1" author="bramp@"><structure id="99">`
 	commonFooter = `</structure></grammar></ufwb>`

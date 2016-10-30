@@ -126,17 +126,17 @@ func (s *String) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 
 	s.parent = parent
 
-	if s.Length() == "" {
-		if s.Typ() == "fixed-length" {
+	switch s.Typ() {
+	case "fixed-length":
+		if s.Length() == "" {
 			errs.Append(&validationError{e: s, err: errors.New("fixed-length strings requires a length")})
-
-		//} else if s.Typ() == "pascal" { // TODO I don't think this is strictly required, I just don't know how to handle them yet!
-		//	errs.Append(&validationError{e: s, err: errors.New("pascal strings requires a length")})
 		}
+	case "pascal":
+		// TODO I don't think this is strictly required, I just don't know how to handle them yet!
+		//	errs.Append(&validationError{e: s, err: errors.New("pascal strings requires a length")})
 	}
 
 	// TODO Check the FixedValues match the length
-
 	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
 }
 

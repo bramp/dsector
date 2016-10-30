@@ -252,6 +252,11 @@ func TestParserAll(t *testing.T) {
 		t.Fatalf("Failed to read grammar directory: %s", err)
 	}
 
+	// Skip over this grammars
+	skip := map[string]bool{
+		"bookmark.grammar": true, // error in file: `relativeTo \"id:217\" not found`
+	}
+
 	var found, good int
 	for _, file := range files {
 
@@ -259,6 +264,11 @@ func TestParserAll(t *testing.T) {
 		if path.Ext(test) != ".grammar" || file.IsDir() {
 			continue
 		}
+
+		if _, found := skip[path.Base(test)]; found {
+			continue
+		}
+
 		found++
 
 		in, err := readGrammar(test)
@@ -295,7 +305,6 @@ func TestParserAll(t *testing.T) {
 		t.Fatalf("Failed to find any grammars")
 	}
 
-	// TODO Got to Progress: 67/79 good
 	t.Logf("Progress: %d/%d good", good, found)
 	t.Logf("%v", AttrCounter)
 }

@@ -313,6 +313,7 @@ func (n *Number) int(file io.ReaderAt, value *Value) (interface{}, error) {
 		return 0, &assertationError{e: n, err: fmt.Errorf("trying to use wrong value %v", value)}
 	}
 
+	// Copy the value into a buffer first, because the ReaderAt interface is being used
 	b := make([]byte, value.Len, value.Len)
 	if _, err := file.ReadAt(b, value.Offset); err != nil {
 		return 0, &validationError{e: n, err: err}
