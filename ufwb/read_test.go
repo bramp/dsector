@@ -283,20 +283,20 @@ func TestRepeating(t *testing.T) {
 			</structure>` +
 		commonFooter
 
-	want :=
-		`Colours: (3 children)
-  [0] Colour: (3 children)
-    [0] Red: 0
-    [1] Green: 1
-    [2] Blue: 2
-  [1] Colour: (3 children)
-    [0] Red: 3
-    [1] Green: 4
-    [2] Blue: 5
-  [2] Colour: (3 children)
-    [0] Red: 6
-    [1] Green: 7
-    [2] Blue: 8`
+	want := `Test: (1 children)
+  [0] Colours: (3 children)
+    [0] Colour: (3 children)
+      [0] Red: 0
+      [1] Green: 1
+      [2] Blue: 2
+    [1] Colour: (3 children)
+      [0] Red: 3
+      [1] Green: 4
+      [2] Blue: 5
+    [2] Colour: (3 children)
+      [0] Red: 6
+      [1] Green: 7
+      [2] Blue: 8`
 
 	grammar, errs := ParseXmlGrammar(strings.NewReader(xml))
 	if len(errs) > 0 {
