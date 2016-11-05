@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/kylelemons/godebug/pretty"
 	"io"
+	"io/ioutil"
+	"path"
 	"reflect"
 	"sort"
 	"strings"
@@ -260,4 +262,61 @@ Line 3
 			t.Errorf("compareXML(%d): %s", i, err)
 		}
 	}
+}
+
+// Decode all grammars xml, but does not check if it is valid.
+func TestXmlDecodeAll(t *testing.T) {
+	files, err := ioutil.ReadDir(grammarsPath)
+	if err != nil {
+		t.Fatalf("Failed to read grammar directory: %s", err)
+	}
+
+	var found, good int
+	for _, file := range files {
+
+		test := file.Name()
+		if path.Ext(test) != ".grammar" || file.IsDir() {
+			continue
+		}
+
+		found++
+
+		in, err := readGrammar(test)
+		if err != nil {
+			t.Errorf("readGrammar(%s) = %s", test, err)
+			continue
+		}
+
+		// Decode
+		got := &XmlUfwb{}
+		decoder := xml.NewDecoder(bytes.NewReader(in))
+		if err := decoder.Decode(got); err != nil {
+			t.Errorf("Decode(%q) = %q", test, err)
+			continue
+		}
+
+		// Now write it back and see if it differs
+		var out bytes.Buffer
+		w := bufio.NewWriter(&out)
+		w.Write([]byte(xml.Header))
+		encoder := xml.NewEncoder(w)
+		if err := encoder.Encode(&got); err != nil {
+			t.Errorf("Encode(%q) = %s", test, err)
+			continue
+		}
+
+		if err := compareXML(bytes.NewReader(out.Bytes()), bytes.NewReader(in)); err != nil {
+			t.Errorf("compareXML(%q): %s", test, err)
+			continue
+		}
+
+		good++
+	}
+
+	if found == 0 {
+		t.Fatalf("Failed to find any grammars")
+	}
+
+	t.Logf("Progress: %d/%d good", good, found)
+	t.Logf("%v", AttrCounter)
 }
