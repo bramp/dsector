@@ -6,30 +6,8 @@ import (
 	"bramp.net/dsector/toerr"
 	"errors"
 	"fmt"
-	"sort"
 	"strconv"
 )
-
-var (
-	AttrCounter = make(map[string][]string) // For debugging only
-)
-
-// For debugging only
-// TODO Add as method as AttrCounter
-// TODO Delete
-func count(key, value string) {
-	a := AttrCounter[key]
-	if len(a) == 0 {
-		AttrCounter[key] = append(a, value)
-	} else {
-		i := sort.SearchStrings(a, value)
-		if i < len(a) && a[i] == value {
-			// Found, thus no need to add
-			return
-		}
-		AttrCounter[key] = append(a[:i], append([]string{value}, a[i:]...)...)
-	}
-}
 
 func (u *Ufwb) update() {
 	u.Version = u.Xml.Version

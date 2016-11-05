@@ -320,5 +320,4 @@ func TestXmlDecodeAll(t *testing.T) {
 	}
 
 	t.Logf("Progress: %d/%d good", good, found)
-	t.Logf("%v", AttrCounter)
 }
