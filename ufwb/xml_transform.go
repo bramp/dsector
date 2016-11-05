@@ -398,7 +398,7 @@ func (xml *XmlScript) transform(errs *toerr.Errors) *Script {
 	s := &Script{
 		Xml:  xml,
 		Name: xml.Name,
-		Type: "Script", // TODO Do I need this field?
+		Type: "Script",
 	}
 
 	if xml.Source != nil {

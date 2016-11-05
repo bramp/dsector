@@ -119,24 +119,6 @@ func compareXML(got, want io.Reader) error {
 	}
 }
 
-/*
-            <scriptelement name="JumpToEnd" id="26">
-                <script name="unnamed" type="Generic">
-                    <source language="Lua">byteView = currentMapper:getCurrentByteView()
-
-fileLength = byteView:getLength()
-
-currentGrammar = currentMapper:getCurrentGrammar()
-
--- get the structure we want to apply
-structure = currentGrammar:getStructureByName(&quot;ZIP end of central directory record&quot;)
-
-bytesProcessed = currentMapper:mapStructureAtPosition(structure, fileLength-22, 22)
-</source>
-                </script>
-            </scriptelement>
-*/
-
 func TestXmlDecode(t *testing.T) {
 
 	var tests = []struct {
@@ -230,6 +212,26 @@ Line 3
 						Language: "Python",
 						Text:     "# Some code",
 					}},
+				},
+			},
+		}, {
+			xml: `<scriptelement name="scriptelement">
+					<script id="1" name="script" type="Generic">
+						<source language="Lua">-- Some code</source>
+					</script>
+				</scriptelement>`,
+			want: &XmlScriptElement{
+				XMLName:   xml.Name{Local: "scriptelement"},
+				XmlIdName: XmlIdName{0, "scriptelement", ""},
+				Script: &XmlScript{
+					XMLName:   xml.Name{Local: "script"},
+					XmlIdName: XmlIdName{1, "script", ""},
+					Type:      "Generic",
+					Source: &XmlSource{
+						XMLName:  xml.Name{Local: "source"},
+						Language: "Lua",
+						Text:     "-- Some code",
+					},
 				},
 			},
 		},

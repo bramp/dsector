@@ -263,11 +263,11 @@ type XmlScript struct {
 
 	XmlIdName
 
-	Type     string     `xml:"type,attr,omitempty"` // DataType, Grammar
+	Type     string     `xml:"type,attr,omitempty"` // DataType, Grammar, Generic
 	Language string     `xml:"language,attr,omitempty" ufwb:"lang"`
 	Source   *XmlSource `xml:"source,omitempty"`
 
-	// Sometimes the text is defined here, or in the child Source element
+	// Sometimes the text is defined here, or in the child Source element (example esf.grammar)
 	Text string `xml:",chardata"` // TODO Should this be cdata?
 }
 
@@ -309,6 +309,7 @@ type nakedXmlStructure XmlStructure
 type nakedXmlString XmlString
 type nakedXmlNumber XmlNumber
 type nakedXmlBinary XmlBinary
+type nakedXmlScript XmlScript
 
 func unmarshalStartElement(v interface{}, start xml.StartElement) error {
 	// Because we implement our own UnmarshalXML, the attributes from the StartElement are not
@@ -341,6 +342,20 @@ func marshalStartElement(v interface{}) (xml.StartElement, error) {
 	return start.(xml.StartElement), err
 }
 
+func (s *XmlScript) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
+
+	if err := decoder.DecodeElement((*nakedXmlScript)(s), &start); err != nil {
+		return err
+	}
+
+	if s.Source != nil {
+		// If there is a source element, then the Text shouldn't be set
+		s.Text = ""
+	}
+
+	return nil
+}
+
 func (s *XmlScripts) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
 	for {
 		token, err := decoder.Token()
@@ -353,10 +368,6 @@ func (s *XmlScripts) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) 
 				element := &XmlScript{}
 				if err = decoder.DecodeElement(element, &token); err != nil {
 					return err
-				}
-				if element.Source != nil {
-					// If there is a source element, then the Text shouldn't be set
-					element.Text = ""
 				}
 				*s = append(([]*XmlScript)(*s), element)
 			} else {
