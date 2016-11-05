@@ -142,6 +142,8 @@ type XmlStructRef struct {
 
 	Structure string `xml:"structure,attr,omitempty" ufwb:"id"`
 
+	Disabled string `xml:"disabled,attr,omitempty" ufwb:"bool"`
+
 	FillColour   string `xml:"fillcolor,attr,omitempty" ufwb:"colour"`
 	StrokeColour string `xml:"strokecolor,attr,omitempty" ufwb:"colour"`
 }

@@ -211,6 +211,8 @@ func (xml *XmlStructRef) transform(errs *toerr.Errors) Element {
 
 		Repeats: xml.toRepeats(errs),
 
+		disabled: yesno(xml.Disabled, errs),
+
 		Colourful: Colourful{
 			fillColour:   colour(xml.FillColour, errs),
 			strokeColour: colour(xml.StrokeColour, errs),

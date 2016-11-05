@@ -283,6 +283,7 @@ type StructRef struct {
 	Base
 	Repeats
 	Colourful
+	disabled Bool
 
 	extends *StructRef
 
