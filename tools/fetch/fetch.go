@@ -1,6 +1,6 @@
 // fetch downloads all the synalysis format files
 // Shout out to https://github.com/wicast/xj2s for helping to generate the XML structs
-package main
+package main // import "bramp.net/dsector/tools/fetch"
 
 import (
 	"encoding/xml"
