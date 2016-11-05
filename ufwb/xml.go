@@ -295,15 +295,6 @@ type XmlFixedValue struct {
 	Description string `xml:"description,omitempty"`
 }
 
-/*
-func (xml *XmlFixedValue) transform(errs *Errors) *FixedValue {
-	return &FixedValue{
-		Xml:   xml,
-		name:  xml.Name,
-	}
-}
-*/
-
 // Types of the original elements but without the MarshalXML / UnmarshalXML methods on them.
 type nakedXmlStructure XmlStructure
 type nakedXmlString XmlString
@@ -395,7 +386,6 @@ func (s XmlScripts) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 // UnmarshalXML correctly unmarshals a Structure and its children.
 // This is needed because Go's xml parser doesn't handle the multiple unknown element, that
 // need to be kept in order.
-// TODO Do we need to keep things in order?
 func (s *XmlStructure) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
 
 	if err := unmarshalStartElement((*nakedXmlStructure)(s), start); err != nil {
@@ -457,25 +447,6 @@ func (s *XmlStructure) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement
 		}
 	}
 }
-
-/*
-func marshalFixedValues(encoder *xml.Encoder, values []FixedValue) (error) {
-	if len(values) == 0 {
-		return nil
-	}
-	if len(values) == 1 {
-		return encoder.Encode(values[0])
-	}
-
-	// TODO Check for returned error
-	start := xml.StartElement{Name: xml.Name{Local: "fixedvalues"}}
-	encoder.EncodeToken(start)
-	for _, value := range values {
-		encoder.Encode(value)
-	}
-	return encoder.EncodeToken(start.End())
-}
-*/
 
 func (s *XmlString) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
 	if err := unmarshalStartElement((*nakedXmlString)(s), start); err != nil {
@@ -647,18 +618,3 @@ func (n *XmlNumber) unmarshalFixedValues(decoder *xml.Decoder, start xml.StartEl
 		}
 	}
 }
-
-/*
-func (s *String) MarshalXML(encoder *xml.Encoder, start xml.StartElement) error {
-	// Replace start with a normally marshalled token
-	start, err := marshalStartElement((*nakedString)(s))
-	if err != nil {
-		return err
-	}
-
-	// TODO Check for returned error
-	encoder.EncodeToken(start)
-	marshalFixedValues(encoder, s.Values)
-	return encoder.EncodeToken(start.End())
-}
-*/
