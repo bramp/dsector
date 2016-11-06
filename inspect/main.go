@@ -1,4 +1,4 @@
-// Package inspect parses a file and prints its output.
+// Inspect parses a file and prints its output.
 package main
 
 import (

@@ -93,8 +93,8 @@ func normalise(root *Ufwb, element Element, parent *Structure, errs *toerr.Error
 	}
 }
 
+// TODO What is this test actually testing?
 func TestParseGrammarFragment(t *testing.T) {
-
 	var tests = []struct {
 		xml  string
 		want Element

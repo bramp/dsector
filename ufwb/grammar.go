@@ -11,8 +11,6 @@ import (
 )
 
 func indexer(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
-	_ = parent
-
 	// Handle Grammar's scripts, but otherwise skip over
 	if g, ok := element.(*Grammar); ok {
 		for _, s := range g.Scripts {
