@@ -256,10 +256,14 @@ func TestParserAll(t *testing.T) {
 
 	// Skip over this grammars
 	skip := map[string]bool{
-		"bookmark.grammar": true, // error in file: `relativeTo \"id:217\" not found`
+		"bookmark.grammar":       true, // error in file: `relativeTo \"id:217\" not found`
+		"PMDRedRomMap.grammar":   true, // Offset extends from Number
+		"PokemonROMData.grammar": true, // StructRef extends from Number
+		"cv.grammar":             true, // Binary extends from Structure
+		"elf32.grammar":          true, // duplicate scripts with same ID
 	}
 
-	var found, good int
+	var found, good, skipped int
 	for _, file := range files {
 
 		test := file.Name()
@@ -268,6 +272,7 @@ func TestParserAll(t *testing.T) {
 		}
 
 		if _, found := skip[path.Base(test)]; found {
+			skipped++
 			continue
 		}
 
@@ -296,5 +301,5 @@ func TestParserAll(t *testing.T) {
 		t.Fatalf("Failed to find any grammars")
 	}
 
-	t.Logf("Progress: %d/%d good", good, found)
+	t.Logf("Progress good:%d total:%d skipped:%d", good, found, skipped)
 }

@@ -65,7 +65,7 @@ func TestExtends(t *testing.T) {
 
 	e, found := grammar.Get("tcp4")
 	if !found {
-		t.Errorf("grammar.Get(\"tcp4\") = false, want true")
+		t.Errorf("grammar.Get(\"tcp4\") not found, want found")
 		return
 	}
 
