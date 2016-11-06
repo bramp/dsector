@@ -1,4 +1,4 @@
-# dsector [![Build Status](https://img.shields.io/travis/bramp/dsector.svg)](https://travis-ci.org/bramp/dsector) [![Coverage](https://img.shields.io/coveralls/bramp/dsector.svg)](https://coveralls.io/github/bramp/dsector) [![Report card](https://goreportcard.com/badge/github.com/bramp/dsector)](https://goreportcard.com/report/github.com/bramp/dsector)
+# dsector [![Build Status](https://img.shields.io/travis/bramp/dsector.svg)](https://travis-ci.org/bramp/dsector) [![Coverage](https://img.shields.io/coveralls/bramp/dsector.svg)](https://coveralls.io/github/bramp/dsector) [![Report card](https://goreportcard.com/badge/github.com/bramp/dsector)](https://goreportcard.com/report/github.com/bramp/dsector) [![GoDoc](https://godoc.org/github.com/bramp/dsector?status.svg)](https://godoc.org/github.com/bramp/dsector)
 by Andrew Brampton [bramp.net](https://bramp.net) (c) 2016
 
 <!-- [![GoDoc](https://godoc.org/github.com/bramp/dsector?status.svg)](https://godoc.org/github.com/bramp/dsector) -->
