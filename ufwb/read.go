@@ -13,6 +13,8 @@ import (
 	log "github.com/Sirupsen/logrus"
 )
 
+// Dummy Element, that is not actually found in the Grammar, but is used to represent padding
+// through the file
 var padElement = &Padding{Base: Base{"Padding", 0, "", ""}}
 
 func (u *Ufwb) Read(d *Decoder) (*Value, error) {

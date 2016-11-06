@@ -443,20 +443,33 @@ type FixedStringValue struct {
 	description string
 }
 
-// TODO Reconsider the script elements, as they don't need to correct match the XML
-type Script struct {
-	Xml *XmlScript
-
-	Name string
-
-	Type     string
-	Language string
-
-	Text string // TODO Sometimes there is a source element beneath this, pull it up into this field
-}
-
+// Padding is a pseudo Element created to represent unspecified regions in a file.
 type Padding struct {
 	Base
+}
+
+func (*Padding) Length() Reference {
+	return ""
+}
+
+func (*Padding) LengthUnit() LengthUnit {
+	return ByteLengthUnit
+}
+
+func (*Padding) RepeatMax() Reference {
+	return Reference("1")
+}
+
+func (*Padding) RepeatMin() Reference {
+	return Reference("1")
+}
+
+func (*Padding) SetExtends(e Element) error {
+	panic("This should not be called")
+}
+
+func (*Padding) update(*Ufwb, *Structure, *toerr.Errors) {
+	// Do nothing
 }
 
 type Elements []Element
