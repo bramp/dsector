@@ -132,16 +132,11 @@ func (s *String) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 }
 
 func (c *Custom) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
-	if e, found := u.Get(c.Xml.Script); found {
-		if s, ok := e.(*ScriptElement); ok {
-			c.script = s
-		} else {
-			errs.Append(&validationError{e: c, err: fmt.Errorf("script %q is not a Script Element", c.Xml.Script)})
-		}
+	if s, found := u.GetScript(c.Xml.Script); found {
+		c.script = s
 	} else {
 		errs.Append(&validationError{e: c, err: fmt.Errorf("script %q not found", c.Xml.Script)})
 	}
-
 }
 
 func (g *GrammarRef) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
@@ -176,16 +171,16 @@ func (o *Offset) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 	}
 }
 
-func (s *ScriptElement) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
-	if s.Script == nil {
-		errs.Append(&validationError{e: s, err: errors.New("missing child script tag")})
-	}
+func (s *Script) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
+	// TODO Check we support the language
+	// TODO Actually parse the language at this point
+	// TODO Finish Script
 }
 
 func (s *StructRef) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 	ref := s.Xml.Structure
 	if ref == "" {
-		// Old versions used the name, instead of a structure field
+		// Old versions used the name field, instead of a structure field
 		ref = s.Xml.Name
 	}
 
@@ -200,18 +195,3 @@ func (s *StructRef) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 		errs.Append(&validationError{e: s, err: fmt.Errorf("referenced struct %q not found", ref)})
 	}
 }
-
-func (s *Script) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
-	// TODO Check we support the language
-	// TODO Actually parse the language at this point
-}
-
-/*
-func (s *Source) build(u *XmlUfwb, parent *XmlScript) error {
-	s.language = s.Language
-	if s.language == "" {
-		s.language = parent.Language
-	}
-	panic("TODO")
-}
-*/

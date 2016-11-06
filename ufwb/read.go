@@ -396,7 +396,7 @@ func (o *Offset) Read(d *Decoder) (*Value, error) {
 	panic("TODO")
 }
 
-func (s *ScriptElement) Read(d *Decoder) (*Value, error) {
+func (s *Script) Read(d *Decoder) (*Value, error) {
 	panic("TODO")
 }
 

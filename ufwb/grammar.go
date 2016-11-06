@@ -4,6 +4,7 @@ package ufwb
 import (
 	"bramp.net/dsector/toerr"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -12,8 +13,21 @@ import (
 func indexer(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 	_ = parent
 
-	// Skip over Grammar elements
-	if _, ok := element.(*Grammar); ok {
+	// Handle Grammar's scripts, but otherwise skip over
+	if g, ok := element.(*Grammar); ok {
+		for _, s := range g.Scripts {
+			if id := s.Id(); id != 0 {
+				// TODO Check we don't replace existing IDs
+				key := "id:" + strconv.Itoa(id)
+				if _, found := u.Scripts[key]; found {
+					errs.Append(&validationError{e: s, err: errors.New("duplicate id field")})
+				}
+				u.Scripts[key] = s
+			} else {
+				errs.Append(&validationError{e: s, err: errors.New("missing id field")})
+			}
+		}
+
 		return
 	}
 
@@ -24,6 +38,7 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 		//	errs.Append(&validationError{e: element, err: errors.New("missing id field")})
 	}
 
+	// TODO Understand the index by name
 	// I don't quite understand the index needed by name, as it is very common for many
 	// Elements to share the same name. So, index only top level structs for now.
 
@@ -45,7 +60,7 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 func extender(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 	_ = parent
 
-	// Structure is the only XML element with an extends field
+	// Structure is the only XML element with an explicit extends field
 	s, ok := element.(*Structure)
 	if !ok {
 		// Skip non-structures

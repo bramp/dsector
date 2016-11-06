@@ -126,11 +126,11 @@ func (o *Offset) SetExtends(element Element) error {
 	return nil
 }
 
-func (s *ScriptElement) SetExtends(element Element) error {
-	parent, ok := element.(*ScriptElement)
+func (o *Script) SetExtends(element Element) error {
+	parent, ok := element.(*Script)
 	if !ok {
-		return cantExtendFromError(s, element)
+		return cantExtendFromError(o, element)
 	}
-	s.extends = parent
+	o.extends = parent
 	return nil
 }

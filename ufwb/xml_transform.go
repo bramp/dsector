@@ -112,6 +112,7 @@ func (xml *XmlUfwb) transform() (*Ufwb, []error) {
 		Xml:      xml,
 		Version:  xml.Version,
 		Elements: make(map[string]Element),
+		Scripts:  make(map[string]*Script),
 	}
 	u.Grammar = xml.Grammar.transform(errs).(*Grammar)
 
@@ -368,10 +369,41 @@ func (xml *XmlOffset) transform(errs *toerr.Errors) Element {
 	}
 }
 
+// Both XmlScriptElement and XmlScript return a Script struct
 func (xml *XmlScriptElement) transform(errs *toerr.Errors) Element {
-	return &ScriptElement{
+	s := &Script{
 		Xml:  xml,
-		Base: xml.toBase("ScriptElement", errs),
+		Base: xml.toBase("Script", errs),
+	}
+
+	if xml.Script != nil {
+		xml.Script.transformInto(s, errs)
+	}
+	return s
+}
+
+func (xml *XmlScript) transform(errs *toerr.Errors) *Script {
+	s := &Script{
+		Base: xml.toBase("Script", errs),
+	}
+
+	xml.transformInto(s, errs)
+	return s
+}
+
+func (xml *XmlScript) transformInto(s *Script, errs *toerr.Errors) {
+	s.XmlScript = xml
+	s.typ = xml.Type
+
+	if xml.Source != nil {
+		s.text = strings.TrimSpace(xml.Source.Text)
+		s.language = xml.Source.Language
+	} else {
+		s.text = strings.TrimSpace(xml.Text)
+	}
+
+	if s.language == "" {
+		s.language = xml.Language
 	}
 }
 
@@ -392,25 +424,4 @@ func (xml *XmlMask) transform(errs *toerr.Errors) *Mask {
 	}
 
 	return m
-}
-
-func (xml *XmlScript) transform(errs *toerr.Errors) *Script {
-	s := &Script{
-		Xml:  xml,
-		Name: xml.Name,
-		Type: "Script",
-	}
-
-	if xml.Source != nil {
-		s.Text = xml.Source.Text
-		s.Language = xml.Source.Language
-	} else {
-		s.Text = xml.Text
-	}
-
-	if s.Language == "" {
-		s.Language = xml.Language
-	}
-
-	return s
 }

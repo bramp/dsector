@@ -233,6 +233,7 @@ func TestParseGrammar(t *testing.T) {
 		// Remove all the XML fields, as we don't want to compare them
 		got.Xml = nil
 		got.Elements = nil
+		got.Scripts = nil
 		errs = Walk(got, normalise)
 		if len(errs) > 0 {
 			t.Errorf("Walk(test:%d) errors: %s", i, errs)

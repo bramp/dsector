@@ -198,7 +198,7 @@ func (n *Offset) Format(file io.ReaderAt, value *Value) (string, error) {
 	panic("TODO")
 }
 
-func (n *ScriptElement) Format(file io.ReaderAt, value *Value) (string, error) {
+func (n *Script) Format(file io.ReaderAt, value *Value) (string, error) {
 	panic("TODO")
 }
 

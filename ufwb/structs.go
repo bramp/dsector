@@ -154,6 +154,7 @@ type Ufwb struct {
 	Grammar *Grammar
 
 	Elements map[string]Element
+	Scripts  map[string]*Script
 }
 
 // Base is what all Elements implement
@@ -273,7 +274,7 @@ type Custom struct {
 	length     Reference  `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
-	script *ScriptElement
+	script *Script
 }
 
 type StructRef struct {
@@ -380,24 +381,28 @@ type Offset struct {
 
 	display Display `default:"DecDisplay"`
 
-	relativeTo          Element
+	relativeTo          ElementId
 	followNullReference Bool
-	references          Element
-	referencedSize      Element
+	references          ElementId
+	referencedSize      ElementId
 	additional          string
 }
 
-type ScriptElement struct {
+type Script struct {
 	Xml *XmlScriptElement
 
 	Base
-	Repeats // TODO Do Script elements really have this?
+	Repeats
 
-	extends *ScriptElement
+	extends *Script
 
 	//Disabled bool
 
-	Script *Script
+	XmlScript *XmlScript
+	typ       string
+	language  string
+
+	text string
 }
 
 type Mask struct {
@@ -535,12 +540,12 @@ func (g *Grammar) LengthUnit() LengthUnit {
 	return ByteLengthUnit // Always unset
 }
 
-func (s *ScriptElement) Length() Reference {
+func (s *Script) Length() Reference {
 	// ScriptElements have no form, thus no length
 	return "0" // TODO Change to a constant Reference (when such a thing exists)
 }
 
-func (s *ScriptElement) LengthUnit() LengthUnit {
+func (s *Script) LengthUnit() LengthUnit {
 	return ByteLengthUnit
 }
 
