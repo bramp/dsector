@@ -9,6 +9,8 @@ import (
 )
 
 func (u *Ufwb) Get(id string) (Element, bool) {
+	// If the id is a parsable number, then assume it is looking for a id, otherwise use the string
+	// as is.
 	if _, err := strconv.Atoi(id); err == nil {
 		id = "id:" + id
 	}
@@ -27,7 +29,6 @@ func (u *Ufwb) GetScript(id string) (*Script, bool) {
 }
 
 func (g *Grammar) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
-
 	if e, found := u.Get(g.Xml.Start); found {
 		if s, ok := e.(Element); ok {
 			g.Start = s

@@ -33,24 +33,21 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 
 	if id := element.Id(); id != 0 {
 		// TODO Check we don't replace existing IDs
-		u.Elements["id:"+strconv.Itoa(id)] = element
-		//} else {
-		//	errs.Append(&validationError{e: element, err: errors.New("missing id field")})
+		key := "id:" + strconv.Itoa(id)
+		if _, found := u.Elements[key]; found {
+			errs.Append(&validationError{e: element, err: fmt.Errorf("%q already exists in index", key)})
+		}
+		u.Elements[key] = element
 	}
 
-	// TODO Understand the index by name
-	// I don't quite understand the index needed by name, as it is very common for many
-	// Elements to share the same name. So, index only top level structs for now.
-
-	// Only index Structures by name
+	// Only index top level Structures by name
 	if _, ok := element.(*Structure); !ok || parent != nil {
 		return
 	}
 
 	if name := element.Name(); name != "" {
-		if _, exists := u.Elements[name]; exists {
-			// TODO Add more info about the element being replaced
-			errs.Append(&validationError{e: element, err: fmt.Errorf("indexer replacing existing element %q", name)})
+		if _, found := u.Elements[name]; found {
+			errs.Append(&validationError{e: element, err: fmt.Errorf("%q already exists in index", name)})
 		}
 		u.Elements[name] = element
 	}
@@ -58,8 +55,6 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 
 // extender finds all structures, and ensures all their children extend from the correct elements.
 func extender(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
-	_ = parent
-
 	// Structure is the only XML element with an explicit extends field
 	s, ok := element.(*Structure)
 	if !ok {
@@ -68,6 +63,11 @@ func extender(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 	}
 
 	if s.Xml.Extends != "" {
+		if parent != nil {
+			errs.Append(&validationError{e: element, err: fmt.Errorf("only top level structs are allowed to extend: %q", s.Xml.Extends)})
+			return
+		}
+
 		e, ok := u.Get(s.Xml.Extends)
 		if !ok {
 			errs.Append(&validationError{e: element, err: fmt.Errorf("extends element %q not found", s.Xml.Extends)})
