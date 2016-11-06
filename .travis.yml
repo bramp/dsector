@@ -2,6 +2,9 @@ go_import_path: bramp.net/dsector
 language: go
 sudo: false
 
+env:
+  - LOGLEVEL=info
+
 # Earlier than 1.7 are not supported
 go:
   - 1.7

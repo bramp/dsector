@@ -3,13 +3,22 @@ package ufwb
 import (
 	"bytes"
 	log "github.com/Sirupsen/logrus"
+	"os"
 	"time"
 )
 
 func init() {
 	log.SetLevel(log.DebugLevel)
-	//log.SetLevel(log.PanicLevel) // Effectively disables logging
 	log.SetFormatter(&SimpleFormatter{})
+
+	if level := os.Getenv("LOGLEVEL"); level != "" {
+		def, err := log.ParseLevel(level)
+		if err == nil {
+			log.SetLevel(def)
+		} else {
+			log.Infof("Failed to set log level: %s", err)
+		}
+	}
 }
 
 type SimpleFormatter struct{}
