@@ -8,6 +8,7 @@ import (
 
 func init() {
 	log.SetLevel(log.DebugLevel)
+	//log.SetLevel(log.PanicLevel) // Effectively disables logging
 	log.SetFormatter(&SimpleFormatter{})
 }
 
