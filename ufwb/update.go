@@ -24,12 +24,25 @@ func (u *Ufwb) Get(id string) (Element, bool) {
 	return e, found
 }
 
+func (u *Ufwb) GetScript(id string) (*Script, bool) {
+	if _, err := strconv.Atoi(id); err == nil {
+		id = "id:" + id
+	}
+
+	e, found := u.Scripts[id]
+	return e, found
+}
+
 func (g *Grammar) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 
 	if e, found := u.Get(g.Xml.Start); found {
-		g.Start = e
+		if s, ok := e.(Element); ok {
+			g.Start = s
+		} else {
+			errs.Append(&validationError{e: g, err: fmt.Errorf("start element %q is not a Element", g.Xml.Start)})
+		}
 	} else {
-		errs.Append(&validationError{e: g, err: fmt.Errorf("start struct %q not found", g.Xml.Start)})
+		errs.Append(&validationError{e: g, err: fmt.Errorf("start element %q not found", g.Xml.Start)})
 	}
 }
 

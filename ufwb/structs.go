@@ -115,15 +115,13 @@ type Repeatable interface {
 	RepeatMax() Reference
 }
 
-// ElementLite is a light weight Element, one that only has a ID and a formatter.
-type ElementLite interface {
+// ElementId holds the the basic identifer for a Element
+type ElementId interface {
 	Id() int
 	Name() string
 	Description() string
 
 	IdString() string
-
-	Formatter
 }
 
 type Lengthable interface {
@@ -132,13 +130,14 @@ type Lengthable interface {
 }
 
 type Element interface {
-	ElementLite
+	ElementId
 
 	Reader
 	Lengthable
 	Repeatable
 	Updatable
 	Extendable
+	Formatter
 
 	// TODO Add Colourful here
 }
@@ -203,7 +202,7 @@ type Grammar struct {
 	Complete Bool
 	Uti      string
 
-	Start    Element // TODO Is this always a Structure?
+	Start    Element // This should  be a structure, but we allow it to be other element types
 	Scripts  []*Script
 	Elements []Element
 }

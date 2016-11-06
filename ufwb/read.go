@@ -60,7 +60,7 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 		panic(fmt.Sprintf("Starting before bounds %d < %d", start, bounds.Start))
 	}
 
-	childrenCount := make(map[ElementLite]int64)
+	childrenCount := make(map[ElementId]int64)
 
 	value := &Value{
 		Offset:  start,

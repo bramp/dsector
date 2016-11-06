@@ -66,7 +66,9 @@ func extender(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 }
 
 func updater(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
-	element.update(u, parent, errs)
+	if e, ok := element.(Updatable); ok {
+		e.update(u, parent, errs)
+	}
 }
 
 func ParseXmlGrammar(r io.Reader) (*Ufwb, []error) {

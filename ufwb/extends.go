@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func cantExtendFromError(child, parent Element) error {
+func cantExtendFromError(child, parent ElementId) error {
 	return &validationError{e: child, err: fmt.Errorf("element can't extend from %T", parent)}
 }
 

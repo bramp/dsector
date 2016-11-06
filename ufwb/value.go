@@ -12,7 +12,7 @@ import (
 type Value struct {
 	Offset  int64 // In bytes from the beginning of the file
 	Len     int64 // In bytes
-	Element ElementLite
+	Element Element
 	Extra   interface{} // Extra info defined by the Element
 
 	Children []*Value

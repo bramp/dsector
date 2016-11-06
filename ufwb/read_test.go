@@ -179,24 +179,25 @@ func TestReadNumber(t *testing.T) {
 		}
 		numValue := got.Children[0]
 
+		n := num.(*Number)
 		// Decimal
-		num.(*Number).SetDisplay(DecDisplay)
-		s, err := num.Format(file, numValue)
+		n.SetDisplay(DecDisplay)
+		s, err := n.Format(file, numValue)
 		if err != nil {
-			t.Errorf("dec num.Format(..., %v) error = %q want nil error", numValue, err)
+			t.Errorf("dec n.Format(..., %v) error = %q want nil error", numValue, err)
 		}
 		if s != test.wantDec {
-			t.Errorf("dec num.Format(..., %v) = %q want %q", numValue, s, test.wantDec)
+			t.Errorf("dec n.Format(..., %v) = %q want %q", numValue, s, test.wantDec)
 		}
 
 		// Hex
-		num.(*Number).SetDisplay(HexDisplay)
-		s, err = num.Format(file, numValue)
+		n.SetDisplay(HexDisplay)
+		s, err = n.Format(file, numValue)
 		if err != nil {
-			t.Errorf("hex num.Format(...) error = %q want nil error", err)
+			t.Errorf("hex n.Format(...) error = %q want nil error", err)
 		}
 		if s != test.wantHex {
-			t.Errorf("hex num.Format(...) = %q want %q", s, test.wantHex)
+			t.Errorf("hex n.Format(...) = %q want %q", s, test.wantHex)
 		}
 	}
 }
@@ -261,7 +262,7 @@ func TestReadString(t *testing.T) {
 			continue
 		}
 
-		s, err := str.Format(file, got)
+		s, err := str.(Formatter).Format(file, got)
 		if err != nil {
 			t.Errorf("str.Format(...) error = %q want nil error", err)
 		}
