@@ -4,18 +4,11 @@ package ufwb
 
 import (
 	"bramp.net/dsector/toerr"
-	"errors"
 	"fmt"
 	"strconv"
 )
 
-func (u *Ufwb) update() {
-	u.Version = u.Xml.Version
-	u.Elements = make(map[string]Element)
-}
-
 func (u *Ufwb) Get(id string) (Element, bool) {
-
 	if _, err := strconv.Atoi(id); err == nil {
 		id = "id:" + id
 	}
@@ -117,15 +110,17 @@ func (s *String) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 
 	s.parent = parent
 
-	switch s.Typ() {
-	case "fixed-length":
-		if s.Length() == "" {
-			errs.Append(&validationError{e: s, err: errors.New("fixed-length strings requires a length")})
+	/*
+		switch s.Typ() {
+		//case "fixed-length":
+			//if s.Length() == "" {
+			//	errs.Append(&validationError{e: s, err: errors.New("fixed-length strings requires a length")})
+			//}
+		case "pascal":
+			// TODO I don't think this is strictly required, I just don't know how to handle them yet!
+			//	errs.Append(&validationError{e: s, err: errors.New("pascal strings requires a length")})
 		}
-	case "pascal":
-		// TODO I don't think this is strictly required, I just don't know how to handle them yet!
-		//	errs.Append(&validationError{e: s, err: errors.New("pascal strings requires a length")})
-	}
+	*/
 
 	// TODO Check the FixedValues match the length
 	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
