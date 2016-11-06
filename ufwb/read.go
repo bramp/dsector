@@ -167,8 +167,7 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 			value.Len = bounds_remaining
 
 			// TODO Eventually remove this error, since padding may be valid (but right now we are parsing strictly)
-			panic(fmt.Sprintf("Shouldn't need to add any padding! %v", padding))
-			return value, fmt.Errorf("Shouldn't need to add any padding! %v", padding)
+			panic(fmt.Sprintf("While developing we shouldn't need to add any padding! %v", padding))
 
 		} else if bounds_remaining < value.Len {
 			panic(fmt.Sprintf("children length is greater than the structure length, %d vs %d", value.Len, bounds_remaining))

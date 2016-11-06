@@ -92,8 +92,12 @@ func fetch(format Format) {
 	name := path.Base(format.Grammar.Url)
 
 	out, err := os.Create(name)
+	if err != nil {
+		log.Fatalf("Failed to create %s: %s", name, err)
+	}
+
 	if _, err := io.Copy(out, resp.Body); err != nil {
-		log.Printf("Failed to save %s: %s", name, err)
+		log.Fatalf("Failed to save %s: %s", name, err)
 	}
 }
 

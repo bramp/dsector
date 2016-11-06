@@ -149,7 +149,7 @@ func (d *Decoder) read(e Element) (*Value, error) {
 			}
 		}
 
-		d.prevMap[v.Element.Name()] = v // TODO I'm not sure if this is the best defintion of "last"
+		d.prevMap[v.Element.Name()] = v // TODO I'm not sure if this is the right definition of "last"
 	}
 
 	return v, err

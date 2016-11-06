@@ -9,13 +9,13 @@ var (
 	// Valid values for tagged fields. The first value is the default if otherwise not specified.
 	// TODO Drop this table, as we correctly parse them all out
 	validValues = map[string][]string{
-		"bool":        []string{"no", "yes"},
-		"endian":      []string{"little", "big", "dynamic"},
-		"lang":        []string{"Lua", "Python"},
-		"lengthunit":  []string{"byte", "bit"},
-		"display":     []string{"dec", "hex", "binary"}, // TODO Maybe "offset"? // TODO "dec" was a guess
-		"string-type": []string{"zero-terminated", "fixed-length", "pascal"},
-		"number-type": []string{"integer", "float"},
+		"bool":        {"no", "yes"},
+		"endian":      {"little", "big", "dynamic"},
+		"lang":        {"Lua", "Python"},
+		"lengthunit":  {"byte", "bit"},
+		"display":     {"dec", "hex", "binary"}, // TODO Maybe "offset"? // TODO "dec" was a guess
+		"string-type": {"zero-terminated", "fixed-length", "pascal"},
+		"number-type": {"integer", "float"},
 	}
 )
 

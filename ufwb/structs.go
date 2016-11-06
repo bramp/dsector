@@ -1,6 +1,6 @@
 //go:ignore generate stringer -type Endian,Display,LengthUnit,Order
-//go:generate getter -type Grammar,GrammarRef,Custom,String,Structure,StructRef,Binary,Number,Offset,ScriptElement,FixedValue
-// TODO Consider moving this into a seperate package, so that the parser can't use the unexported fields (and forced to go via Getters, which "do the right thing" wrt extending and defaults.
+//go:generate getter -type Grammar,GrammarRef,Custom,String,Structure,StructRef,Binary,Number,Offset,Script
+// TODO Consider moving this into a separate package, so that the parser can't use the unexported fields (and forced to go via Getters, which "do the right thing" wrt extending and defaults.
 package ufwb
 
 import (
