@@ -9,9 +9,11 @@ import (
 )
 
 const (
-	// commonHeader and commonFooter is prefixed to test data as it is common to all grammars
-	commonHeader = `<ufwb><grammar name="Test" start="1" author="bramp@"><structure id="99">`
-	commonFooter = `</structure></grammar></ufwb>`
+	// testHeader and testFooter is prefixed to test data as it is common to all grammars
+	testHeader       = `<ufwb><grammar name="Test" start="99" author="bramp@">`
+	testStructHeader = testHeader + `<structure id="99">`
+	testStructFooter = `</structure>` + testFooter
+	testFooter       = `</grammar></ufwb>`
 )
 
 func testFile(t *testing.T, grammar *Ufwb, filename string, expectErr bool) {
@@ -147,7 +149,7 @@ func TestReadNumber(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		xml := commonHeader + test.xml + commonFooter
+		xml := testStructHeader + test.xml + testStructFooter
 		grammar, errs := ParseXmlGrammar(strings.NewReader(xml))
 		if len(errs) > 0 {
 			t.Errorf("ParseXmlGrammar(%q) = %q want nil error", test.xml, errs)
@@ -173,11 +175,11 @@ func TestReadNumber(t *testing.T) {
 			continue
 		}
 
-		if len(got.Children) == 0 {
-			t.Errorf("value has no children")
+		numValue, found := got.find(num)
+		if !found {
+			t.Errorf("no Number value decoded")
 			continue
 		}
-		numValue := got.Children[0]
 
 		n := num.(*Number)
 		// Decimal
@@ -228,7 +230,7 @@ func TestReadString(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		xml := commonHeader + test.xml + commonFooter
+		xml := testStructHeader + test.xml + testStructFooter
 		grammar, errs := ParseXmlGrammar(strings.NewReader(xml))
 		if len(errs) > 0 {
 			t.Errorf("ParseXmlGrammar(%q) = %q want nil error", test.xml, errs)
@@ -256,13 +258,19 @@ func TestReadString(t *testing.T) {
 			continue
 		}
 
-		if got.Offset != test.want.Offset || got.Len != test.want.Len {
-			t.Errorf("got{Offset: %d, Len: %d} != want{Offset: %d, Len: %d}",
-				got.Offset, got.Len, test.want.Offset, test.want.Len)
+		strValue, found := got.find(str)
+		if !found {
+			t.Errorf("no String value decoded")
 			continue
 		}
 
-		s, err := str.(Formatter).Format(file, got)
+		if strValue.Offset != test.want.Offset || strValue.Len != test.want.Len {
+			t.Errorf("strValue{Offset: %d, Len: %d} != want{Offset: %d, Len: %d}",
+				strValue.Offset, strValue.Len, test.want.Offset, test.want.Len)
+			continue
+		}
+
+		s, err := str.Format(file, strValue)
 		if err != nil {
 			t.Errorf("str.Format(...) error = %q want nil error", err)
 		}
@@ -274,15 +282,14 @@ func TestReadString(t *testing.T) {
 
 func TestRepeating(t *testing.T) {
 	binary := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8}
-	xml := commonHeader +
-		`<structure name="Colours" id="1">
-				<structure name="Colour" id="2" repeatmax="unlimited">
-					<number name="Red"   id="3" type="integer" length="1"/>
-					<number name="Green" id="4" type="integer" length="1"/>
-					<number name="Blue"  id="5" type="integer" length="1"/>
-				</structure>
-			</structure>` +
-		commonFooter
+	xml := testHeader +
+		`<structure name="Colours" id="99">
+			<structure name="Colour" id="2" repeatmax="unlimited">
+				<number name="Red"   id="3" type="integer" length="1"/>
+				<number name="Green" id="4" type="integer" length="1"/>
+				<number name="Blue"  id="5" type="integer" length="1"/>
+			</structure>
+		</structure>` + testFooter
 
 	want := `Test: (1 children)
   [0] Colours: (3 children)

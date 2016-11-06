@@ -121,23 +121,23 @@ func TestParseGrammarFragment(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		xml := commonHeader + test.xml + commonFooter
-		got, errs := ParseXmlGrammar(strings.NewReader(xml))
+		xml := testStructHeader + test.xml + testStructFooter
+		grammar, errs := ParseXmlGrammar(strings.NewReader(xml))
 		if len(errs) > 0 {
-			t.Errorf("Parse(test:%d) = %s", i, errs)
+			t.Errorf("ParseXmlGrammar(test:%d) errs: %s, want none", i, errs)
 			continue
 		}
 
 		// Remove all the XML fields, as we don't want to compare them
-		start := got.Grammar.Start
-		errs = Walk(got, normalise)
+		got, _ := grammar.Get("1")
+		errs = WalkFrom(grammar, got, normalise)
 		if len(errs) > 0 {
-			t.Errorf("Walk(test:%d) errors: %s", i, errs)
+			t.Errorf("Walk(test:%d) errs: %s, want none", i, errs)
 			continue
 		}
 
-		if diff := config.Compare(start, test.want); diff != "" {
-			t.Errorf("Parse(test:%d) = -got +want:\n%s", i, diff)
+		if diff := config.Compare(got, test.want); diff != "" {
+			t.Errorf("ParseXmlGrammar(test:%d) = -got +want:\n%s", i, diff)
 		}
 	}
 }

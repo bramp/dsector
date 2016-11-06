@@ -8,47 +8,50 @@ import (
 
 func TestExtends(t *testing.T) {
 	// A more complex extends example (modified from a real packet capture).
-	xml := commonHeader +
-		`<structure name="packets" id="1">
-				<structure name="eth" id="2">
-					<binary name="eth_dst" id="5" length="6"/>
-					<binary name="eth_src" id="6" length="6"/>
-					<number name="eth.type" id="7" mustmatch="yes" type="integer" length="2">
-						<fixedvalues>
-							<fixedvalue name="IPv4 Packet" value="0x800"/>
-							<fixedvalue name="ARP Frame" value="0x806"/>
-							<fixedvalue name="IPv6 Packet" value="0x86DD"/>
-						</fixedvalues>
-					</number>
-				</structure>
+	xml := testHeader +
+		`<structure name="packets" id="99" order="variable">
+			<structref name="IPv4 TCP Packet" repeatmin="0" structure="tcp4"/>
+			<structref name="IPv4 Packet" repeatmin="0" structure="ip4"/>
+			<structref name="Ethernet Frame" repeatmin="0" structure="eth"/>
+		</structure>
 
-				<structure name="ip4" id="3" extends="id:2">
-					<binary name="eth_dst" id="8"/>
-					<binary name="eth_src" id="9"/>
-					<number name="eth.type" id="10" type="integer">
-						<fixedvalues>
-							<!-- This should replace the 3 possible options -->
-							<fixedvalue name="IPv4 Packet" value="0x800"/>
-						</fixedvalues>
-					</number>
-					<!-- TODO 4 bit numbers are not yet supported :( -->
-					<number name="ip.version" id="11" type="integer" length="4" lengthunit="bit"/>
-					<number name="ip.hdr_len" id="12" type="integer" length="4" lengthunit="bit"/>
-            		<number name="ip.proto" mustmatch="yes" id="13" type="integer" length="1"/>
-				</structure>
+		<structure name="eth" id="2">
+			<binary name="eth_dst" id="5" length="6"/>
+			<binary name="eth_src" id="6" length="6"/>
+			<number name="eth.type" id="7" mustmatch="yes" type="integer" length="2">
+				<fixedvalues>
+					<fixedvalue name="IPv4 Packet" value="0x800"/>
+					<fixedvalue name="ARP Frame" value="0x806"/>
+					<fixedvalue name="IPv6 Packet" value="0x86DD"/>
+				</fixedvalues>
+			</number>
+		</structure>
 
-        		<structure name="tcp4" id="4" extends="id:3">
-					<number name="ip.version" id="14" type="integer"/>
-					<number name="ip.proto" id="15" type="integer">
-						<fixedvalues>
-							<fixedvalue name="TCP" value="6"/>
-						</fixedvalues>
-					</number>
-					<number name="tcp.srcport" id="16" type="integer" length="2"/>
-					<number name="tcp.dstport" id="17" type="integer" length="2"/>
-				</structure>
-			</structure>` +
-		commonFooter
+		<structure name="ip4" id="3" extends="id:2">
+			<binary name="eth_dst" id="8"/>
+			<binary name="eth_src" id="9"/>
+			<number name="eth.type" id="10" type="integer">
+				<fixedvalues>
+					<!-- This should replace the 3 possible options -->
+					<fixedvalue name="IPv4 Packet" value="0x800"/>
+				</fixedvalues>
+			</number>
+			<!-- TODO 4 bit numbers are not yet supported :( -->
+			<number name="ip.version" id="11" type="integer" length="4" lengthunit="bit"/>
+			<number name="ip.hdr_len" id="12" type="integer" length="4" lengthunit="bit"/>
+			<number name="ip.proto" mustmatch="yes" id="13" type="integer" length="1"/>
+		</structure>
+
+		<structure name="tcp4" id="4" extends="id:3">
+			<number name="ip.version" id="14" type="integer"/>
+			<number name="ip.proto" id="15" type="integer">
+				<fixedvalues>
+					<fixedvalue name="TCP" value="6"/>
+				</fixedvalues>
+			</number>
+			<number name="tcp.srcport" id="16" type="integer" length="2"/>
+			<number name="tcp.dstport" id="17" type="integer" length="2"/>
+		</structure>` + testFooter
 
 	wantNames := []string{
 		"eth_dst", "eth_src", "eth.type",

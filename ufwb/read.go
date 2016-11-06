@@ -312,7 +312,7 @@ func (b *Binary) Bytes(file io.ReaderAt, value *Value) ([]byte, error) {
 // on the width and sign of the integer.
 func (n *Number) int(file io.ReaderAt, value *Value) (interface{}, error) {
 	if n != value.Element {
-		return 0, &assertationError{e: n, err: fmt.Errorf("trying to use wrong value %v", value)}
+		return 0, &assertationError{e: n, err: fmt.Errorf("reading value %v of another element", value)}
 	}
 
 	// Copy the value into a buffer first, because the ReaderAt interface is being used
@@ -404,7 +404,7 @@ func (s *Script) Read(d *Decoder) (*Value, error) {
 
 func (p *Padding) Read(d *Decoder) (*Value, error) {
 	// TODO We never should read a padding element
-	panic("TODO")
+	panic("This should never be called")
 }
 
 func (s *StructRef) Read(d *Decoder) (*Value, error) {

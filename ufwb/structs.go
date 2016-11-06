@@ -203,7 +203,7 @@ type Grammar struct {
 	Complete Bool
 	Uti      string
 
-	Start    Element // This should  be a structure, but we allow it to be other element types
+	Start    *Structure
 	Scripts  []*Script
 	Elements []Element
 }

@@ -49,6 +49,22 @@ func (v *Value) Write(f input.Input) {
 	panic("TODO")
 }
 
+// find does a depth-first search of this value looking for a value matching the given element.
+// This is mainly used for debugging/testing.
+func (v *Value) find(e Element) (*Value, bool) {
+	if v.Element == e {
+		return v, true
+	}
+
+	for _, c := range v.Children {
+		if vv, found := c.find(e); found {
+			return vv, found
+		}
+	}
+
+	return nil, false
+}
+
 // mustValidiate checks if this Value is valid, and panics if not
 func (v *Value) mustValidiate() {
 	if err := v.validiate(); err != nil {
