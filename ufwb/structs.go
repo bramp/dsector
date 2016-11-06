@@ -106,8 +106,8 @@ type Updatable interface {
 	update(u *Ufwb, parent *Structure, errs *toerr.Errors)
 }
 
-type Extendable interface {
-	SetExtends(parent Element) error
+type Derivable interface {
+	DeriveFrom(parent Element) error
 }
 
 type Repeatable interface {
@@ -136,7 +136,7 @@ type Element interface {
 	Lengthable
 	Repeatable
 	Updatable
-	Extendable
+	Derivable
 	Formatter
 
 	// TODO Add Colourful here
@@ -159,10 +159,10 @@ type Ufwb struct {
 
 // Base is what all Elements implement
 type Base struct {
-	elemType    string `parent:"false" extends:"false" setter:"false"` // This field is only for debug printing
-	id          int    `parent:"false" extends:"false"`
-	name        string `parent:"false" extends:"false"`
-	description string `parent:"false" extends:"false"`
+	elemType    string `parent:"false" derives:"false" setter:"false"` // This field is only for debug printing
+	id          int    `parent:"false" derives:"false"`
+	name        string `parent:"false" derives:"false"`
+	description string `parent:"false" derives:"false"`
 }
 
 func (b *Base) Id() int {
@@ -215,7 +215,7 @@ type Structure struct {
 	Repeats
 	Colourful
 
-	extends *Structure
+	derives *Structure
 	parent  *Structure
 
 	length       Reference  `parent:"false"`
@@ -254,7 +254,7 @@ type GrammarRef struct {
 
 	Base
 	Repeats
-	extends *GrammarRef
+	derives *GrammarRef
 
 	uti      string
 	filename string
@@ -269,7 +269,7 @@ type Custom struct {
 	Base
 	Colourful
 
-	extends *Custom
+	derives *Custom
 
 	length     Reference  `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
@@ -285,7 +285,7 @@ type StructRef struct {
 	Colourful
 	disabled Bool
 
-	extends *StructRef
+	derives *StructRef
 
 	structure *Structure
 }
@@ -297,7 +297,7 @@ type String struct {
 	Repeats
 	Colourful
 
-	extends *String
+	derives *String
 	parent  *Structure
 
 	typ string // TODO Convert to "StringType" // "zero-terminated", "fixed-length", "pascal", "delimiter-terminated"
@@ -320,7 +320,7 @@ type Binary struct {
 	Repeats
 	Colourful
 
-	extends *Binary
+	derives *Binary
 	parent  *Structure
 
 	length     Reference  `parent:"false"`
@@ -340,7 +340,7 @@ type Number struct {
 	Repeats
 	Colourful
 
-	extends *Number
+	derives *Number
 	parent  *Structure
 
 	Type       string     // TODO Convert to Type
@@ -371,7 +371,7 @@ type Offset struct {
 	Repeats
 	Colourful
 
-	extends *Offset
+	derives *Offset
 	parent  *Structure
 
 	length     Reference  `parent:"false"`
@@ -394,7 +394,7 @@ type Script struct {
 	Base
 	Repeats
 
-	extends *Script
+	derives *Script
 
 	//Disabled bool
 
@@ -410,7 +410,7 @@ type Mask struct {
 
 	name        string
 	value       uint64 // The mask
-	description string `parent:"false" extends:"false"`
+	description string `parent:"false" derives:"false"`
 
 	values []*FixedValue
 }
@@ -464,10 +464,6 @@ func (*Padding) RepeatMin() Reference {
 	return Reference("1")
 }
 
-func (*Padding) SetExtends(e Element) error {
-	panic("This should not be called")
-}
-
 func (*Padding) update(*Ufwb, *Structure, *toerr.Errors) {
 	// Do nothing
 }
@@ -489,8 +485,8 @@ func (s *Structure) ElementByName(name string) Element {
 		return e
 	}
 
-	if s.extends != nil {
-		return s.extends.ElementByName(name)
+	if s.derives != nil {
+		return s.derives.ElementByName(name)
 	}
 
 	return nil
@@ -501,8 +497,8 @@ func (s *Structure) Signed() bool {
 	if s.signed != UnknownBool {
 		return s.signed.bool()
 	}
-	if s.extends != nil {
-		return s.extends.Signed()
+	if s.derives != nil {
+		return s.derives.Signed()
 	}
 	if s.parent != nil {
 		return s.parent.Signed()
@@ -518,8 +514,8 @@ func (n *Number) Signed() bool {
 	if n.signed != UnknownBool {
 		return n.signed.bool()
 	}
-	if n.extends != nil {
-		return n.extends.Signed()
+	if n.derives != nil {
+		return n.derives.Signed()
 	}
 	if n.parent != nil {
 		return n.parent.Signed()

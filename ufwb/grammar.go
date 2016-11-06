@@ -53,8 +53,8 @@ func indexer(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 	}
 }
 
-// extender finds all structures, and ensures all their children extend from the correct elements.
-func extender(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
+// deriver finds all structures, and ensures all their children derive from the correct elements.
+func deriver(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 	// Structure is the only XML element with an explicit extends field
 	s, ok := element.(*Structure)
 	if !ok {
@@ -74,7 +74,7 @@ func extender(u *Ufwb, element Element, parent *Structure, errs *toerr.Errors) {
 			return
 		}
 
-		if err := s.SetExtends(e); err != nil {
+		if err := s.DeriveFrom(e); err != nil {
 			errs.Append(err)
 		}
 	}
@@ -107,12 +107,12 @@ func ParseXmlGrammar(r io.Reader) (*Ufwb, []error) {
 		return u, errs
 	}
 
-	// 4. Setup the extending
-	if errs := Walk(u, extender); len(errs) > 0 {
+	// 4. Ensure elements are derived correctly
+	if errs := Walk(u, deriver); len(errs) > 0 {
 		return u, errs
 	}
 
-	// TODO add function that check if there are now any loops due to the extends and parents
+	// TODO add function that check if there are not any loops due to the derives and parents
 
 	// Now update and parsing all values
 	if errs := Walk(u, updater); len(errs) > 0 {

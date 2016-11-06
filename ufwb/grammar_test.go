@@ -53,41 +53,41 @@ func normalise(root *Ufwb, element Element, parent *Structure, errs *toerr.Error
 		e.Start = nil
 	case *Structure:
 		e.Xml = nil
-		e.extends = nil
+		e.derives = nil
 		e.parent = nil
 	case *GrammarRef:
 		e.Xml = nil
-		e.extends = nil
+		e.derives = nil
 	case *Custom:
 		e.Xml = nil
-		e.extends = nil
+		e.derives = nil
 	case *StructRef:
 		e.Xml = nil
-		e.extends = nil
+		e.derives = nil
 	case *String:
 		e.Xml = nil
-		e.extends = nil
+		e.derives = nil
 		e.parent = nil
 		for _, v := range e.values {
 			v.Xml = nil
 		}
 	case *Binary:
 		e.Xml = nil
-		e.extends = nil
+		e.derives = nil
 		e.parent = nil
 		for _, v := range e.values {
 			v.Xml = nil
 		}
 	case *Number:
 		e.Xml = nil
-		e.extends = nil
+		e.derives = nil
 		e.parent = nil
 		for _, v := range e.values {
 			v.Xml = nil
 		}
 	case *Offset:
 		e.Xml = nil
-		e.extends = nil
+		e.derives = nil
 	default:
 		errs.Append(fmt.Errorf("unknown element type %T", element))
 	}
@@ -257,9 +257,9 @@ func TestParserAll(t *testing.T) {
 	// Skip over this grammars
 	skip := map[string]bool{
 		"bookmark.grammar":       true, // error in file: `relativeTo \"id:217\" not found`
-		"PMDRedRomMap.grammar":   true, // Offset extends from Number
-		"PokemonROMData.grammar": true, // StructRef extends from Number
-		"cv.grammar":             true, // Binary extends from Structure
+		"PMDRedRomMap.grammar":   true, // Offset derives from Number
+		"PokemonROMData.grammar": true, // StructRef derives from Number
+		"cv.grammar":             true, // Binary derives from Structure
 		"elf32.grammar":          true, // duplicate scripts with same ID
 	}
 

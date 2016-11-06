@@ -24,8 +24,8 @@ func (b *Binary) FillColour() Colour {
 	if b.fillColour != nil {
 		return *b.fillColour
 	}
-	if b.extends != nil {
-		return b.extends.FillColour()
+	if b.derives != nil {
+		return b.derives.FillColour()
 	}
 	return White
 }
@@ -49,8 +49,8 @@ func (b *Binary) Length() Reference {
 	if b.length != Reference("") {
 		return b.length
 	}
-	if b.extends != nil {
-		return b.extends.Length()
+	if b.derives != nil {
+		return b.derives.Length()
 	}
 	return Reference("")
 }
@@ -63,8 +63,8 @@ func (b *Binary) LengthUnit() LengthUnit {
 	if b.lengthUnit != LengthUnit(0) {
 		return b.lengthUnit
 	}
-	if b.extends != nil {
-		return b.extends.LengthUnit()
+	if b.derives != nil {
+		return b.derives.LengthUnit()
 	}
 	if b.parent != nil {
 		return b.parent.LengthUnit()
@@ -80,8 +80,8 @@ func (b *Binary) MustMatch() Bool {
 	if b.mustMatch != Bool(0) {
 		return b.mustMatch
 	}
-	if b.extends != nil {
-		return b.extends.MustMatch()
+	if b.derives != nil {
+		return b.derives.MustMatch()
 	}
 	return True
 }
@@ -105,8 +105,8 @@ func (b *Binary) RepeatMax() Reference {
 	if b.repeatMax != Reference("") {
 		return b.repeatMax
 	}
-	if b.extends != nil {
-		return b.extends.RepeatMax()
+	if b.derives != nil {
+		return b.derives.RepeatMax()
 	}
 	return Reference("1")
 }
@@ -119,8 +119,8 @@ func (b *Binary) RepeatMin() Reference {
 	if b.repeatMin != Reference("") {
 		return b.repeatMin
 	}
-	if b.extends != nil {
-		return b.extends.RepeatMin()
+	if b.derives != nil {
+		return b.derives.RepeatMin()
 	}
 	return Reference("1")
 }
@@ -133,8 +133,8 @@ func (b *Binary) StrokeColour() Colour {
 	if b.strokeColour != nil {
 		return *b.strokeColour
 	}
-	if b.extends != nil {
-		return b.extends.StrokeColour()
+	if b.derives != nil {
+		return b.derives.StrokeColour()
 	}
 	return Black
 }
@@ -147,8 +147,8 @@ func (b *Binary) Values() []*FixedBinaryValue {
 	if b.values != nil {
 		return b.values
 	}
-	if b.extends != nil {
-		return b.extends.Values()
+	if b.derives != nil {
+		return b.derives.Values()
 	}
 	return nil
 }
@@ -179,8 +179,8 @@ func (c *Custom) FillColour() Colour {
 	if c.fillColour != nil {
 		return *c.fillColour
 	}
-	if c.extends != nil {
-		return c.extends.FillColour()
+	if c.derives != nil {
+		return c.derives.FillColour()
 	}
 	return White
 }
@@ -204,8 +204,8 @@ func (c *Custom) Length() Reference {
 	if c.length != Reference("") {
 		return c.length
 	}
-	if c.extends != nil {
-		return c.extends.Length()
+	if c.derives != nil {
+		return c.derives.Length()
 	}
 	return Reference("")
 }
@@ -218,8 +218,8 @@ func (c *Custom) LengthUnit() LengthUnit {
 	if c.lengthUnit != LengthUnit(0) {
 		return c.lengthUnit
 	}
-	if c.extends != nil {
-		return c.extends.LengthUnit()
+	if c.derives != nil {
+		return c.derives.LengthUnit()
 	}
 	return ByteLengthUnit
 }
@@ -243,8 +243,8 @@ func (c *Custom) Script() *Script {
 	if c.script != nil {
 		return c.script
 	}
-	if c.extends != nil {
-		return c.extends.Script()
+	if c.derives != nil {
+		return c.derives.Script()
 	}
 	return nil
 }
@@ -257,8 +257,8 @@ func (c *Custom) StrokeColour() Colour {
 	if c.strokeColour != nil {
 		return *c.strokeColour
 	}
-	if c.extends != nil {
-		return c.extends.StrokeColour()
+	if c.derives != nil {
+		return c.derives.StrokeColour()
 	}
 	return Black
 }
@@ -344,8 +344,8 @@ func (g *GrammarRef) Disabled() Bool {
 	if g.disabled != Bool(0) {
 		return g.disabled
 	}
-	if g.extends != nil {
-		return g.extends.Disabled()
+	if g.derives != nil {
+		return g.derives.Disabled()
 	}
 	return Bool(0)
 }
@@ -365,8 +365,8 @@ func (g *GrammarRef) Filename() string {
 	if g.filename != "" {
 		return g.filename
 	}
-	if g.extends != nil {
-		return g.extends.Filename()
+	if g.derives != nil {
+		return g.derives.Filename()
 	}
 	return ""
 }
@@ -379,8 +379,8 @@ func (g *GrammarRef) Grammar() *Grammar {
 	if g.grammar != nil {
 		return g.grammar
 	}
-	if g.extends != nil {
-		return g.extends.Grammar()
+	if g.derives != nil {
+		return g.derives.Grammar()
 	}
 	return nil
 }
@@ -415,8 +415,8 @@ func (g *GrammarRef) RepeatMax() Reference {
 	if g.repeatMax != Reference("") {
 		return g.repeatMax
 	}
-	if g.extends != nil {
-		return g.extends.RepeatMax()
+	if g.derives != nil {
+		return g.derives.RepeatMax()
 	}
 	return Reference("1")
 }
@@ -429,8 +429,8 @@ func (g *GrammarRef) RepeatMin() Reference {
 	if g.repeatMin != Reference("") {
 		return g.repeatMin
 	}
-	if g.extends != nil {
-		return g.extends.RepeatMin()
+	if g.derives != nil {
+		return g.derives.RepeatMin()
 	}
 	return Reference("1")
 }
@@ -443,8 +443,8 @@ func (g *GrammarRef) Uti() string {
 	if g.uti != "" {
 		return g.uti
 	}
-	if g.extends != nil {
-		return g.extends.Uti()
+	if g.derives != nil {
+		return g.derives.Uti()
 	}
 	return ""
 }
@@ -468,8 +468,8 @@ func (n *Number) Display() Display {
 	if n.display != Display(0) {
 		return n.display
 	}
-	if n.extends != nil {
-		return n.extends.Display()
+	if n.derives != nil {
+		return n.derives.Display()
 	}
 	if n.parent != nil {
 		return n.parent.Display()
@@ -492,8 +492,8 @@ func (n *Number) Endian() Endian {
 	if n.endian != Endian(0) {
 		return n.endian
 	}
-	if n.extends != nil {
-		return n.extends.Endian()
+	if n.derives != nil {
+		return n.derives.Endian()
 	}
 	if n.parent != nil {
 		return n.parent.Endian()
@@ -509,8 +509,8 @@ func (n *Number) FillColour() Colour {
 	if n.fillColour != nil {
 		return *n.fillColour
 	}
-	if n.extends != nil {
-		return n.extends.FillColour()
+	if n.derives != nil {
+		return n.derives.FillColour()
 	}
 	return White
 }
@@ -534,8 +534,8 @@ func (n *Number) Length() Reference {
 	if n.length != Reference("") {
 		return n.length
 	}
-	if n.extends != nil {
-		return n.extends.Length()
+	if n.derives != nil {
+		return n.derives.Length()
 	}
 	return Reference("")
 }
@@ -548,8 +548,8 @@ func (n *Number) LengthUnit() LengthUnit {
 	if n.lengthUnit != LengthUnit(0) {
 		return n.lengthUnit
 	}
-	if n.extends != nil {
-		return n.extends.LengthUnit()
+	if n.derives != nil {
+		return n.derives.LengthUnit()
 	}
 	if n.parent != nil {
 		return n.parent.LengthUnit()
@@ -565,8 +565,8 @@ func (n *Number) Masks() []*Mask {
 	if n.masks != nil {
 		return n.masks
 	}
-	if n.extends != nil {
-		return n.extends.Masks()
+	if n.derives != nil {
+		return n.derives.Masks()
 	}
 	return nil
 }
@@ -579,8 +579,8 @@ func (n *Number) MaxVal() string {
 	if n.maxVal != "" {
 		return n.maxVal
 	}
-	if n.extends != nil {
-		return n.extends.MaxVal()
+	if n.derives != nil {
+		return n.derives.MaxVal()
 	}
 	return ""
 }
@@ -593,8 +593,8 @@ func (n *Number) MinVal() string {
 	if n.minVal != "" {
 		return n.minVal
 	}
-	if n.extends != nil {
-		return n.extends.MinVal()
+	if n.derives != nil {
+		return n.derives.MinVal()
 	}
 	return ""
 }
@@ -607,8 +607,8 @@ func (n *Number) MustMatch() Bool {
 	if n.mustMatch != Bool(0) {
 		return n.mustMatch
 	}
-	if n.extends != nil {
-		return n.extends.MustMatch()
+	if n.derives != nil {
+		return n.derives.MustMatch()
 	}
 	return True
 }
@@ -632,8 +632,8 @@ func (n *Number) RepeatMax() Reference {
 	if n.repeatMax != Reference("") {
 		return n.repeatMax
 	}
-	if n.extends != nil {
-		return n.extends.RepeatMax()
+	if n.derives != nil {
+		return n.derives.RepeatMax()
 	}
 	return Reference("1")
 }
@@ -646,8 +646,8 @@ func (n *Number) RepeatMin() Reference {
 	if n.repeatMin != Reference("") {
 		return n.repeatMin
 	}
-	if n.extends != nil {
-		return n.extends.RepeatMin()
+	if n.derives != nil {
+		return n.derives.RepeatMin()
 	}
 	return Reference("1")
 }
@@ -660,8 +660,8 @@ func (n *Number) StrokeColour() Colour {
 	if n.strokeColour != nil {
 		return *n.strokeColour
 	}
-	if n.extends != nil {
-		return n.extends.StrokeColour()
+	if n.derives != nil {
+		return n.derives.StrokeColour()
 	}
 	return Black
 }
@@ -674,8 +674,8 @@ func (n *Number) ValueExpression() string {
 	if n.valueExpression != "" {
 		return n.valueExpression
 	}
-	if n.extends != nil {
-		return n.extends.ValueExpression()
+	if n.derives != nil {
+		return n.derives.ValueExpression()
 	}
 	return ""
 }
@@ -688,8 +688,8 @@ func (n *Number) Values() []*FixedValue {
 	if n.values != nil {
 		return n.values
 	}
-	if n.extends != nil {
-		return n.extends.Values()
+	if n.derives != nil {
+		return n.derives.Values()
 	}
 	return nil
 }
@@ -702,8 +702,8 @@ func (o *Offset) Additional() string {
 	if o.additional != "" {
 		return o.additional
 	}
-	if o.extends != nil {
-		return o.extends.Additional()
+	if o.derives != nil {
+		return o.derives.Additional()
 	}
 	return ""
 }
@@ -727,8 +727,8 @@ func (o *Offset) Display() Display {
 	if o.display != Display(0) {
 		return o.display
 	}
-	if o.extends != nil {
-		return o.extends.Display()
+	if o.derives != nil {
+		return o.derives.Display()
 	}
 	if o.parent != nil {
 		return o.parent.Display()
@@ -751,8 +751,8 @@ func (o *Offset) Endian() Endian {
 	if o.endian != Endian(0) {
 		return o.endian
 	}
-	if o.extends != nil {
-		return o.extends.Endian()
+	if o.derives != nil {
+		return o.derives.Endian()
 	}
 	if o.parent != nil {
 		return o.parent.Endian()
@@ -768,8 +768,8 @@ func (o *Offset) FillColour() Colour {
 	if o.fillColour != nil {
 		return *o.fillColour
 	}
-	if o.extends != nil {
-		return o.extends.FillColour()
+	if o.derives != nil {
+		return o.derives.FillColour()
 	}
 	return White
 }
@@ -782,8 +782,8 @@ func (o *Offset) FollowNullReference() Bool {
 	if o.followNullReference != Bool(0) {
 		return o.followNullReference
 	}
-	if o.extends != nil {
-		return o.extends.FollowNullReference()
+	if o.derives != nil {
+		return o.derives.FollowNullReference()
 	}
 	return Bool(0)
 }
@@ -807,8 +807,8 @@ func (o *Offset) Length() Reference {
 	if o.length != Reference("") {
 		return o.length
 	}
-	if o.extends != nil {
-		return o.extends.Length()
+	if o.derives != nil {
+		return o.derives.Length()
 	}
 	return Reference("")
 }
@@ -821,8 +821,8 @@ func (o *Offset) LengthUnit() LengthUnit {
 	if o.lengthUnit != LengthUnit(0) {
 		return o.lengthUnit
 	}
-	if o.extends != nil {
-		return o.extends.LengthUnit()
+	if o.derives != nil {
+		return o.derives.LengthUnit()
 	}
 	if o.parent != nil {
 		return o.parent.LengthUnit()
@@ -849,8 +849,8 @@ func (o *Offset) ReferencedSize() ElementId {
 	if o.referencedSize != ElementId(nil) {
 		return o.referencedSize
 	}
-	if o.extends != nil {
-		return o.extends.ReferencedSize()
+	if o.derives != nil {
+		return o.derives.ReferencedSize()
 	}
 	return ElementId(nil)
 }
@@ -863,8 +863,8 @@ func (o *Offset) References() ElementId {
 	if o.references != ElementId(nil) {
 		return o.references
 	}
-	if o.extends != nil {
-		return o.extends.References()
+	if o.derives != nil {
+		return o.derives.References()
 	}
 	return ElementId(nil)
 }
@@ -877,8 +877,8 @@ func (o *Offset) RelativeTo() ElementId {
 	if o.relativeTo != ElementId(nil) {
 		return o.relativeTo
 	}
-	if o.extends != nil {
-		return o.extends.RelativeTo()
+	if o.derives != nil {
+		return o.derives.RelativeTo()
 	}
 	return ElementId(nil)
 }
@@ -891,8 +891,8 @@ func (o *Offset) RepeatMax() Reference {
 	if o.repeatMax != Reference("") {
 		return o.repeatMax
 	}
-	if o.extends != nil {
-		return o.extends.RepeatMax()
+	if o.derives != nil {
+		return o.derives.RepeatMax()
 	}
 	return Reference("1")
 }
@@ -905,8 +905,8 @@ func (o *Offset) RepeatMin() Reference {
 	if o.repeatMin != Reference("") {
 		return o.repeatMin
 	}
-	if o.extends != nil {
-		return o.extends.RepeatMin()
+	if o.derives != nil {
+		return o.derives.RepeatMin()
 	}
 	return Reference("1")
 }
@@ -919,8 +919,8 @@ func (o *Offset) StrokeColour() Colour {
 	if o.strokeColour != nil {
 		return *o.strokeColour
 	}
-	if o.extends != nil {
-		return o.extends.StrokeColour()
+	if o.derives != nil {
+		return o.derives.StrokeColour()
 	}
 	return Black
 }
@@ -962,8 +962,8 @@ func (s *Script) Language() string {
 	if s.language != "" {
 		return s.language
 	}
-	if s.extends != nil {
-		return s.extends.Language()
+	if s.derives != nil {
+		return s.derives.Language()
 	}
 	return ""
 }
@@ -987,8 +987,8 @@ func (s *Script) RepeatMax() Reference {
 	if s.repeatMax != Reference("") {
 		return s.repeatMax
 	}
-	if s.extends != nil {
-		return s.extends.RepeatMax()
+	if s.derives != nil {
+		return s.derives.RepeatMax()
 	}
 	return Reference("1")
 }
@@ -1001,8 +1001,8 @@ func (s *Script) RepeatMin() Reference {
 	if s.repeatMin != Reference("") {
 		return s.repeatMin
 	}
-	if s.extends != nil {
-		return s.extends.RepeatMin()
+	if s.derives != nil {
+		return s.derives.RepeatMin()
 	}
 	return Reference("1")
 }
@@ -1015,8 +1015,8 @@ func (s *Script) Text() string {
 	if s.text != "" {
 		return s.text
 	}
-	if s.extends != nil {
-		return s.extends.Text()
+	if s.derives != nil {
+		return s.derives.Text()
 	}
 	return ""
 }
@@ -1029,8 +1029,8 @@ func (s *Script) Typ() string {
 	if s.typ != "" {
 		return s.typ
 	}
-	if s.extends != nil {
-		return s.extends.Typ()
+	if s.derives != nil {
+		return s.derives.Typ()
 	}
 	return ""
 }
@@ -1043,8 +1043,8 @@ func (s *String) Delimiter() byte {
 	if s.delimiter != 0 {
 		return s.delimiter
 	}
-	if s.extends != nil {
-		return s.extends.Delimiter()
+	if s.derives != nil {
+		return s.derives.Delimiter()
 	}
 	return 0
 }
@@ -1075,8 +1075,8 @@ func (s *String) Encoding() string {
 	if s.encoding != "" {
 		return s.encoding
 	}
-	if s.extends != nil {
-		return s.extends.Encoding()
+	if s.derives != nil {
+		return s.derives.Encoding()
 	}
 	if s.parent != nil {
 		return s.parent.Encoding()
@@ -1092,8 +1092,8 @@ func (s *String) FillColour() Colour {
 	if s.fillColour != nil {
 		return *s.fillColour
 	}
-	if s.extends != nil {
-		return s.extends.FillColour()
+	if s.derives != nil {
+		return s.derives.FillColour()
 	}
 	return White
 }
@@ -1117,8 +1117,8 @@ func (s *String) Length() Reference {
 	if s.length != Reference("") {
 		return s.length
 	}
-	if s.extends != nil {
-		return s.extends.Length()
+	if s.derives != nil {
+		return s.derives.Length()
 	}
 	return Reference("")
 }
@@ -1131,8 +1131,8 @@ func (s *String) LengthUnit() LengthUnit {
 	if s.lengthUnit != LengthUnit(0) {
 		return s.lengthUnit
 	}
-	if s.extends != nil {
-		return s.extends.LengthUnit()
+	if s.derives != nil {
+		return s.derives.LengthUnit()
 	}
 	if s.parent != nil {
 		return s.parent.LengthUnit()
@@ -1148,8 +1148,8 @@ func (s *String) MustMatch() Bool {
 	if s.mustMatch != Bool(0) {
 		return s.mustMatch
 	}
-	if s.extends != nil {
-		return s.extends.MustMatch()
+	if s.derives != nil {
+		return s.derives.MustMatch()
 	}
 	return True
 }
@@ -1173,8 +1173,8 @@ func (s *String) RepeatMax() Reference {
 	if s.repeatMax != Reference("") {
 		return s.repeatMax
 	}
-	if s.extends != nil {
-		return s.extends.RepeatMax()
+	if s.derives != nil {
+		return s.derives.RepeatMax()
 	}
 	return Reference("1")
 }
@@ -1187,8 +1187,8 @@ func (s *String) RepeatMin() Reference {
 	if s.repeatMin != Reference("") {
 		return s.repeatMin
 	}
-	if s.extends != nil {
-		return s.extends.RepeatMin()
+	if s.derives != nil {
+		return s.derives.RepeatMin()
 	}
 	return Reference("1")
 }
@@ -1201,8 +1201,8 @@ func (s *String) StrokeColour() Colour {
 	if s.strokeColour != nil {
 		return *s.strokeColour
 	}
-	if s.extends != nil {
-		return s.extends.StrokeColour()
+	if s.derives != nil {
+		return s.derives.StrokeColour()
 	}
 	return Black
 }
@@ -1215,8 +1215,8 @@ func (s *String) Typ() string {
 	if s.typ != "" {
 		return s.typ
 	}
-	if s.extends != nil {
-		return s.extends.Typ()
+	if s.derives != nil {
+		return s.derives.Typ()
 	}
 	return ""
 }
@@ -1229,8 +1229,8 @@ func (s *String) Values() []*FixedStringValue {
 	if s.values != nil {
 		return s.values
 	}
-	if s.extends != nil {
-		return s.extends.Values()
+	if s.derives != nil {
+		return s.derives.Values()
 	}
 	return nil
 }
@@ -1254,8 +1254,8 @@ func (s *StructRef) Disabled() Bool {
 	if s.disabled != Bool(0) {
 		return s.disabled
 	}
-	if s.extends != nil {
-		return s.extends.Disabled()
+	if s.derives != nil {
+		return s.derives.Disabled()
 	}
 	return Bool(0)
 }
@@ -1275,8 +1275,8 @@ func (s *StructRef) FillColour() Colour {
 	if s.fillColour != nil {
 		return *s.fillColour
 	}
-	if s.extends != nil {
-		return s.extends.FillColour()
+	if s.derives != nil {
+		return s.derives.FillColour()
 	}
 	return White
 }
@@ -1311,8 +1311,8 @@ func (s *StructRef) RepeatMax() Reference {
 	if s.repeatMax != Reference("") {
 		return s.repeatMax
 	}
-	if s.extends != nil {
-		return s.extends.RepeatMax()
+	if s.derives != nil {
+		return s.derives.RepeatMax()
 	}
 	return Reference("1")
 }
@@ -1325,8 +1325,8 @@ func (s *StructRef) RepeatMin() Reference {
 	if s.repeatMin != Reference("") {
 		return s.repeatMin
 	}
-	if s.extends != nil {
-		return s.extends.RepeatMin()
+	if s.derives != nil {
+		return s.derives.RepeatMin()
 	}
 	return Reference("1")
 }
@@ -1339,8 +1339,8 @@ func (s *StructRef) StrokeColour() Colour {
 	if s.strokeColour != nil {
 		return *s.strokeColour
 	}
-	if s.extends != nil {
-		return s.extends.StrokeColour()
+	if s.derives != nil {
+		return s.derives.StrokeColour()
 	}
 	return Black
 }
@@ -1353,8 +1353,8 @@ func (s *StructRef) Structure() *Structure {
 	if s.structure != nil {
 		return s.structure
 	}
-	if s.extends != nil {
-		return s.extends.Structure()
+	if s.derives != nil {
+		return s.derives.Structure()
 	}
 	return nil
 }
@@ -1378,8 +1378,8 @@ func (s *Structure) Display() Display {
 	if s.display != Display(0) {
 		return s.display
 	}
-	if s.extends != nil {
-		return s.extends.Display()
+	if s.derives != nil {
+		return s.derives.Display()
 	}
 	if s.parent != nil {
 		return s.parent.Display()
@@ -1406,8 +1406,8 @@ func (s *Structure) Encoding() string {
 	if s.encoding != "" {
 		return s.encoding
 	}
-	if s.extends != nil {
-		return s.extends.Encoding()
+	if s.derives != nil {
+		return s.derives.Encoding()
 	}
 	if s.parent != nil {
 		return s.parent.Encoding()
@@ -1423,8 +1423,8 @@ func (s *Structure) Endian() Endian {
 	if s.endian != Endian(0) {
 		return s.endian
 	}
-	if s.extends != nil {
-		return s.extends.Endian()
+	if s.derives != nil {
+		return s.derives.Endian()
 	}
 	if s.parent != nil {
 		return s.parent.Endian()
@@ -1440,8 +1440,8 @@ func (s *Structure) FillColour() Colour {
 	if s.fillColour != nil {
 		return *s.fillColour
 	}
-	if s.extends != nil {
-		return s.extends.FillColour()
+	if s.derives != nil {
+		return s.derives.FillColour()
 	}
 	return White
 }
@@ -1465,8 +1465,8 @@ func (s *Structure) Length() Reference {
 	if s.length != Reference("") {
 		return s.length
 	}
-	if s.extends != nil {
-		return s.extends.Length()
+	if s.derives != nil {
+		return s.derives.Length()
 	}
 	return Reference("")
 }
@@ -1479,8 +1479,8 @@ func (s *Structure) LengthOffset() Reference {
 	if s.lengthOffset != Reference("") {
 		return s.lengthOffset
 	}
-	if s.extends != nil {
-		return s.extends.LengthOffset()
+	if s.derives != nil {
+		return s.derives.LengthOffset()
 	}
 	if s.parent != nil {
 		return s.parent.LengthOffset()
@@ -1496,8 +1496,8 @@ func (s *Structure) LengthUnit() LengthUnit {
 	if s.lengthUnit != LengthUnit(0) {
 		return s.lengthUnit
 	}
-	if s.extends != nil {
-		return s.extends.LengthUnit()
+	if s.derives != nil {
+		return s.derives.LengthUnit()
 	}
 	if s.parent != nil {
 		return s.parent.LengthUnit()
@@ -1524,8 +1524,8 @@ func (s *Structure) Order() Order {
 	if s.order != Order(0) {
 		return s.order
 	}
-	if s.extends != nil {
-		return s.extends.Order()
+	if s.derives != nil {
+		return s.derives.Order()
 	}
 	if s.parent != nil {
 		return s.parent.Order()
@@ -1541,8 +1541,8 @@ func (s *Structure) RepeatMax() Reference {
 	if s.repeatMax != Reference("") {
 		return s.repeatMax
 	}
-	if s.extends != nil {
-		return s.extends.RepeatMax()
+	if s.derives != nil {
+		return s.derives.RepeatMax()
 	}
 	return Reference("1")
 }
@@ -1555,8 +1555,8 @@ func (s *Structure) RepeatMin() Reference {
 	if s.repeatMin != Reference("") {
 		return s.repeatMin
 	}
-	if s.extends != nil {
-		return s.extends.RepeatMin()
+	if s.derives != nil {
+		return s.derives.RepeatMin()
 	}
 	return Reference("1")
 }
@@ -1569,8 +1569,8 @@ func (s *Structure) StrokeColour() Colour {
 	if s.strokeColour != nil {
 		return *s.strokeColour
 	}
-	if s.extends != nil {
-		return s.extends.StrokeColour()
+	if s.derives != nil {
+		return s.derives.StrokeColour()
 	}
 	return Black
 }
