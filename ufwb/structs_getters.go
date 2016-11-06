@@ -1250,6 +1250,20 @@ func (s *StructRef) SetDescription(description string) {
 	s.description = description
 }
 
+func (s *StructRef) Disabled() Bool {
+	if s.disabled != Bool(0) {
+		return s.disabled
+	}
+	if s.extends != nil {
+		return s.extends.Disabled()
+	}
+	return Bool(0)
+}
+
+func (s *StructRef) SetDisabled(disabled Bool) {
+	s.disabled = disabled
+}
+
 func (s *StructRef) ElemType() string {
 	if s.elemType != "" {
 		return s.elemType
