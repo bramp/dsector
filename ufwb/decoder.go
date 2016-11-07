@@ -167,7 +167,20 @@ func (d *Decoder) eval(r Reference) (i int64, err error) {
 		i = math.MaxInt64
 
 	case strings.HasPrefix(str, "prev."):
-		i, err = d.prev(str)
+		name := strings.TrimPrefix(str, "prev.")
+
+		v, err := d.prev(str)
+		if err != nil {
+			return -1, err
+		}
+
+		n, ok := v.Element.(*Number)
+		if !ok {
+			return -1, fmt.Errorf("previous element %q must be a Number", name)
+		}
+
+		log.Debugf("prev(%q) value: %s", name, v)
+		return n.Int(d.f, v)
 
 	default:
 		// Try a number // TODO Remove this path when we created ConstReferences
@@ -215,23 +228,16 @@ func (d *Decoder) remaining() (int64, error) {
 }
 
 // prev returns the value read by the previous element of this name.
-func (d *Decoder) prev(name string) (int64, error) {
-	name = strings.TrimPrefix(name, "prev.")
+func (d *Decoder) prev(name string) (*Value, error) {
 
 	// TODO Instead of using a map, recurse up the d.stack/tree
 
 	v, ok := d.prevMap[name]
 	if !ok {
-		return -1, fmt.Errorf("no previous element named %q found", name)
+		return nil, fmt.Errorf("no previous element named %q found", name)
 	}
 
-	n, ok := v.Element.(*Number)
-	if !ok {
-		return -1, fmt.Errorf("previous element %q must be a Number", name)
-	}
-
-	log.Debugf("prev(%q) value: %s", name, v)
-	return n.Int(d.f, v)
+	return v, nil
 }
 
 // ByteOrder returns the current byte order
