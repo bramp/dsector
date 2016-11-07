@@ -22,17 +22,44 @@ func (u *Ufwb) Read(d *Decoder) (*Value, error) {
 }
 
 func (g *Grammar) Read(d *Decoder) (*Value, error) {
-	s, err := d.read(g.Start)
+
+	// The start element may be repeated multiple times
+	min, err := d.eval(g.Start.RepeatMin())
 	if err != nil {
-		return nil, err
+		return nil, &validationError{e: g.Start, err: fmt.Errorf("RepeatMin eval failed: %s", err.Error())}
 	}
 
-	return &Value{
-		Offset:   s.Offset,
-		Len:      s.Len,
-		Element:  g,
-		Children: []*Value{s},
-	}, nil
+	max, err := d.eval(g.Start.RepeatMax())
+	if err != nil {
+		return nil, &validationError{e: g.Start, err: fmt.Errorf("RepeatMax eval failed: %s", err.Error())}
+	}
+
+	value := &Value{
+		Offset:  0, // TODO Change to correct value
+		Len:     0,
+		Element: g,
+	}
+
+	for int64(len(value.Children)) < max {
+		s, err := d.read(g.Start)
+		if s != nil {
+			value.Children = append(value.Children, s)
+			value.Len += s.Len
+		}
+
+		if err != nil {
+			if isEof(err) {
+				break
+			}
+
+			return nil, err
+		}
+	}
+
+	// TODO Check min was reached
+	_ = min
+
+	return value, nil
 }
 
 // isEof returns if this error represents the end of file

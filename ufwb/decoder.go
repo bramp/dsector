@@ -109,6 +109,10 @@ func (d *Decoder) read(e Element) (*Value, error) {
 		end = bounds.End
 	}
 
+	if start == end {
+		return nil, io.EOF
+	}
+
 	// If the element has a smaller length, then bound it.
 	if e.Length() != "" {
 		length, err := d.eval(e.Length())
