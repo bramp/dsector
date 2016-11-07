@@ -47,23 +47,26 @@ type Decoder struct {
 	u *Ufwb
 	f input.Input
 
+	stack  []ElementBounds
+	values []*Value
+
 	// dynamicEndian be changed by scripts during processing.
 	dynamicEndian binary.ByteOrder
 
-	stack []ElementBounds
-
-	prevMap map[string]*Value
+	// debugFunc hooks a "debug" function into the script env
+	debugFunc func(interface{})
 }
 
 func NewDecoder(u *Ufwb, f input.Input) *Decoder {
 	return &Decoder{
-		u:       u,
-		f:       f,
-		prevMap: make(map[string]*Value),
+		u: u,
+		f: f,
 	}
 }
 
 func (d *Decoder) Decode() (*Value, error) {
+	d.stack = nil
+	d.values = nil
 	return d.u.Read(d)
 }
 
@@ -153,7 +156,7 @@ func (d *Decoder) read(e Element) (*Value, error) {
 			}
 		}
 
-		d.prevMap[v.Element.Name()] = v // TODO I'm not sure if this is the right definition of "last"
+		d.values = append(d.values, v)
 	}
 
 	return v, err
@@ -173,7 +176,7 @@ func (d *Decoder) eval(r Reference) (i int64, err error) {
 	case strings.HasPrefix(str, "prev."):
 		name := strings.TrimPrefix(str, "prev.")
 
-		v, err := d.prev(str)
+		v, err := d.prevByName(name)
 		if err != nil {
 			return -1, err
 		}
@@ -231,17 +234,25 @@ func (d *Decoder) remaining() (int64, error) {
 	return (start - pos + len), nil
 }
 
-// prev returns the value read by the previous element of this name.
-func (d *Decoder) prev(name string) (*Value, error) {
-
-	// TODO Instead of using a map, recurse up the d.stack/tree
-
-	v, ok := d.prevMap[name]
-	if !ok {
-		return nil, fmt.Errorf("no previous element named %q found", name)
+// prev returns the previous value.
+func (d *Decoder) prev() (*Value, error) {
+	if len(d.values) > 0 {
+		return d.values[len(d.values)-1], nil
 	}
 
-	return v, nil
+	return nil, errors.New("no previous element")
+}
+
+// prevByName returns the value read by the previous element of this name.
+func (d *Decoder) prevByName(name string) (*Value, error) {
+
+	for i := len(d.values) - 1; i >= 0; i-- {
+		if d.values[i].Element.Name() == name {
+			return d.values[i], nil
+		}
+	}
+
+	return nil, fmt.Errorf("no previous element named %q found", name)
 }
 
 // ByteOrder returns the current byte order

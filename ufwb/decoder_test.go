@@ -36,7 +36,7 @@ func TestDecoderPrev(t *testing.T) {
 	}
 
 	for name, letter := range want {
-		v, err := decoder.prev(name)
+		v, err := decoder.prevByName(name)
 		if err != nil {
 			t.Errorf("decoder.prev(%q) = %q, want nil", name, err)
 		}
