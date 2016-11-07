@@ -199,7 +199,7 @@ func (n *Offset) Format(file io.ReaderAt, value *Value) (string, error) {
 }
 
 func (n *Script) Format(file io.ReaderAt, value *Value) (string, error) {
-	panic("TODO")
+	return "<script ran>", nil
 }
 
 func (n *StructRef) Format(file io.ReaderAt, value *Value) (string, error) {

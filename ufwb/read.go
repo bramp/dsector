@@ -102,6 +102,9 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 
 	log.Debugf("[0x%x] Starting %s (bounds: [0x%x-0x%x], max length: %d)", start, s.IdString(), bounds.Start, bounds.End, bounds_remaining)
 
+	// TODO If "value.Len < bounds_remaining" then we skip any tail elements that are zero length
+	// such as certain scripts. If "value.Len <= bounds_remaining" then parsing breaks, which we
+	// need to dig into more.
 	for value.Len < bounds_remaining && i < len(elements) {
 		//log.Debugf("Loop %v, %v < %v, %v < %v", eof, childrenLength, length, i, len(elements))
 
