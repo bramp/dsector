@@ -4,6 +4,7 @@ package ufwb
 import (
 	"bytes"
 	"fmt"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"path"
 	"strings"
@@ -41,6 +42,10 @@ func readGrammarAndTestData(lang string, exclude map[string]bool) (*Ufwb, []stri
 		}
 
 		samples = append(samples, path.Join(root, name))
+	}
+
+	if len(samples) == 0 {
+		return nil, nil, errors.New("no samples found")
 	}
 
 	// Parse
