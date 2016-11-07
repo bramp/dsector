@@ -399,8 +399,8 @@ type Script struct {
 	//Disabled bool
 
 	XmlScript *XmlScript
-	typ       string
-	language  string
+	typ       string // TODO Change to a enum
+	language  string // TODO Change to a enum
 
 	text string
 }

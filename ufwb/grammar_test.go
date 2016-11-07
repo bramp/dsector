@@ -247,7 +247,6 @@ func TestParseGrammar(t *testing.T) {
 }
 
 // Open all grammars and see if we can parse
-// TODO Make this test pass
 func TestParserAll(t *testing.T) {
 	files, err := ioutil.ReadDir(grammarsPath)
 	if err != nil {

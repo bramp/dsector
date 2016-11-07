@@ -369,6 +369,19 @@ func (n *Number) Int(file io.ReaderAt, value *Value) (int64, error) {
 	}
 }
 
+// Uint returns the uint this file/value refers to. If the int doesn't fit into a uint64, it is truncated.
+func (n *Number) Uint(file io.ReaderAt, value *Value) (uint64, error) {
+	i, err := n.int(file, value)
+	if err != nil {
+		return 0, err
+	}
+	if n.Signed() {
+		return uint64(reflect.ValueOf(i).Int()), nil
+	} else {
+		return reflect.ValueOf(i).Uint(), nil
+	}
+}
+
 func (n *Number) Read(d *Decoder) (*Value, error) {
 	v, err := skip(d, n.Length(), n.LengthUnit())
 	if err != nil {
@@ -425,7 +438,25 @@ func (o *Offset) Read(d *Decoder) (*Value, error) {
 }
 
 func (s *Script) Read(d *Decoder) (*Value, error) {
-	panic("TODO")
+	start, err := d.f.Tell()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO Don't have a switch, instead have different Script types
+	switch s.Language() {
+	case "lua", "Lua":
+		err = s.RunLua(d)
+	default:
+		return nil, fmt.Errorf("unsupported langauge %q", s.Language())
+	}
+
+	// Create a empty value
+	return &Value{
+		Offset:  start,
+		Len:     0,
+		Element: s,
+	}, err
 }
 
 func (p *Padding) Read(d *Decoder) (*Value, error) {
