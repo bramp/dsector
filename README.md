@@ -5,7 +5,7 @@ by Andrew Brampton [bramp.net](https://bramp.net) (c) 2016
 
 Dsector is a Go package that provides a API for parsing binary files using a predefined grammar. Think the wireshark dissector but for files instead of packets. This useful for debugging or inspecting files.
 
-For example, using the [PNG grammar](grammars/png.grammar) on a [sample PNG file](samples/png/basi0g01.png) produces:
+For example, using the [PNG grammar](https://github.com/bramp/Grammars/blob/master/png.grammar) on a [sample PNG file](samples/png/basi0g01.png) produces:
 ```bash
 $ go run inspect/main.go grammars/png.grammar samples/png/basi0g01.png 
 
