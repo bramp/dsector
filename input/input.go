@@ -2,18 +2,8 @@
 package input
 
 import (
-	"fmt"
 	"io"
 )
-
-// TODO Replace this with io.ErrUnexpectedEOF
-type ShortReadError struct {
-	n int
-}
-
-func (e ShortReadError) Error() string {
-	return fmt.Sprintf("short read: %d", e.n)
-}
 
 // Input interface provides the minimum methods needed to parse a binary file.
 // The interface is changed slightly, by ensuring the Read methods always try to do a full read.

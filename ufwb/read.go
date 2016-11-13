@@ -220,23 +220,28 @@ func (s *String) Read(d *Decoder) (*Value, error) {
 
 	switch s.Typ() {
 	case "zero-terminated", "delimiter-terminated":
-		n, err := input.SeekUntil(d.f, s.delimiter, d.ParentBounds().End-start)
+		n, err := input.ReadUntil(d.f, s.delimiter, d.ParentBounds().End-start)
 		if err != nil {
 			return nil, &validationError{e: s, err: err}
 		}
 		v = &Value{Offset: start, Len: n, Element: s}
 
 	case "fixed-length":
-		length, err := d.eval(s.Length()) // TODO Do I need this, or can I use ParentBounds()?
+		length, err := d.eval(s.Length())
 		if err != nil {
 			return nil, &validationError{e: s, err: err}
 		}
-		d.f.Seek(length, io.SeekCurrent) // Seek beyond the string (as if we read it)
+
+		// TODO Actually read it, and check for encoding.
+		if _, err = input.ReadAndDiscard(d.f, length); err != nil {
+			return nil, &validationError{e: s, err: err}
+		}
 		v = &Value{Offset: start, Len: length, Element: s}
 
 	case "pascal":
 		// We assume 1 byte length prefix
 		// TODO Write tests for this.
+		// TODO Check this work for io.ErrUnexpectedEOF
 		i, err := readInt(d.f, 1, false, binary.LittleEndian)
 		if err != nil {
 			return nil, &validationError{e: s, err: err}
@@ -244,7 +249,10 @@ func (s *String) Read(d *Decoder) (*Value, error) {
 
 		length := int64(i.(uint8))
 
-		d.f.Seek(length, io.SeekCurrent) // Seek beyond the string (as if we read it)
+		// TODO Actually read it, and check for encoding.
+		if _, err = input.ReadAndDiscard(d.f, length); err != nil {
+			return nil, &validationError{e: s, err: err}
+		}
 		v = &Value{Offset: start, Len: length + 1, Element: s}
 
 	default:
@@ -328,7 +336,7 @@ func (b *Binary) Read(d *Decoder) (*Value, error) {
 // Bytes returns the bytes from file, found at Value
 func (b *Binary) Bytes(file io.ReaderAt, value *Value) ([]byte, error) {
 	out := make([]byte, value.Len, value.Len)
-	n, err := file.ReadAt(out, value.Offset)
+	n, err := input.ReadFullAt(file, out, value.Offset)
 	if err != nil {
 		return nil, &validationError{e: b, err: err}
 	}
@@ -346,7 +354,7 @@ func (n *Number) int(file io.ReaderAt, value *Value) (interface{}, error) {
 
 	// Copy the value into a buffer first, because the ReaderAt interface is being used
 	b := make([]byte, value.Len, value.Len)
-	if _, err := file.ReadAt(b, value.Offset); err != nil {
+	if _, err := input.ReadFullAt(file, b, value.Offset); err != nil {
 		return 0, &validationError{e: n, err: err}
 	}
 

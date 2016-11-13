@@ -27,29 +27,19 @@ func (f *OSFile) Tell() (int64, error) {
 }
 
 func (f *OSFile) Read(b []byte) (int, error) {
-	n, err := (*os.File)(f).Read(b)
-	if err == nil && n != len(b) {
-		return 0, ShortReadError{n}
-	}
-	return n, err
+	// We require a full read, perhaps change this later
+	return io.ReadFull((*os.File)(f), b)
 }
 
 func (f *OSFile) ReadAt(b []byte, off int64) (int, error) {
-	n, err := (*os.File)(f).ReadAt(b, off)
-	if err == nil && n != len(b) {
-		return 0, ShortReadError{n}
-	}
-	return n, err
+	return ReadFullAt((*os.File)(f), b, off)
 }
 
 func (f *OSFile) ReadByte() (byte, error) {
 	one := make([]byte, 1, 1)
-	n, err := f.Read(one)
+	_, err := io.ReadFull(f, one)
 	if err != nil {
 		return 0, err
-	}
-	if n < 1 {
-		return 0, io.EOF
 	}
 	return one[0], nil
 }

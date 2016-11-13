@@ -23,19 +23,17 @@ func (f *Bytes) Read(b []byte) (int, error) {
 }
 
 func (f *Bytes) ReadAt(b []byte, off int64) (int, error) {
-
 	if off < 0 || off >= int64(len(f.bytes)) {
 		return 0, io.EOF
 	}
 
-	var err error
 	end := int(off) + len(b)
 	if end > len(f.bytes) {
 		end = len(f.bytes)
-		err = ShortReadError{n: len(f.bytes) - int(off)}
+		return (end - int(off)), io.ErrUnexpectedEOF
 	}
 
-	return copy(b, f.bytes[off:end]), err
+	return copy(b, f.bytes[off:end]), nil
 }
 
 func (f *Bytes) ReadByte() (byte, error) {
@@ -48,7 +46,7 @@ func (f *Bytes) ReadByte() (byte, error) {
 	return b, nil
 }
 
-func (f *Bytes) Seek(offset int64, whence int) (ret int64, err error) {
+func (f *Bytes) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
 		f.offset = int(offset)
