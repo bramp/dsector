@@ -34,8 +34,13 @@ func (g *Grammar) Read(d *Decoder) (*Value, error) {
 		return nil, &validationError{e: g.Start, err: fmt.Errorf("RepeatMax eval failed: %s", err.Error())}
 	}
 
+	start, err := d.f.Tell()
+	if err != nil {
+		return nil, &validationError{e: g, err: err}
+	}
+
 	value := &Value{
-		Offset:  0, // TODO Change to correct value
+		Offset:  start,
 		Len:     0,
 		Element: g,
 	}
