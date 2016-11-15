@@ -15,6 +15,8 @@ const (
 	samplesPath = "../samples"
 )
 
+// readGrammarAndTestData returns the newly parsed Ufwb, and a slice of full path names to sample
+// data.
 func readGrammarAndTestData(lang string, exclude map[string]bool) (*Ufwb, []string, error) {
 	langFile := lang + ".grammar"
 
@@ -58,35 +60,45 @@ func readGrammarAndTestData(lang string, exclude map[string]bool) (*Ufwb, []stri
 }
 
 func TestParserPng(t *testing.T) {
-	// Some files are excluded because they require more than just parsing to validate
-	exclude := map[string]bool{
+	// Some files should fail, but require more than just parsing to validated them
+	pass := map[string]bool{
 		"xhdn0g08.png": true, // incorrect IHDR checksum
 		"xdtn0g01.png": true, // missing IDAT chunk
 		"xcsn0g01.png": true, // incorrect IDAT checksum
 	}
 
-	grammar, samples, err := readGrammarAndTestData("png", exclude)
+	grammar, samples, err := readGrammarAndTestData("png", nil)
 	if err != nil {
 		t.Fatalf("readGrammarAndTestData(..) failed: %s", err)
 	}
 
+	samples = []string{"../samples/png/PngSuite.png"}
+
 	for _, sample := range samples {
 		expectErr := strings.HasPrefix(path.Base(sample), "x")
+		if _, found := pass[path.Base(sample)]; found {
+			expectErr = false
+		}
 		testFile(t, grammar, sample, expectErr)
 	}
 }
 
 func TestParserCsv(t *testing.T) {
+
 	grammar, samples, err := readGrammarAndTestData("csv", nil)
 	if err != nil {
 		t.Fatalf("readGrammarAndTestData(..) failed: %s", err)
 	}
+
+	testFile(t, grammar, "../samples/csv/empty.csv", false)
+	return
 
 	for _, sample := range samples {
 		testFile(t, grammar, sample, false)
 	}
 }
 
+/*
 func TestParserPcap(t *testing.T) {
 	grammar, samples, err := readGrammarAndTestData("pcap", nil)
 	if err != nil {
@@ -97,3 +109,4 @@ func TestParserPcap(t *testing.T) {
 		testFile(t, grammar, sample, false)
 	}
 }
+*/

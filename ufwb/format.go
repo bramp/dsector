@@ -39,7 +39,7 @@ func (g *Grammar) Format(file io.ReaderAt, value *Value) (string, error) {
 
 	str, err := g.Start.Format(file, value)
 	if err != nil {
-		return "TODO ERR", err
+		return "<format error>", err
 	}
 
 	buffer.WriteString(str)
@@ -70,7 +70,7 @@ func (n *Structure) Format(file io.ReaderAt, value *Value) (string, error) {
 		value, err := child.Format(file)
 		if err != nil {
 			indent--
-			return "TODO ERR", err
+			return "<format error>", err
 		}
 		buffer.WriteString(strings.TrimSpace(value))
 		buffer.WriteString("\n")

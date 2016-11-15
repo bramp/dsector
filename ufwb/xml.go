@@ -9,13 +9,15 @@ import (
 	"fmt"
 )
 
+// TODO Rename to TransformToElement or similar
 type Transformable interface {
-	// transform creates a new naitve Element to represent this XMLElement.
+	// transform creates a new native Element to represent this XMLElement.
 	// Only the Base fields are transformed at this point, Name, ID, Description. The rest are validated
 	// and parsed at a later stage, when more context is available.
 	transform(errs *toerr.Errors) Element
 }
 
+// TODO Ensure all elements can be disabled, and perhaps move IdName into XmlElement
 type XmlElement interface {
 	Transformable
 }
@@ -241,6 +243,8 @@ type XmlScriptElement struct {
 	XMLName xml.Name `xml:"scriptelement"`
 
 	XmlIdName
+	XmlRepeats
+
 	Disabled string `xml:"disabled,attr,omitempty" ufwb:"bool"`
 
 	Script *XmlScript `xml:"script"`

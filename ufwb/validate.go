@@ -23,6 +23,8 @@ type Eof interface {
 	IsEof() bool
 }
 
+// TODO clean up validationError vs assertationError, vs whatever else
+// validationError represents a error validating this element
 type validationError struct {
 	e   ElementId
 	err error

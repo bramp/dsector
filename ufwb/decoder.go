@@ -14,13 +14,13 @@ import (
 	"strconv"
 )
 
-const DEBUG = true
 const MAX_STACK = 10
+const MAX_VALUES = 10000
 
 type ElementBounds struct {
 	Element Element
-	Start   int64
-	End     int64
+	Start   int64 // Absolute byte offset of the start of these bounds
+	End     int64 // Absolute byte offset of the end of these bounds
 }
 
 func (bounds *ElementBounds) Length() int64 {
@@ -28,7 +28,11 @@ func (bounds *ElementBounds) Length() int64 {
 }
 
 func (bounds *ElementBounds) String() string {
-	return fmt.Sprintf("[0x%x-0x%x] %s", bounds.Start, bounds.End, bounds.Element.IdString())
+	element := ""
+	if bounds.Element != nil {
+		element = bounds.Element.IdString()
+	}
+	return fmt.Sprintf("[0x%x-0x%x] %s", bounds.Start, bounds.End, element)
 }
 
 type StackPrinter []ElementBounds
@@ -44,8 +48,9 @@ func (stack StackPrinter) String() string {
 }
 
 type Decoder struct {
-	u *Ufwb
-	f input.Input
+	u   *Ufwb
+	f   input.Input
+	err error // error during creation
 
 	stack  []ElementBounds
 	values []*Value
@@ -57,17 +62,76 @@ type Decoder struct {
 	debugFunc func(interface{})
 }
 
-func NewDecoder(u *Ufwb, f input.Input) *Decoder {
-	return &Decoder{
-		u: u,
-		f: f,
+func getBounds(f input.Input) (int64, int64, error) {
+	start, err := f.Tell()
+	if err != nil {
+		return start, 0, err
 	}
+
+	// Seek to get the size of this file
+	end, err := f.Seek(0, io.SeekEnd)
+	if err != nil {
+		return start, end, err
+	}
+
+	// Reset to beginning
+	_, err = f.Seek(start, io.SeekStart)
+	if err != nil {
+		return start, end, err
+	}
+
+	return start, end, nil
 }
 
+func NewDecoder(u *Ufwb, f input.Input) *Decoder {
+	start, end, err := getBounds(f)
+	if err != nil {
+		return &Decoder{err: err}
+	}
+
+	return NewDecoderWithBounds(u, f, start, end)
+}
+
+func NewDecoderWithBounds(u *Ufwb, f input.Input, start, end int64) *Decoder {
+	d := &Decoder{
+		u: u,
+		f: f,
+		stack: []ElementBounds{{
+			Start: start,
+			End:   end,
+		}},
+	}
+
+	return d
+}
+
+// Decode decodes the input using the given grammar, returning a Value for as much as could be parsed
+// as well as the first error encountered
 func (d *Decoder) Decode() (*Value, error) {
-	d.stack = nil
+
+	if d.err != nil {
+		return nil, d.err
+	}
+
+	assert(len(d.stack) == 1, "Stack is in a unclean state")
+
+	// Ensure the file is at the beginning of the bounds
+	start := d.ParentBounds().Start
+	_, err := d.f.Seek(start, io.SeekStart)
+	if err != nil {
+		return nil, err
+	}
+
 	d.values = nil
-	return d.u.Read(d)
+	v, err := d.u.Read(d)
+
+	assert(len(d.stack) == 1, "Stack left in unclean state")
+
+	if err == io.EOF {
+		err = nil
+	}
+
+	return v, err
 }
 
 func (d *Decoder) ParentBounds() *ElementBounds {
@@ -75,7 +139,7 @@ func (d *Decoder) ParentBounds() *ElementBounds {
 		return &d.stack[len(d.stack)-1]
 	}
 
-	return nil
+	panic("The stack should never be empty")
 }
 
 func (d *Decoder) read(e Element) (*Value, error) {
@@ -85,36 +149,19 @@ func (d *Decoder) read(e Element) (*Value, error) {
 		panic(fmt.Sprintf("Exceeded max parsing stack depth of %d", MAX_STACK))
 	}
 
+	bounds := d.ParentBounds()
+	end := bounds.End
+
 	start, err := d.f.Tell()
 	if err != nil {
 		return nil, err
 	}
-	var end int64
+
+	assert(start >= bounds.Start && start <= bounds.End,
+		"seek position (%d) is outside of bounds %s", start, bounds.String())
 
 	log.Debugf("[0x%x] Reading: %s", start, e.IdString())
 	//log.Debugf("[0x%x] Stack: %s", start, StackPrinter(d.stack))
-
-	bounds := d.ParentBounds()
-	if bounds == nil {
-		// Seek to get the size of this file
-		end, err = d.f.Seek(0, io.SeekEnd)
-		if err != nil {
-			return nil, err
-		}
-
-		// Reset to beginning
-		_, err = d.f.Seek(start, io.SeekStart)
-		if err != nil {
-			return nil, err
-		}
-
-	} else {
-		end = bounds.End
-	}
-
-	if start == end {
-		return nil, io.EOF
-	}
 
 	// If the element has a smaller length, then bound it.
 	if e.Length() != "" {
@@ -154,9 +201,20 @@ func (d *Decoder) read(e Element) (*Value, error) {
 					panic(fmt.Sprintf("Decoder was not left at right position after %v", v))
 				}
 			}
+
+			if (v.Offset + v.Len) > end {
+				panic(fmt.Sprintf("Element went beyond bounds!"))
+			}
+		}
+
+		if len(d.values) > MAX_VALUES {
+			log.Debugf("%s", StackPrinter(d.stack))
+			panic(fmt.Sprintf("Exceeded parsing max values of %d", MAX_VALUES))
 		}
 
 		d.values = append(d.values, v)
+	} else {
+		assert(err != nil, fmt.Sprintf("%s returned nil value and nil error", e.IdString()))
 	}
 
 	return v, err
@@ -195,6 +253,7 @@ func (d *Decoder) eval(r Reference) (i int64, err error) {
 		if err != nil {
 			panic(err) // PANIC While we debug how eval should work. Eventually return error
 		}
+		return
 	}
 
 	log.Debugf("eval(%q) = %d, %v", str, i, err)
@@ -245,7 +304,6 @@ func (d *Decoder) prev() (*Value, error) {
 
 // prevByName returns the value read by the previous element of this name.
 func (d *Decoder) prevByName(name string) (*Value, error) {
-
 	for i := len(d.values) - 1; i >= 0; i-- {
 		if d.values[i].Element.Name() == name {
 			return d.values[i], nil
@@ -307,5 +365,5 @@ func (d *Decoder) Bits(length Reference, unit LengthUnit) (int64, error) {
 }
 
 func (d *Decoder) String() string {
-	panic("blah")
+	panic("no String() on Decoder")
 }

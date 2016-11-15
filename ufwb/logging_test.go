@@ -1,5 +1,7 @@
 package ufwb
 
+// logging_test doesn't contain any tests, it instead is used to change the logging behaviour inside tests.
+
 import (
 	"bytes"
 	log "github.com/Sirupsen/logrus"

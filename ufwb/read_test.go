@@ -49,6 +49,11 @@ func testFile(t *testing.T, grammar *Ufwb, filename string, expectErr bool) {
 		return
 	}
 
+	if got == nil {
+		t.Errorf("decoder.Decode(%q) = nil err:%q, want non-nil", filename, err)
+		return
+	}
+
 	if got.Offset != 0 || got.Len != fileLen {
 		t.Errorf("got {Offset: %d, Len: %d} want {Offset: %d, Len: %d}", got.Offset, got.Len, 0, fileLen)
 		return
@@ -207,17 +212,20 @@ func TestReadNumber(t *testing.T) {
 func TestReadString(t *testing.T) {
 	binary := []byte("abcdefghijklmnopqrstuvwxyz\x00")
 	var tests = []struct {
+		id         string
 		xml        string // TODO Change to be a String Element
 		want       Value
 		wantString string
 	}{
 		{
+			id:         "1",
 			xml:        `<string id="1" type="zero-terminated"/>`,
 			want:       Value{Offset: 2, Len: 25}, // 24 characters + 1 nul
 			wantString: "cdefghijklmnopqrstuvwxyz",
 		},
 		{
-			xml:        `<string id="1" type="fixed-length" length="10"/>`,
+			id:         "2",
+			xml:        `<string id="2" type="fixed-length" length="10"/>`,
 			want:       Value{Offset: 2, Len: 10},
 			wantString: "cdefghijkl",
 		},
@@ -237,9 +245,9 @@ func TestReadString(t *testing.T) {
 			continue
 		}
 
-		str, found := grammar.Get("1")
+		str, found := grammar.Get(test.id)
 		if !found {
-			t.Errorf("grammar.Get(1) = nil failed to find string element")
+			t.Errorf("grammar.Get(%q) = nil failed to find string element", test.id)
 			continue
 		}
 
@@ -406,7 +414,6 @@ func TestShortReads(t *testing.T) {
 		}
 	}
 }
-
 
 func TestRepeating(t *testing.T) {
 	binary := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8}

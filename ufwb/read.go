@@ -23,17 +23,6 @@ func (u *Ufwb) Read(d *Decoder) (*Value, error) {
 
 func (g *Grammar) Read(d *Decoder) (*Value, error) {
 
-	// The start element may be repeated multiple times
-	min, err := d.eval(g.Start.RepeatMin())
-	if err != nil {
-		return nil, &validationError{e: g.Start, err: fmt.Errorf("RepeatMin eval failed: %s", err.Error())}
-	}
-
-	max, err := d.eval(g.Start.RepeatMax())
-	if err != nil {
-		return nil, &validationError{e: g.Start, err: fmt.Errorf("RepeatMax eval failed: %s", err.Error())}
-	}
-
 	start, err := d.f.Tell()
 	if err != nil {
 		return nil, &validationError{e: g, err: err}
@@ -45,26 +34,9 @@ func (g *Grammar) Read(d *Decoder) (*Value, error) {
 		Element: g,
 	}
 
-	for int64(len(value.Children)) < max {
-		s, err := d.read(g.Start)
-		if s != nil {
-			value.Children = append(value.Children, s)
-			value.Len += s.Len
-		}
-
-		if err != nil {
-			if isEof(err) {
-				break
-			}
-
-			return nil, err
-		}
-	}
-
-	// TODO Check min was reached
-	_ = min
-
-	return value, nil
+	// The start element may be repeated multiple times, so read via the elements.Read()
+	elements := Elements([]Element{g.Start})
+	return elements.Read(d, value, FixedOrder)
 }
 
 // isEof returns if this error represents the end of file
@@ -80,11 +52,10 @@ func isEof(err error) bool {
 	return false
 }
 
-func (s *Structure) Read(d *Decoder) (*Value, error) {
-	start, err := d.f.Tell()
-	if err != nil {
-		return nil, &validationError{e: s, err: err}
-	}
+func (elements Elements) Read(d *Decoder, value *Value, order Order) (*Value, error) {
+
+	parent := value.Element
+	start := value.Offset
 
 	// This Structure should not be bigger than the parent element
 	bounds := d.ParentBounds()
@@ -96,28 +67,21 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 
 	childrenCount := make(map[ElementId]int64)
 
-	value := &Value{
-		Offset:  start,
-		Element: s,
-	}
-
 	i := 0
-	elements := s.Elements() // TODO This doesn't work correctly with extends
 	eof := false
 
-	log.Debugf("[0x%x] Starting %s (bounds: [0x%x-0x%x], max length: %d)", start, s.IdString(), bounds.Start, bounds.End, bounds_remaining)
+	log.Debugf("[0x%x] Starting %s (bounds: [0x%x-0x%x], max length: %d)", start, parent.IdString(), bounds.Start, bounds.End, bounds_remaining)
 
 	// TODO If "value.Len < bounds_remaining" then we skip any tail elements that are zero length
 	// such as certain scripts. If "value.Len <= bounds_remaining" then parsing breaks, which we
 	// need to dig into more.
-	for value.Len < bounds_remaining && i < len(elements) {
+	for value.Len <= bounds_remaining && i < len(elements) {
 		//log.Debugf("Loop %v, %v < %v, %v < %v", eof, childrenLength, length, i, len(elements))
-
 		e := elements[i]
 
 		max, err := d.eval(e.RepeatMax())
 		if err != nil {
-			return nil, &validationError{e: s, err: fmt.Errorf("RepeatMax eval failed: %s", err.Error())}
+			return nil, &validationError{e: e, err: fmt.Errorf("RepeatMax eval failed: %s", err.Error())}
 		}
 
 		// If we have found the max of this element, move on
@@ -129,13 +93,13 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 
 		min, err := d.eval(e.RepeatMin())
 		if err != nil {
-			return nil, &validationError{e: s, err: fmt.Errorf("RepeatMin eval failed: %s", err.Error())}
+			return nil, &validationError{e: e, err: fmt.Errorf("RepeatMin eval failed: %s", err.Error())}
 		}
 
 		// Ensure we parse this from the correct location.
 		_, err = d.f.Seek(start+value.Len, io.SeekStart)
 		if err != nil {
-			return nil, &validationError{e: s, err: err}
+			return nil, &validationError{e: parent, err: err}
 		}
 
 		v, err := d.read(e)
@@ -149,7 +113,7 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 			childrenCount[v.Element]++
 
 			// If we are variable order, start again from the first element for the next round
-			if s.Order() == VariableOrder {
+			if order == VariableOrder {
 				log.Debugf("reset")
 				i = 0
 			}
@@ -157,7 +121,7 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 
 		if err != nil {
 			// There was an error, but we can possibly try the next element.
-			switch s.Order() {
+			switch order {
 			case FixedOrder:
 				// There was an error reading this item, and we have already found the minimum
 				// number of this element, so lets move on.
@@ -172,23 +136,20 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 			case VariableOrder:
 				// This one failed, try another element
 				if i < len(elements)-1 {
-					log.Debugf("move on from: %s to: %s", elements[i].IdString(), elements[i+1].IdString())
+					log.Debugf("[0x%x] Move on from: %s to: %s", start, elements[i].IdString(), elements[i+1].IdString())
 				} else {
-					log.Debugf("move on from: %s to: end", elements[i].IdString())
+					log.Debugf("[0x%x] Move on from: %s to: end", start, elements[i].IdString())
 				}
 				i++
 
 			default:
-				return nil, &validationError{e: s, err: fmt.Errorf("unknown order: %d", s.Order())}
+				return nil, &validationError{e: parent, err: fmt.Errorf("unknown order: %d", order)}
 			}
 		}
 	}
 
-	// TODO Check if we reached the min children
-	// TODO Check if we read all children
-
-	if s.Length() != "" {
-		log.Debugf("%s Loop %v, %v < %v, %v < %v", s.IdString(), eof, value.Len, bounds_remaining, i, len(elements))
+	if parent.Length() != "" {
+		log.Debugf("%s Loop %v, %v < %v, %v < %v", parent.IdString(), eof, value.Len, bounds_remaining, i, len(elements))
 
 		// TODO Is this an error?
 		if bounds_remaining > value.Len {
@@ -204,8 +165,20 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 			// TODO Eventually remove this error, since padding may be valid (but right now we are parsing strictly)
 			panic(fmt.Sprintf("While developing we shouldn't need to add any padding! %v", padding))
 
-		} else if bounds_remaining < value.Len {
-			panic(fmt.Sprintf("children length is greater than the structure length, %d vs %d", value.Len, bounds_remaining))
+		} else if value.Len > bounds_remaining {
+			// The decoder ensures this shouldn't happen
+			panic(fmt.Sprintf("children's length is greater than the parent length, %d vs %d", value.Len, bounds_remaining))
+		}
+	}
+
+	for _, e := range elements {
+		min, err := d.eval(e.RepeatMin())
+		if err != nil {
+			return nil, &validationError{e: e, err: fmt.Errorf("RepeatMin eval failed: %s", err.Error())}
+		}
+
+		if childrenCount[e] < min {
+			return nil, &validationError{e: parent, err: fmt.Errorf("child %s repeated %d times, less than %d times required", e.IdString(), childrenCount[e], min)}
 		}
 	}
 
@@ -215,33 +188,65 @@ func (s *Structure) Read(d *Decoder) (*Value, error) {
 	return value, nil
 }
 
-func (s *String) Read(d *Decoder) (*Value, error) {
+func (s *Structure) Read(d *Decoder) (*Value, error) {
+
 	start, err := d.f.Tell()
 	if err != nil {
 		return nil, &validationError{e: s, err: err}
 	}
 
+	value := &Value{
+		Offset:  start,
+		Element: s,
+	}
+
+	//if start >= d.ParentBounds().End {
+	//	return value, io.EOF
+	//}
+
+	/*
+		// TODO This is trying to help tail element zero bytes long
+		if s.Length() != "" {
+			length, _ := d.Bits(s.Length(), s.LengthUnit()) // TODO check erro
+			if length == 0 {
+				return value, nil
+			}
+		}
+	*/
+
+	elements := Elements(s.Elements())
+	return elements.Read(d, value, s.Order())
+}
+
+func (s *String) read(d *Decoder) (*Value, error) {
+	start, err := d.f.Tell()
+	if err != nil {
+		return nil, err
+	}
+
+	end := d.ParentBounds().End
+	maxLen := end - start
+
 	var v *Value
 
 	switch s.Typ() {
 	case "zero-terminated", "delimiter-terminated":
-		n, err := input.ReadUntil(d.f, s.delimiter, d.ParentBounds().End-start)
+		n, err := input.ReadUntil(d.f, s.delimiter, maxLen)
 		if err != nil {
-			return nil, &validationError{e: s, err: err}
+			return nil, err
 		}
 		v = &Value{Offset: start, Len: n, Element: s}
 
 	case "fixed-length":
-		length, err := d.eval(s.Length())
+		v, err = lengthValue(d, s)
 		if err != nil {
-			return nil, &validationError{e: s, err: err}
+			return nil, err
 		}
 
-		// TODO Actually read it, and check for encoding.
-		if _, err = input.ReadAndDiscard(d.f, length); err != nil {
-			return nil, &validationError{e: s, err: err}
+		// TODO Check for encoding.
+		if _, err = input.ReadAndDiscard(d.f, v.Len); err != nil {
+			return nil, err
 		}
-		v = &Value{Offset: start, Len: length, Element: s}
 
 	case "pascal":
 		// We assume 1 byte length prefix
@@ -249,14 +254,14 @@ func (s *String) Read(d *Decoder) (*Value, error) {
 		// TODO Check this work for io.ErrUnexpectedEOF
 		i, err := readInt(d.f, 1, false, binary.LittleEndian)
 		if err != nil {
-			return nil, &validationError{e: s, err: err}
+			return nil, err
 		}
 
 		length := int64(i.(uint8))
 
 		// TODO Actually read it, and check for encoding.
 		if _, err = input.ReadAndDiscard(d.f, length); err != nil {
-			return nil, &validationError{e: s, err: err}
+			return nil, err
 		}
 		v = &Value{Offset: start, Len: length + 1, Element: s}
 
@@ -266,51 +271,72 @@ func (s *String) Read(d *Decoder) (*Value, error) {
 
 	// TODO Implement the fixed values
 	//values := b.Values()
-	//if len(values) > 0 && b.MustMatch().bool() {
+	//if len(values) > 0 && b.MustMatch().bool() {}
 
 	return v, nil
 }
 
-// skip moves the decoder forward by length, returning a Value that covers the range
-func skip(d *Decoder, length Reference, lengthUnit LengthUnit) (*Value, error) { // TODO Make this accept a "Length type", which combines the unit and the value
+func (s *String) Read(d *Decoder) (*Value, error) {
+	v, err := s.read(d)
+	if err != nil && err != io.EOF {
+		err = &validationError{e: s, err: err}
+	}
+	return v, err
+}
+
+// lengthValue returns a value based on this Element's length field
+// TODO Reconsider having this method, it seems to add little value
+func lengthValue(d *Decoder, element Element) (*Value, error) {
+
 	start, err := d.f.Tell()
 	if err != nil {
+		//return nil, &validationError{e: element, err: err}
 		return nil, err
 	}
 
-	len, err := d.Bytes(length, lengthUnit)
+	length, err := d.Bytes(element.Length(), element.LengthUnit())
 	if err != nil {
+		//return nil, &validationError{e: element, err: err}
 		return nil, err
 	}
 
-	_, err = d.f.Seek(len, io.SeekCurrent)
-	if err != nil {
-		return nil, err
+	end := d.ParentBounds().End
+	maxLen := end - start
+
+	if maxLen == 0 {
+		return nil, io.EOF
+	}
+
+	if length > maxLen {
+		//return nil, &validationError{e: element, err: io.ErrUnexpectedEOF}
+		return nil, io.ErrUnexpectedEOF
 	}
 
 	return &Value{
-		Offset: start,
-		Len:    len,
+		Offset:  start,
+		Len:     length,
+		Element: element,
 	}, nil
 }
 
 func (b *Binary) Read(d *Decoder) (*Value, error) {
 	// TODO Binary.Read and Number.Read are almost identical.
-	v, err := skip(d, b.Length(), b.LengthUnit())
+	v, err := lengthValue(d, b)
+	if err != nil {
+		if err != io.EOF {
+			err = &validationError{e: b, err: err}
+		}
+		return nil, err
+	}
+
+	bs, err := b.Bytes(d.f, v)
 	if err != nil {
 		return nil, &validationError{e: b, err: err}
 	}
 
-	v.Element = b
-
 	// If we have FixedValues, then check at least one matches
 	values := b.Values()
 	if len(values) > 0 && b.MustMatch().bool() {
-		// Read the bytes value
-		bs, err := b.Bytes(d.f, v)
-		if err != nil {
-			return nil, &validationError{e: b, err: err}
-		}
 		// Now check it matches one of the fixed values
 		for _, fv := range values {
 			if bytes.Equal(fv.value, bs) {
@@ -399,22 +425,25 @@ func (n *Number) Uint(file io.ReaderAt, value *Value) (uint64, error) {
 }
 
 func (n *Number) Read(d *Decoder) (*Value, error) {
-	v, err := skip(d, n.Length(), n.LengthUnit())
+	v, err := lengthValue(d, n)
 	if err != nil {
-		return nil, &validationError{e: n, err: err}
+		if err != io.EOF {
+			err = &validationError{e: n, err: err}
+		}
+		return nil, err
 	}
 
-	v.Element = n
 	v.ByteOrder = d.ByteOrder(n.Endian())
+
+	// Read the int value
+	i, err := n.int(d.f, v)
+	if err != nil {
+		return nil, err // n.int returns validationError so no need to wrap
+	}
 
 	// If we have FixedValues, then check atleast one matches
 	values := n.Values()
 	if len(values) > 0 && n.MustMatch().bool() {
-		// Read the int value
-		i, err := n.int(d.f, v)
-		if err != nil {
-			return nil, err // n.int returns validationError so no need to wrap
-		}
 		// Now check it matches one of the fixed values
 		for _, fv := range values {
 			if intEqual(fv.value, i) {
