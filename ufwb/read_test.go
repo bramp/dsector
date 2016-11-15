@@ -280,6 +280,134 @@ func TestReadString(t *testing.T) {
 	}
 }
 
+func TestBoundReads(t *testing.T) {
+	binary := []byte("abcdefghijklmnopqrstuvwxyz\x00")
+	var tests = []struct {
+		element Element
+	}{
+		{
+			element: &String{typ: "fixed-length", length: "2"},
+		}, {
+			element: &String{typ: "fixed-length", length: "10"},
+		}, /* TODO {
+			element: &String{typ: "pascal"},
+		},*/{
+			element: &Number{length: "2"},
+		}, {
+			element: &Number{length: "8"},
+		}, {
+			element: &Binary{length: "2"},
+		}, {
+			element: &Binary{length: "8"},
+		},
+	}
+
+	for _, test := range tests {
+		file := input.FromBytes(binary)
+
+		// 1 byte bound
+		decoder := NewDecoderWithBounds(nil, file, 0, 1)
+
+		got, err := test.element.Read(decoder)
+
+		// TODO Change this to print out the element's XML form (to make it easier to read test output)
+		if got != nil {
+			t.Errorf("[%s] Read(..) = %q, want nil", test.element, got)
+		}
+
+		if err == nil {
+			t.Errorf("[%s] Read(..) err = nil, want io.ErrUnexpectedEOF", test.element)
+		}
+	}
+}
+
+func TestEOFReads(t *testing.T) {
+	empty := []byte{}
+	var tests = []struct {
+		element Element
+	}{
+		{
+			element: &String{typ: "zero-terminated"},
+		}, {
+			element: &String{typ: "delimiter-terminated", delimiter: ','},
+		}, {
+			element: &String{typ: "fixed-length", length: "1"},
+		}, {
+			element: &String{typ: "fixed-length", length: "10"},
+		}, {
+			element: &String{typ: "pascal"},
+		}, {
+			element: &Number{length: "1"},
+		}, {
+			element: &Number{length: "8"},
+		}, {
+			element: &Binary{length: "1"},
+		}, {
+			element: &Binary{length: "8"},
+		},
+	}
+
+	for _, test := range tests {
+		file := input.FromBytes(empty)
+		decoder := NewDecoder(nil, file)
+
+		got, err := test.element.Read(decoder)
+
+		// TODO Change this to print out the element's XML form (to make it easier to read test output)
+		if got != nil {
+			t.Errorf("[%s] Read(..) = %q, want nil", test.element, got)
+		}
+
+		if err != io.EOF {
+			t.Errorf("[%s] Read(..) err = %q, want io.EOF", test.element, err)
+		}
+	}
+}
+
+func TestShortReads(t *testing.T) {
+	short := []byte{1}
+	var tests = []struct {
+		element Element
+	}{
+		{
+			element: &String{typ: "zero-terminated"},
+		}, {
+			element: &String{typ: "delimiter-terminated", delimiter: ','},
+		}, {
+			element: &String{typ: "fixed-length", length: "2"},
+		}, {
+			element: &String{typ: "fixed-length", length: "10"},
+		}, {
+			element: &String{typ: "pascal"},
+		}, {
+			element: &Number{length: "2"},
+		}, {
+			element: &Number{length: "8"},
+		}, {
+			element: &Binary{length: "2"},
+		}, {
+			element: &Binary{length: "8"},
+		},
+	}
+
+	for _, test := range tests {
+		file := input.FromBytes(short)
+		decoder := NewDecoder(nil, file)
+
+		got, err := test.element.Read(decoder)
+
+		// TODO Change this to print out the element's XML form (to make it easier to read test output)
+		if got != nil {
+			t.Errorf("[%s] Read(..) = %q, want nil", test.element, got)
+		}
+
+		if err == nil {
+			t.Errorf("[%s] Read(..) err = nil, want non-nil", test.element)
+		}
+	}
+}
+
+
 func TestRepeating(t *testing.T) {
 	binary := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8}
 	xml := testHeader +

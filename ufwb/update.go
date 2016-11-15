@@ -123,6 +123,7 @@ func (s *String) update(u *Ufwb, parent *Structure, errs *toerr.Errors) {
 		}
 	*/
 
+	// TODO Length must be > 0
 	// TODO Check the FixedValues match the length
 	// TODO Check Values []*FixedValue `xml:"fixedvalue,omitempty"`
 }

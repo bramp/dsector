@@ -93,7 +93,8 @@ const (
 type Reader interface {
 	// Read from file and return a Value.
 	// The Read method must leave the file offset at Value.Offset + Value.Len // TODO Enforce this!
-	// Read should return what has been parsed, and any error encountered (including EOF).
+	// Read should return what has been parsed, and any error encountered.
+	// If no bytes could be read, then <nil, io.EOF> is returned.
 	Read(decoder *Decoder) (*Value, error)
 }
 

@@ -5,22 +5,26 @@ import (
 )
 
 // ReadUntil reads from the file until it finds a delim byte, EOF, or len bytes have been checked.
-// Returning the number of bytes if the delimitor was found, or -1 and a error.
+// Returning the number of bytes if the delimitor was found, or 0 and a error.
 // io.ErrUnexpectedEOF is returned if the EOF was found.
-func ReadUntil(r io.ByteReader, delim byte, len int64) (int64, error) {
+func ReadUntil(r io.ByteReader, delim byte, maxLen int64) (int64, error) {
 	var n int64
-	for n < len {
+	for n < maxLen {
 		b, err := r.ReadByte()
 		if err != nil {
-			if err == io.EOF {
+			if err == io.EOF && n > 0 {
 				err = io.ErrUnexpectedEOF
 			}
-			return -1, err
+			return 0, err
 		}
 		n++
 		if b == delim {
 			return n, nil
 		}
+	}
+
+	if n == 0 {
+		return 0, io.EOF
 	}
 
 	return n, io.ErrUnexpectedEOF
