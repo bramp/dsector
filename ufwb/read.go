@@ -375,7 +375,7 @@ func (b *Binary) Bytes(file io.ReaderAt, value *Value) ([]byte, error) {
 
 }
 
-// int returns the integer stored at Value in f. The returned
+// int returns the integer stored at value in file. The returned
 // integer is one of int{8,16,32,64} or uint{8,16,32,64} depending
 // on the width and sign of the integer.
 func (n *Number) int(file io.ReaderAt, value *Value) (interface{}, error) {
@@ -398,7 +398,7 @@ func (n *Number) int(file io.ReaderAt, value *Value) (interface{}, error) {
 	return i, err
 }
 
-// Int returns the int this file/value refers to. If the int doesn't fit into a int64, it is truncated.
+// Int returns the value this file/value refers to cast to a int64.
 func (n *Number) Int(file io.ReaderAt, value *Value) (int64, error) {
 	i, err := n.int(file, value)
 	if err != nil {
@@ -411,7 +411,7 @@ func (n *Number) Int(file io.ReaderAt, value *Value) (int64, error) {
 	}
 }
 
-// Uint returns the uint this file/value refers to. If the int doesn't fit into a uint64, it is truncated.
+// Uint returns the value this file/value refers to cast to a uint64.
 func (n *Number) Uint(file io.ReaderAt, value *Value) (uint64, error) {
 	i, err := n.int(file, value)
 	if err != nil {
