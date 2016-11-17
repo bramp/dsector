@@ -57,7 +57,7 @@ type Decoder struct {
 	// dynamicEndian be changed by scripts during processing.
 	dynamicEndian binary.ByteOrder
 
-	// debugFunc hooks a "debug" function into the script env
+	// debugFunc hooks a "debug(...)" function into the script env
 	debugFunc func(interface{})
 }
 
@@ -99,6 +99,7 @@ func NewDecoderWithBounds(u *Ufwb, f input.Input, start, end int64) *Decoder {
 			Start: start,
 			End:   end,
 		}},
+		dynamicEndian: binary.BigEndian,
 	}
 
 	return d

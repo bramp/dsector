@@ -74,78 +74,112 @@ func testFile(t *testing.T, grammar *Ufwb, filename string, expectErr bool) {
 func TestReadNumber(t *testing.T) {
 	binary := []byte("\x81\x82\x83\x84\x85\x86\x87\x88")
 	var tests = []struct {
-		xml     string
-		wantDec string
-		wantHex string
+		xml      string
+		wantDec  string
+		wantHex  string
+		wantInt  int64
+		wantUint uint64
 	}{
 		// Unsigned
 		{
-			xml:     `<number id="1" type="integer" length="1" endian="big" signed="no"/>`,
-			wantDec: "129",
-			wantHex: "0x81",
+			xml:      `<number id="1" type="integer" length="1" endian="big" signed="no"/>`,
+			wantDec:  "129",
+			wantHex:  "0x81",
+			wantInt:  129,
+			wantUint: 129,
 		}, {
-			xml:     `<number id="1" type="integer" length="2" endian="big" signed="no"/>`,
-			wantDec: "33154",
-			wantHex: "0x8182",
+			xml:      `<number id="1" type="integer" length="2" endian="big" signed="no"/>`,
+			wantDec:  "33154",
+			wantHex:  "0x8182",
+			wantInt:  33154,
+			wantUint: 33154,
 		}, {
-			xml:     `<number id="1" type="integer" length="4" endian="big" signed="no"/>`,
-			wantDec: "2172814212",
-			wantHex: "0x81828384",
+			xml:      `<number id="1" type="integer" length="4" endian="big" signed="no"/>`,
+			wantDec:  "2172814212",
+			wantHex:  "0x81828384",
+			wantInt:  2172814212,
+			wantUint: 2172814212,
 		}, {
-			xml:     `<number id="1" type="integer" length="8" endian="big" signed="no"/>`,
-			wantDec: "9332165983064197000",
-			wantHex: "0x8182838485868788",
+			xml:      `<number id="1" type="integer" length="8" endian="big" signed="no"/>`,
+			wantDec:  "9332165983064197000",
+			wantHex:  "0x8182838485868788",
+			wantInt:  -9114578090645354616,
+			wantUint: 9332165983064197000,
 		}, {
-			xml:     `<number id="1" type="integer" length="1" endian="little" signed="no"/>`,
-			wantDec: "129",
-			wantHex: "0x81",
+			xml:      `<number id="1" type="integer" length="1" endian="little" signed="no"/>`,
+			wantDec:  "129",
+			wantHex:  "0x81",
+			wantInt:  129,
+			wantUint: 129,
 		}, {
-			xml:     `<number id="1" type="integer" length="2" endian="little" signed="no"/>`,
-			wantDec: "33409",
-			wantHex: "0x8281",
+			xml:      `<number id="1" type="integer" length="2" endian="little" signed="no"/>`,
+			wantDec:  "33409",
+			wantHex:  "0x8281",
+			wantInt:  33409,
+			wantUint: 33409,
 		}, {
-			xml:     `<number id="1" type="integer" length="4" endian="little" signed="no"/>`,
-			wantDec: "2223211137",
-			wantHex: "0x84838281",
+			xml:      `<number id="1" type="integer" length="4" endian="little" signed="no"/>`,
+			wantDec:  "2223211137",
+			wantHex:  "0x84838281",
+			wantInt:  2223211137,
+			wantUint: 2223211137,
 		}, {
-			xml:     `<number id="1" type="integer" length="8" endian="little" signed="no"/>`,
-			wantDec: "9837979819026121345",
-			wantHex: "0x8887868584838281",
+			xml:      `<number id="1" type="integer" length="8" endian="little" signed="no"/>`,
+			wantDec:  "9837979819026121345",
+			wantHex:  "0x8887868584838281",
+			wantInt:  -0x7778797a7b7c7d7f, // The Uint value - (2^64+1)
+			wantUint: 0x8887868584838281,
 		},
 
 		// Signed
 		{
-			xml:     `<number id="1" type="integer" length="1" endian="big" signed="yes"/>`,
-			wantDec: "-127",
-			wantHex: "0x81",
+			xml:      `<number id="1" type="integer" length="1" endian="big" signed="yes"/>`,
+			wantDec:  "-127",
+			wantHex:  "0x81",
+			wantInt:  -127,
+			wantUint: 0xffffffffffffff81,
 		}, {
-			xml:     `<number id="1" type="integer" length="2" endian="big" signed="yes"/>`,
-			wantDec: "-32382",
-			wantHex: "0x8182",
+			xml:      `<number id="1" type="integer" length="2" endian="big" signed="yes"/>`,
+			wantDec:  "-32382",
+			wantHex:  "0x8182",
+			wantInt:  -32382,
+			wantUint: 0xffffffffffff8182,
 		}, {
-			xml:     `<number id="1" type="integer" length="4" endian="big" signed="yes"/>`,
-			wantDec: "-2122153084",
-			wantHex: "0x81828384",
+			xml:      `<number id="1" type="integer" length="4" endian="big" signed="yes"/>`,
+			wantDec:  "-2122153084",
+			wantHex:  "0x81828384",
+			wantInt:  -2122153084,
+			wantUint: 0xffffffff81828384,
 		}, {
-			xml:     `<number id="1" type="integer" length="8" endian="big" signed="yes"/>`,
-			wantDec: "-9114578090645354616",
-			wantHex: "0x8182838485868788",
+			xml:      `<number id="1" type="integer" length="8" endian="big" signed="yes"/>`,
+			wantDec:  "-9114578090645354616",
+			wantHex:  "0x8182838485868788",
+			wantInt:  -9114578090645354616,
+			wantUint: 0x8182838485868788,
 		}, {
-			xml:     `<number id="1" type="integer" length="1" endian="little" signed="yes"/>`,
-			wantDec: "-127",
-			wantHex: "0x81",
+			xml:      `<number id="1" type="integer" length="1" endian="little" signed="yes"/>`,
+			wantDec:  "-127",
+			wantHex:  "0x81",
+			wantInt:  -127,
+			wantUint: 0xffffffffffffff81,
 		}, {
-			xml:     `<number id="1" type="integer" length="2" endian="little" signed="yes"/>`,
-			wantDec: "-32127",
-			wantHex: "0x8281",
+			xml:      `<number id="1" type="integer" length="2" endian="little" signed="yes"/>`,
+			wantDec:  "-32127",
+			wantHex:  "0x8281",
+			wantInt:  -32127,
+			wantUint: 0xffffffffffff8281,
 		}, {
-			xml:     `<number id="1" type="integer" length="4" endian="little" signed="yes"/>`,
-			wantDec: "-2071756159",
-			wantHex: "0x84838281",
+			xml:      `<number id="1" type="integer" length="4" endian="little" signed="yes"/>`,
+			wantDec:  "-2071756159",
+			wantHex:  "0x84838281",
+			wantInt:  -2071756159,
+			wantUint: 0xffffffff84838281,
 		}, {
-			xml:     `<number id="1" type="integer" length="8" endian="little" signed="yes"/>`,
-			wantDec: "-8608764254683430271",
-			wantHex: "0x8887868584838281",
+			xml:      `<number id="1" type="integer" length="8" endian="little" signed="yes"/>`,
+			wantDec:  "-8608764254683430271",
+			wantHex:  "0x8887868584838281",
+			wantInt:  -8608764254683430271,
+			wantUint: 0x8887868584838281,
 		},
 
 		// TODO Test Floats
@@ -205,6 +239,18 @@ func TestReadNumber(t *testing.T) {
 		}
 		if s != test.wantHex {
 			t.Errorf("hex n.Format(...) = %q want %q", s, test.wantHex)
+		}
+
+		// Int64
+		i, err := n.Int(file, numValue)
+		if i != test.wantInt {
+			t.Errorf("n.Int(...) = %d want %d", i, test.wantInt)
+		}
+
+		// Uint64
+		u, err := n.Uint(file, numValue)
+		if u != test.wantUint {
+			t.Errorf("n.Uint(...) = %d want %d", u, test.wantUint)
 		}
 	}
 }

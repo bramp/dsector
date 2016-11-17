@@ -78,10 +78,10 @@ func boolOf(b bool) Bool {
 type Endian int
 
 const (
-	UnknownEndian Endian = iota
-	LittleEndian
-	BigEndian
-	DynamicEndian
+	UnknownEndian Endian = 0
+	DynamicEndian        = 1
+	BigEndian            = 2
+	LittleEndian         = 3
 )
 
 type Display int

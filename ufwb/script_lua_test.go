@@ -3,6 +3,7 @@ package ufwb
 import (
 	"bramp.net/dsector/input"
 	"fmt"
+	"github.com/yuin/gopher-lua"
 	"strings"
 	"testing"
 )
@@ -11,7 +12,7 @@ func TestLua(t *testing.T) {
 	grammar := `<ufwb version="1.0.3">
 					<grammar start="1">
 						<structure name="struct" id="1" repeatmax="unlimited">
-							<number name="number" id="2" type="integer" length="4" endian="big" display="hex" />
+							<number name="number" id="2" type="integer" length="4" endian="big" display="hex" signed="no" />
 							<scriptelement name="script" id="3">
                     			<script type="Generic">
                         			<source language="Lua">
@@ -22,8 +23,8 @@ func TestLua(t *testing.T) {
 						</structure>
 					</grammar>
 				</ufwb>`
-	// TODO Remove the last 4 bytes, after we fix the parsing of the scriptelement if the data is only 4 bytes long
-	data := []byte{0xA1, 0xB2, 0xC3, 0xD4, 0, 0, 0, 0}
+
+	data := []byte{0xA1, 0xB2, 0xC3, 0xD4}
 
 	var tests = []struct {
 		text string
@@ -32,29 +33,33 @@ func TestLua(t *testing.T) {
 		text: `debug("hello")`,
 		want: "hello",
 	}, {
-		text: `debug(synalysis.ENDIAN_LITTLE)`,
-		want: 1,
-	}, {
 		text: `debug(synalysis.ENDIAN_BIG)`,
-		want: 2,
+		want: lua.LNumber(2),
+	}, {
+		text: `debug(synalysis.ENDIAN_LITTLE)`,
+		want: lua.LNumber(3),
 	}, {
 		text: `results = currentMapper:getCurrentResults()
 		       debug(results:getLastResult())`,
-		want: "",
+		want: nil,
 	}, {
 		text: `results = currentMapper:getCurrentResults()
 		       lastResult = results:getLastResult()
 		       debug(lastResult:getValue())`,
-		want: "",
+		want: nil,
 	}, {
 		text: `results = currentMapper:getCurrentResults()
 		       lastResult = results:getLastResult()
 		       value = lastResult:getValue()
 		       debug(value:getUnsignedNumber())`,
-		want: 0xA1B2C3D4,
+		want: lua.LNumber(0xA1B2C3D4),
 	}, {
-		text: `currentMapper:setDynamicEndianness(synalysis.ENDIAN_BIG)`,
-		want: "",
+		text: `debug(currentMapper:getDynamicEndianness())`,
+		want: lua.LNumber(2), // Default is ENDIAN_BIG
+	}, {
+		text: `currentMapper:setDynamicEndianness(synalysis.ENDIAN_LITTLE)
+		       debug(currentMapper:getDynamicEndianness())`,
+		want: lua.LNumber(3),
 	}}
 
 	for _, test := range tests {
@@ -66,11 +71,10 @@ func TestLua(t *testing.T) {
 			continue
 		}
 
-		got := interface{}("UNSET")
+		got := interface{}("<nothing>")
 
 		d := NewDecoder(ufwb, input.FromBytes(data))
 		d.debugFunc = func(value interface{}) {
-			//got = fmt.Sprintf("%s", value)
 			got = value
 		}
 		_, err := d.Decode()
@@ -78,10 +82,9 @@ func TestLua(t *testing.T) {
 			t.Errorf("d.Decode(%q) = %q, want nil", test.text, err)
 		}
 
-		// TODO
-		//if got != test.want {
-		//	t.Errorf("debugFunc(...) got %q, want %q", got, test.want)
-		//}
+		if test.want != nil && got != test.want {
+			t.Errorf("debugFunc(...) got (%T)%q, want %q", got, got, test.want)
+		}
 	}
 
 }
