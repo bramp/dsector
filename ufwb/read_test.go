@@ -294,19 +294,19 @@ func TestBoundReads(t *testing.T) {
 		element Element
 	}{
 		{
-			element: &String{typ: "fixed-length", length: "2"},
+			element: &String{typ: "fixed-length", length: ConstExpression(2)},
 		}, {
-			element: &String{typ: "fixed-length", length: "10"},
+			element: &String{typ: "fixed-length", length: ConstExpression(10)},
 		}, /* TODO {
 			element: &String{typ: "pascal"},
 		},*/{
-			element: &Number{length: "2"},
+			element: &Number{length: ConstExpression(2)},
 		}, {
-			element: &Number{length: "8"},
+			element: &Number{length: ConstExpression(8)},
 		}, {
-			element: &Binary{length: "2"},
+			element: &Binary{length: ConstExpression(2)},
 		}, {
-			element: &Binary{length: "8"},
+			element: &Binary{length: ConstExpression(8)},
 		},
 	}
 
@@ -339,19 +339,19 @@ func TestEOFReads(t *testing.T) {
 		}, {
 			element: &String{typ: "delimiter-terminated", delimiter: ','},
 		}, {
-			element: &String{typ: "fixed-length", length: "1"},
+			element: &String{typ: "fixed-length", length: ConstExpression(1)},
 		}, {
-			element: &String{typ: "fixed-length", length: "10"},
+			element: &String{typ: "fixed-length", length: ConstExpression(10)},
 		}, {
 			element: &String{typ: "pascal"},
 		}, {
-			element: &Number{length: "1"},
+			element: &Number{length: ConstExpression(1)},
 		}, {
-			element: &Number{length: "8"},
+			element: &Number{length: ConstExpression(8)},
 		}, {
-			element: &Binary{length: "1"},
+			element: &Binary{length: ConstExpression(1)},
 		}, {
-			element: &Binary{length: "8"},
+			element: &Binary{length: ConstExpression(8)},
 		},
 	}
 
@@ -382,19 +382,19 @@ func TestShortReads(t *testing.T) {
 		}, {
 			element: &String{typ: "delimiter-terminated", delimiter: ','},
 		}, {
-			element: &String{typ: "fixed-length", length: "2"},
+			element: &String{typ: "fixed-length", length: ConstExpression(2)},
 		}, {
-			element: &String{typ: "fixed-length", length: "10"},
+			element: &String{typ: "fixed-length", length: ConstExpression(10)},
 		}, {
 			element: &String{typ: "pascal"},
 		}, {
-			element: &Number{length: "2"},
+			element: &Number{length: ConstExpression(2)},
 		}, {
-			element: &Number{length: "8"},
+			element: &Number{length: ConstExpression(8)},
 		}, {
-			element: &Binary{length: "2"},
+			element: &Binary{length: ConstExpression(2)},
 		}, {
-			element: &Binary{length: "8"},
+			element: &Binary{length: ConstExpression(8)},
 		},
 	}
 

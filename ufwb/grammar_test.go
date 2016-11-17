@@ -93,6 +93,35 @@ func normalise(root *Ufwb, element Element, parent *Structure, errs *toerr.Error
 	}
 }
 
+func TestParseExpression(t *testing.T) {
+
+	xml := testStructHeader +
+		`<number id="1" repeatmin="1" repeatmax="unlimited" length="prev.length"></number>` +
+		testStructFooter
+
+	grammar, errs := ParseXmlGrammar(strings.NewReader(xml))
+	if len(errs) > 0 {
+		t.Errorf("ParseXmlGrammar(...) errs: %s, want none", errs)
+		return
+	}
+
+	// Remove all the XML fields, as we don't want to compare them
+	got, _ := grammar.Get("1")
+	n := got.(*Number)
+
+	if n.repeatMin != ConstExpression(1) {
+		t.Errorf("repeatMin = %v, want: %v", n.repeatMin, ConstExpression(1))
+	}
+
+	if n.repeatMax != StringExpression("unlimited") { // TODO Change to ConstExpression eventually
+		t.Errorf("repeatMax = %v, want: %v", n.repeatMax, ConstExpression(1))
+	}
+
+	if n.length != StringExpression("prev.length") {
+		t.Errorf("length = %v, want: %v", n.length, ConstExpression(1))
+	}
+}
+
 // TODO What is this test actually testing?
 func TestParseGrammarFragment(t *testing.T) {
 	var tests = []struct {
@@ -112,7 +141,7 @@ func TestParseGrammarFragment(t *testing.T) {
 			want: &Number{
 				Base:   Base{"Number", 1, "number name", ""},
 				Type:   "integer",
-				length: "1",
+				length: ConstExpression(1),
 				values: []*FixedValue{
 					{name: "first value", value: 0, description: "Some description"},
 				},
@@ -143,7 +172,6 @@ func TestParseGrammarFragment(t *testing.T) {
 }
 
 func TestParseGrammar(t *testing.T) {
-
 	var tests = []struct {
 		xml  string
 		want *Ufwb
@@ -152,7 +180,7 @@ func TestParseGrammar(t *testing.T) {
 			xml: `<ufwb version="1.0.3">
 				<grammar name="Test Name" start="1" author="bramp@" fileextension="test" complete="yes">
 					<description>Test Description</description>
-					<structure name="struct" id="1">
+					<structure name="struct" id="1" repeatmin="2" repeatmax="unlimited">
 						<string name="string" id="2" type="zero-terminated"/>
 						<number name="number" id="3" type="integer" length="8"/>
 						<structure name="substruct" id="4" length="prev.number">
@@ -182,7 +210,8 @@ func TestParseGrammar(t *testing.T) {
 					//Start:       "1",
 					Elements: []Element{
 						&Structure{
-							Base: Base{"Structure", 1, "struct", ""},
+							Base:    Base{"Structure", 1, "struct", ""},
+							Repeats: Repeats{ConstExpression(2), StringExpression("unlimited")},
 							elements: []Element{
 								&String{
 									Base: Base{"String", 2, "string", ""},
@@ -191,15 +220,15 @@ func TestParseGrammar(t *testing.T) {
 								&Number{
 									Base:   Base{"Number", 3, "number", ""},
 									Type:   "integer",
-									length: "8",
+									length: ConstExpression(8),
 								},
 								&Structure{
 									Base:   Base{"Structure", 4, "substruct", ""},
-									length: "prev.number",
+									length: StringExpression("prev.number"),
 									elements: []Element{
 										&Binary{
 											Base:   Base{"Binary", 5, "binary", ""},
-											length: "4",
+											length: ConstExpression(4),
 											values: []*FixedBinaryValue{
 												{name: "one", value: []byte{0x01, 0x23, 0x45, 0x67}},
 												{name: "two", value: []byte{0x89, 0xab, 0xcd, 0xef}},
@@ -208,7 +237,7 @@ func TestParseGrammar(t *testing.T) {
 										&Number{
 											Base:   Base{"Number", 6, "number_values", ""},
 											Type:   "integer",
-											length: "4",
+											length: ConstExpression(4),
 											values: []*FixedValue{
 												{name: "three", value: 0xfedcba98},
 												{name: "four", value: 0x76543210},

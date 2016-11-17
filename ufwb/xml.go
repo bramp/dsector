@@ -47,10 +47,9 @@ func (xml *XmlRepeats) toRepeats(errs *toerr.Errors) Repeats {
 	if repeatMax == "-1" {
 		repeatMax = "unlimited"
 	}
-
 	return Repeats{
-		repeatMin: Reference(xml.RepeatMin),
-		repeatMax: Reference(repeatMax),
+		repeatMin: NewExpression(xml.RepeatMin),
+		repeatMax: NewExpression(repeatMax),
 	}
 }
 

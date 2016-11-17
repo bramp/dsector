@@ -45,17 +45,17 @@ func (b *Binary) SetId(id int) {
 	b.id = id
 }
 
-func (b *Binary) Length() Reference {
-	if b.length != Reference("") {
+func (b *Binary) Length() Expression {
+	if b.length != nil {
 		return b.length
 	}
 	if b.derives != nil {
 		return b.derives.Length()
 	}
-	return Reference("")
+	return nil
 }
 
-func (b *Binary) SetLength(length Reference) {
+func (b *Binary) SetLength(length Expression) {
 	b.length = length
 }
 
@@ -101,31 +101,31 @@ func (b *Binary) SetName(name string) {
 	b.name = name
 }
 
-func (b *Binary) RepeatMax() Reference {
-	if b.repeatMax != Reference("") {
+func (b *Binary) RepeatMax() Expression {
+	if b.repeatMax != nil {
 		return b.repeatMax
 	}
 	if b.derives != nil {
 		return b.derives.RepeatMax()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (b *Binary) SetRepeatMax(repeatMax Reference) {
+func (b *Binary) SetRepeatMax(repeatMax Expression) {
 	b.repeatMax = repeatMax
 }
 
-func (b *Binary) RepeatMin() Reference {
-	if b.repeatMin != Reference("") {
+func (b *Binary) RepeatMin() Expression {
+	if b.repeatMin != nil {
 		return b.repeatMin
 	}
 	if b.derives != nil {
 		return b.derives.RepeatMin()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (b *Binary) SetRepeatMin(repeatMin Reference) {
+func (b *Binary) SetRepeatMin(repeatMin Expression) {
 	b.repeatMin = repeatMin
 }
 
@@ -200,17 +200,17 @@ func (c *Custom) SetId(id int) {
 	c.id = id
 }
 
-func (c *Custom) Length() Reference {
-	if c.length != Reference("") {
+func (c *Custom) Length() Expression {
+	if c.length != nil {
 		return c.length
 	}
 	if c.derives != nil {
 		return c.derives.Length()
 	}
-	return Reference("")
+	return nil
 }
 
-func (c *Custom) SetLength(length Reference) {
+func (c *Custom) SetLength(length Expression) {
 	c.length = length
 }
 
@@ -307,25 +307,25 @@ func (g *Grammar) SetName(name string) {
 	g.name = name
 }
 
-func (g *Grammar) RepeatMax() Reference {
-	if g.repeatMax != Reference("") {
+func (g *Grammar) RepeatMax() Expression {
+	if g.repeatMax != nil {
 		return g.repeatMax
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (g *Grammar) SetRepeatMax(repeatMax Reference) {
+func (g *Grammar) SetRepeatMax(repeatMax Expression) {
 	g.repeatMax = repeatMax
 }
 
-func (g *Grammar) RepeatMin() Reference {
-	if g.repeatMin != Reference("") {
+func (g *Grammar) RepeatMin() Expression {
+	if g.repeatMin != nil {
 		return g.repeatMin
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (g *Grammar) SetRepeatMin(repeatMin Reference) {
+func (g *Grammar) SetRepeatMin(repeatMin Expression) {
 	g.repeatMin = repeatMin
 }
 
@@ -411,31 +411,31 @@ func (g *GrammarRef) SetName(name string) {
 	g.name = name
 }
 
-func (g *GrammarRef) RepeatMax() Reference {
-	if g.repeatMax != Reference("") {
+func (g *GrammarRef) RepeatMax() Expression {
+	if g.repeatMax != nil {
 		return g.repeatMax
 	}
 	if g.derives != nil {
 		return g.derives.RepeatMax()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (g *GrammarRef) SetRepeatMax(repeatMax Reference) {
+func (g *GrammarRef) SetRepeatMax(repeatMax Expression) {
 	g.repeatMax = repeatMax
 }
 
-func (g *GrammarRef) RepeatMin() Reference {
-	if g.repeatMin != Reference("") {
+func (g *GrammarRef) RepeatMin() Expression {
+	if g.repeatMin != nil {
 		return g.repeatMin
 	}
 	if g.derives != nil {
 		return g.derives.RepeatMin()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (g *GrammarRef) SetRepeatMin(repeatMin Reference) {
+func (g *GrammarRef) SetRepeatMin(repeatMin Expression) {
 	g.repeatMin = repeatMin
 }
 
@@ -530,17 +530,17 @@ func (n *Number) SetId(id int) {
 	n.id = id
 }
 
-func (n *Number) Length() Reference {
-	if n.length != Reference("") {
+func (n *Number) Length() Expression {
+	if n.length != nil {
 		return n.length
 	}
 	if n.derives != nil {
 		return n.derives.Length()
 	}
-	return Reference("")
+	return nil
 }
 
-func (n *Number) SetLength(length Reference) {
+func (n *Number) SetLength(length Expression) {
 	n.length = length
 }
 
@@ -628,31 +628,31 @@ func (n *Number) SetName(name string) {
 	n.name = name
 }
 
-func (n *Number) RepeatMax() Reference {
-	if n.repeatMax != Reference("") {
+func (n *Number) RepeatMax() Expression {
+	if n.repeatMax != nil {
 		return n.repeatMax
 	}
 	if n.derives != nil {
 		return n.derives.RepeatMax()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (n *Number) SetRepeatMax(repeatMax Reference) {
+func (n *Number) SetRepeatMax(repeatMax Expression) {
 	n.repeatMax = repeatMax
 }
 
-func (n *Number) RepeatMin() Reference {
-	if n.repeatMin != Reference("") {
+func (n *Number) RepeatMin() Expression {
+	if n.repeatMin != nil {
 		return n.repeatMin
 	}
 	if n.derives != nil {
 		return n.derives.RepeatMin()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (n *Number) SetRepeatMin(repeatMin Reference) {
+func (n *Number) SetRepeatMin(repeatMin Expression) {
 	n.repeatMin = repeatMin
 }
 
@@ -803,17 +803,17 @@ func (o *Offset) SetId(id int) {
 	o.id = id
 }
 
-func (o *Offset) Length() Reference {
-	if o.length != Reference("") {
+func (o *Offset) Length() Expression {
+	if o.length != nil {
 		return o.length
 	}
 	if o.derives != nil {
 		return o.derives.Length()
 	}
-	return Reference("")
+	return nil
 }
 
-func (o *Offset) SetLength(length Reference) {
+func (o *Offset) SetLength(length Expression) {
 	o.length = length
 }
 
@@ -887,31 +887,31 @@ func (o *Offset) SetRelativeTo(relativeTo ElementId) {
 	o.relativeTo = relativeTo
 }
 
-func (o *Offset) RepeatMax() Reference {
-	if o.repeatMax != Reference("") {
+func (o *Offset) RepeatMax() Expression {
+	if o.repeatMax != nil {
 		return o.repeatMax
 	}
 	if o.derives != nil {
 		return o.derives.RepeatMax()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (o *Offset) SetRepeatMax(repeatMax Reference) {
+func (o *Offset) SetRepeatMax(repeatMax Expression) {
 	o.repeatMax = repeatMax
 }
 
-func (o *Offset) RepeatMin() Reference {
-	if o.repeatMin != Reference("") {
+func (o *Offset) RepeatMin() Expression {
+	if o.repeatMin != nil {
 		return o.repeatMin
 	}
 	if o.derives != nil {
 		return o.derives.RepeatMin()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (o *Offset) SetRepeatMin(repeatMin Reference) {
+func (o *Offset) SetRepeatMin(repeatMin Expression) {
 	o.repeatMin = repeatMin
 }
 
@@ -983,31 +983,31 @@ func (s *Script) SetName(name string) {
 	s.name = name
 }
 
-func (s *Script) RepeatMax() Reference {
-	if s.repeatMax != Reference("") {
+func (s *Script) RepeatMax() Expression {
+	if s.repeatMax != nil {
 		return s.repeatMax
 	}
 	if s.derives != nil {
 		return s.derives.RepeatMax()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (s *Script) SetRepeatMax(repeatMax Reference) {
+func (s *Script) SetRepeatMax(repeatMax Expression) {
 	s.repeatMax = repeatMax
 }
 
-func (s *Script) RepeatMin() Reference {
-	if s.repeatMin != Reference("") {
+func (s *Script) RepeatMin() Expression {
+	if s.repeatMin != nil {
 		return s.repeatMin
 	}
 	if s.derives != nil {
 		return s.derives.RepeatMin()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (s *Script) SetRepeatMin(repeatMin Reference) {
+func (s *Script) SetRepeatMin(repeatMin Expression) {
 	s.repeatMin = repeatMin
 }
 
@@ -1113,17 +1113,17 @@ func (s *String) SetId(id int) {
 	s.id = id
 }
 
-func (s *String) Length() Reference {
-	if s.length != Reference("") {
+func (s *String) Length() Expression {
+	if s.length != nil {
 		return s.length
 	}
 	if s.derives != nil {
 		return s.derives.Length()
 	}
-	return Reference("")
+	return nil
 }
 
-func (s *String) SetLength(length Reference) {
+func (s *String) SetLength(length Expression) {
 	s.length = length
 }
 
@@ -1169,31 +1169,31 @@ func (s *String) SetName(name string) {
 	s.name = name
 }
 
-func (s *String) RepeatMax() Reference {
-	if s.repeatMax != Reference("") {
+func (s *String) RepeatMax() Expression {
+	if s.repeatMax != nil {
 		return s.repeatMax
 	}
 	if s.derives != nil {
 		return s.derives.RepeatMax()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (s *String) SetRepeatMax(repeatMax Reference) {
+func (s *String) SetRepeatMax(repeatMax Expression) {
 	s.repeatMax = repeatMax
 }
 
-func (s *String) RepeatMin() Reference {
-	if s.repeatMin != Reference("") {
+func (s *String) RepeatMin() Expression {
+	if s.repeatMin != nil {
 		return s.repeatMin
 	}
 	if s.derives != nil {
 		return s.derives.RepeatMin()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (s *String) SetRepeatMin(repeatMin Reference) {
+func (s *String) SetRepeatMin(repeatMin Expression) {
 	s.repeatMin = repeatMin
 }
 
@@ -1307,31 +1307,31 @@ func (s *StructRef) SetName(name string) {
 	s.name = name
 }
 
-func (s *StructRef) RepeatMax() Reference {
-	if s.repeatMax != Reference("") {
+func (s *StructRef) RepeatMax() Expression {
+	if s.repeatMax != nil {
 		return s.repeatMax
 	}
 	if s.derives != nil {
 		return s.derives.RepeatMax()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (s *StructRef) SetRepeatMax(repeatMax Reference) {
+func (s *StructRef) SetRepeatMax(repeatMax Expression) {
 	s.repeatMax = repeatMax
 }
 
-func (s *StructRef) RepeatMin() Reference {
-	if s.repeatMin != Reference("") {
+func (s *StructRef) RepeatMin() Expression {
+	if s.repeatMin != nil {
 		return s.repeatMin
 	}
 	if s.derives != nil {
 		return s.derives.RepeatMin()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (s *StructRef) SetRepeatMin(repeatMin Reference) {
+func (s *StructRef) SetRepeatMin(repeatMin Expression) {
 	s.repeatMin = repeatMin
 }
 
@@ -1461,22 +1461,22 @@ func (s *Structure) SetId(id int) {
 	s.id = id
 }
 
-func (s *Structure) Length() Reference {
-	if s.length != Reference("") {
+func (s *Structure) Length() Expression {
+	if s.length != nil {
 		return s.length
 	}
 	if s.derives != nil {
 		return s.derives.Length()
 	}
-	return Reference("")
+	return nil
 }
 
-func (s *Structure) SetLength(length Reference) {
+func (s *Structure) SetLength(length Expression) {
 	s.length = length
 }
 
-func (s *Structure) LengthOffset() Reference {
-	if s.lengthOffset != Reference("") {
+func (s *Structure) LengthOffset() Expression {
+	if s.lengthOffset != nil {
 		return s.lengthOffset
 	}
 	if s.derives != nil {
@@ -1485,10 +1485,10 @@ func (s *Structure) LengthOffset() Reference {
 	if s.parent != nil {
 		return s.parent.LengthOffset()
 	}
-	return Reference("")
+	return nil
 }
 
-func (s *Structure) SetLengthOffset(lengthOffset Reference) {
+func (s *Structure) SetLengthOffset(lengthOffset Expression) {
 	s.lengthOffset = lengthOffset
 }
 
@@ -1537,31 +1537,31 @@ func (s *Structure) SetOrder(order Order) {
 	s.order = order
 }
 
-func (s *Structure) RepeatMax() Reference {
-	if s.repeatMax != Reference("") {
+func (s *Structure) RepeatMax() Expression {
+	if s.repeatMax != nil {
 		return s.repeatMax
 	}
 	if s.derives != nil {
 		return s.derives.RepeatMax()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (s *Structure) SetRepeatMax(repeatMax Reference) {
+func (s *Structure) SetRepeatMax(repeatMax Expression) {
 	s.repeatMax = repeatMax
 }
 
-func (s *Structure) RepeatMin() Reference {
-	if s.repeatMin != Reference("") {
+func (s *Structure) RepeatMin() Expression {
+	if s.repeatMin != nil {
 		return s.repeatMin
 	}
 	if s.derives != nil {
 		return s.derives.RepeatMin()
 	}
-	return Reference("1")
+	return ConstExpression(1)
 }
 
-func (s *Structure) SetRepeatMin(repeatMin Reference) {
+func (s *Structure) SetRepeatMin(repeatMin Expression) {
 	s.repeatMin = repeatMin
 }
 

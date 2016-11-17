@@ -7,6 +7,7 @@ import (
 	"bramp.net/dsector/toerr"
 	"fmt"
 	"io"
+	"strconv"
 )
 
 const (
@@ -15,8 +16,40 @@ const (
 )
 
 type Colour uint32
-type Reference string // TODO At "parse time" check if this is a constant and record that.
-type Bool int8        // tri-state bool unset, false, true.
+type Bool int8 // tri-state bool unset, false, true.
+
+type Expression interface {
+	fmt.Stringer
+}
+
+type ConstExpression int64
+
+func (e ConstExpression) String() string {
+	return fmt.Sprintf("ConstExpression(%d)", int64(e))
+}
+
+// StringExpression needs to be evaluated
+type StringExpression string
+
+func (e StringExpression) String() string {
+	return fmt.Sprintf("StringExpression(%q)", string(e))
+}
+
+func NewExpression(expr string) Expression {
+	if expr == "" {
+		// Empty string means it wasn't set
+		return nil
+	}
+
+	// Try a number
+	if i, err := strconv.ParseInt(expr, 0, 64); err == nil {
+		return ConstExpression(i)
+	}
+
+	// TODO if expr == unlimited
+
+	return StringExpression(expr)
+}
 
 // No other value is allowed
 const (
@@ -113,8 +146,8 @@ type Derivable interface {
 }
 
 type Repeatable interface {
-	RepeatMin() Reference
-	RepeatMax() Reference
+	RepeatMin() Expression
+	RepeatMax() Expression
 }
 
 // ElementId holds the the basic identifer for a Element
@@ -127,7 +160,7 @@ type ElementId interface {
 }
 
 type Lengthable interface {
-	Length() Reference
+	Length() Expression
 	LengthUnit() LengthUnit
 }
 
@@ -189,8 +222,8 @@ func (b *Base) IdString() string {
 }
 
 type Repeats struct {
-	repeatMin Reference `default:"Reference(\"1\")" parent:"false"`
-	repeatMax Reference `default:"Reference(\"1\")" parent:"false"`
+	repeatMin Expression `default:"ConstExpression(1)" parent:"false"`
+	repeatMax Expression `default:"ConstExpression(1)" parent:"false"`
 }
 
 type Grammar struct {
@@ -220,9 +253,9 @@ type Structure struct {
 	derives *Structure
 	parent  *Structure
 
-	length       Reference  `parent:"false"`
+	length       Expression `parent:"false"`
 	lengthUnit   LengthUnit `default:"ByteLengthUnit"`
-	lengthOffset Reference
+	lengthOffset Expression
 
 	endian   Endian `default:"LittleEndian"`
 	signed   Bool   `default:"True"`
@@ -273,7 +306,7 @@ type Custom struct {
 
 	derives *Custom
 
-	length     Reference  `parent:"false"`
+	length     Expression `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
 	script *Script
@@ -304,7 +337,7 @@ type String struct {
 
 	typ string // TODO Convert to "StringType" // "zero-terminated", "fixed-length", "pascal", "delimiter-terminated"
 
-	length     Reference  `parent:"false"`
+	length     Expression `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
 	encoding string `default:"\"UTF-8\""`
@@ -325,7 +358,7 @@ type Binary struct {
 	derives *Binary
 	parent  *Structure
 
-	length     Reference  `parent:"false"`
+	length     Expression `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
 	//unused     Bool // TODO
@@ -346,7 +379,7 @@ type Number struct {
 	parent  *Structure
 
 	Type       string     // TODO Convert to Type
-	length     Reference  `parent:"false"`
+	length     Expression `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
 	endian Endian `default:"LittleEndian"`
@@ -376,7 +409,7 @@ type Offset struct {
 	derives *Offset
 	parent  *Structure
 
-	length     Reference  `parent:"false"`
+	length     Expression `parent:"false"`
 	lengthUnit LengthUnit `default:"ByteLengthUnit"`
 
 	endian Endian `default:"LittleEndian"`
@@ -450,20 +483,20 @@ type Padding struct {
 	Base
 }
 
-func (*Padding) Length() Reference {
-	return ""
+func (*Padding) Length() Expression {
+	return nil
 }
 
 func (*Padding) LengthUnit() LengthUnit {
 	return ByteLengthUnit
 }
 
-func (*Padding) RepeatMax() Reference {
-	return Reference("1")
+func (*Padding) RepeatMax() Expression {
+	return ConstExpression(1)
 }
 
-func (*Padding) RepeatMin() Reference {
-	return Reference("1")
+func (*Padding) RepeatMin() Expression {
+	return ConstExpression(1)
 }
 
 func (*Padding) update(*Ufwb, *Structure, *toerr.Errors) {
@@ -529,41 +562,41 @@ func (n *Number) SetSigned(signed bool) {
 	n.signed = boolOf(signed)
 }
 
-func (s *StructRef) Length() Reference {
+func (s *StructRef) Length() Expression {
 	return s.Structure().Length()
 }
 func (s *StructRef) LengthUnit() LengthUnit {
 	return s.Structure().LengthUnit()
 }
 
-func (g *GrammarRef) Length() Reference {
+func (g *GrammarRef) Length() Expression {
 	return g.Grammar().Length()
 }
 func (g *GrammarRef) LengthUnit() LengthUnit {
 	return g.Grammar().LengthUnit()
 }
 
-func (g *Grammar) Length() Reference {
-	return "" // Always unset
+func (g *Grammar) Length() Expression {
+	return nil // Always unset
 }
 
 func (g *Grammar) LengthUnit() LengthUnit {
 	return ByteLengthUnit // Always unset
 }
 
-func (s *Script) Length() Reference {
+func (s *Script) Length() Expression {
 	// ScriptElements have no form, thus no length
-	return "0" // TODO Change to a constant Reference (when such a thing exists)
+	return ConstExpression(0)
 }
 
 func (s *Script) LengthUnit() LengthUnit {
 	return ByteLengthUnit
 }
 
-func (*Custom) RepeatMin() Reference {
-	return Reference("1") // TODO Change to a constant Reference (when such a thing exists)
+func (*Custom) RepeatMin() Expression {
+	return ConstExpression(1)
 }
 
-func (*Custom) RepeatMax() Reference {
-	return Reference("1") // TODO Change to a constant Reference (when such a thing exists)
+func (*Custom) RepeatMax() Expression {
+	return ConstExpression(1)
 }

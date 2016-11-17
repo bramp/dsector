@@ -148,7 +148,7 @@ func (elements Elements) Read(d *Decoder, value *Value, order Order) (*Value, er
 		}
 	}
 
-	if parent.Length() != "" {
+	if parent.Length() != nil {
 		log.Debugf("%s Loop %v, %v < %v, %v < %v", parent.IdString(), eof, value.Len, bounds_remaining, i, len(elements))
 
 		// TODO Is this an error?

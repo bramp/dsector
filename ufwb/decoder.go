@@ -11,7 +11,6 @@ import (
 	"errors"
 	log "github.com/Sirupsen/logrus"
 	"io"
-	"strconv"
 )
 
 const MAX_STACK = 10
@@ -164,7 +163,7 @@ func (d *Decoder) read(e Element) (*Value, error) {
 	//log.Debugf("[0x%x] Stack: %s", start, StackPrinter(d.stack))
 
 	// If the element has a smaller length, then bound it.
-	if e.Length() != "" {
+	if e.Length() != nil {
 		length, err := d.eval(e.Length())
 		if err != nil {
 			return nil, &validationError{e: e, err: err}
@@ -220,16 +219,20 @@ func (d *Decoder) read(e Element) (*Value, error) {
 	return v, err
 }
 
-// TODO Make this actually eval the string, and determine the right value
-func (d *Decoder) eval(r Reference) (i int64, err error) {
-	str := string(r)
+func (d *Decoder) eval(r Expression) (i int64, err error) {
+
+	if i, ok := r.(ConstExpression); ok {
+		return int64(i), nil
+	}
+
+	str := string(r.(StringExpression))
 
 	switch {
 	case str == "remaining":
-		i, err = d.remaining()
+		return d.remaining()
 
 	case str == "unlimited":
-		i = math.MaxInt64
+		return math.MaxInt64, nil // TODO Make this actually be unlimited
 
 	case strings.HasPrefix(str, "prev."):
 		name := strings.TrimPrefix(str, "prev.")
@@ -246,18 +249,10 @@ func (d *Decoder) eval(r Reference) (i int64, err error) {
 
 		log.Debugf("prev(%q) value: %s", name, v)
 		return n.Int(d.f, v)
-
-	default:
-		// Try a number // TODO Remove this path when we created ConstReferences
-		i, err = strconv.ParseInt(str, 10, 0)
-		if err != nil {
-			panic(err) // PANIC While we debug how eval should work. Eventually return error
-		}
-		return
 	}
 
 	log.Debugf("eval(%q) = %d, %v", str, i, err)
-	return
+	return -1, fmt.Errorf("unable to eval %q", str)
 }
 
 // currentStruct returns the most recent structure on the stack
@@ -328,7 +323,7 @@ func (d *Decoder) ByteOrder(e Endian) binary.ByteOrder {
 
 // Bytes returns the number of bytes this length represents.
 // If the unit is in bits, it rounds up or down.
-func (d *Decoder) Bytes(length Reference, unit LengthUnit) (int64, error) {
+func (d *Decoder) Bytes(length Expression, unit LengthUnit) (int64, error) {
 	len, err := d.eval(length)
 	if err != nil {
 		return -1, err
@@ -348,7 +343,7 @@ func (d *Decoder) Bytes(length Reference, unit LengthUnit) (int64, error) {
 }
 
 // Bits returns the number of bits this length represents.
-func (d *Decoder) Bits(length Reference, unit LengthUnit) (int64, error) {
+func (d *Decoder) Bits(length Expression, unit LengthUnit) (int64, error) {
 	len, err := d.eval(length)
 	if err != nil {
 		return -1, err

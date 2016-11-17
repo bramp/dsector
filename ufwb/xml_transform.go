@@ -162,8 +162,8 @@ func (xml *XmlStructure) transform(errs *toerr.Errors) Element {
 		Xml:  xml,
 		Base: xml.toBase("Structure", errs),
 
-		length:       Reference(xml.Length),
-		lengthOffset: Reference(xml.LengthOffset),
+		length:       NewExpression(xml.Length),
+		lengthOffset: NewExpression(xml.LengthOffset),
 		lengthUnit:   lengthunit(xml.LengthUnit, errs),
 
 		Repeats: xml.toRepeats(errs),
@@ -195,7 +195,7 @@ func (xml *XmlCustom) transform(errs *toerr.Errors) Element {
 		Xml:  xml,
 		Base: xml.toBase("Custom", errs),
 
-		length:     Reference(xml.Length),
+		length:     NewExpression(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
 		Colourful: Colourful{
@@ -241,7 +241,7 @@ func (xml *XmlString) transform(errs *toerr.Errors) Element {
 		Base: xml.toBase("String", errs),
 
 		typ:        xml.Type, // TODO Convert to "StringType" // "zero-terminated", "fixed-length", "pascal", "delimiter-terminated"
-		length:     Reference(xml.Length),
+		length:     NewExpression(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
 		encoding:  xml.Encoding,
@@ -278,7 +278,7 @@ func (xml *XmlBinary) transform(errs *toerr.Errors) Element {
 		Xml:  xml,
 		Base: xml.toBase("Binary", errs),
 
-		length:     Reference(xml.Length),
+		length:     NewExpression(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
 		Repeats: xml.toRepeats(errs),
@@ -317,7 +317,7 @@ func (xml *XmlNumber) transform(errs *toerr.Errors) Element {
 
 		Type: xml.Type, // TODO Convert to NumberType
 
-		length:     Reference(xml.Length),
+		length:     NewExpression(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
 		Repeats: xml.toRepeats(errs),
@@ -355,7 +355,7 @@ func (xml *XmlOffset) transform(errs *toerr.Errors) Element {
 		Xml:  xml,
 		Base: xml.toBase("Offset", errs),
 
-		length:     Reference(xml.Length),
+		length:     NewExpression(xml.Length),
 		lengthUnit: lengthunit(xml.LengthUnit, errs),
 
 		Repeats: xml.toRepeats(errs),
